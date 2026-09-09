@@ -146,6 +146,166 @@ type PatientSnapshot = {
 };
 
 /* =========================================================
+   CLINICAL INTAKE DRAFT
+   Structured patient-reported history captured through the
+   AI-assisted case-taking flow (clinical-intake). Distinct
+   from a plain uploaded document: this is edited field by
+   field rather than as a single interpretation blob.
+   ========================================================= */
+
+type ClinicalIntakeDraft = {
+  preferredLanguage?: string;
+  mode?: string;
+  consent?: Record<string, boolean>;
+  chiefComplaint: string;
+  hpi: {
+    onset: string;
+    duration: string;
+    character: string;
+    location: string;
+    radiation: string;
+    severity: string;
+    aggravating: string;
+    relieving: string;
+    associatedSymptoms: string;
+  };
+  pastMedicalHistory: string[];
+  pastSurgicalHistory: string[];
+  medications: string[];
+  allergies: string[];
+  familyHistory: string[];
+  personalHistory: {
+    diet: string;
+    sleep: string;
+    smoking: string;
+    alcohol: string;
+    occupation: string;
+  };
+  reviewOfSystems: Record<string, string>;
+  priorInvestigations: string[];
+  ayush: Record<string, string>;
+  redFlags: string[];
+  sourceDocuments?: Array<{ name: string; type: string; url: string }>;
+};
+
+const AYUSH_FIELD_LABELS: Array<[string, string]> = [
+  ["prakriti", "Prakriti"],
+  ["vikriti", "Vikriti"],
+  ["sara", "Sara"],
+  ["samhanana", "Samhanana"],
+  ["pramana", "Pramana"],
+  ["satmya", "Satmya"],
+  ["satva", "Satva"],
+  ["aharaShakti", "Ahara Shakti"],
+  ["vyayamaShakti", "Vyayama Shakti"],
+  ["vaya", "Vaya"],
+];
+
+const HPI_FIELD_LABELS: Array<[keyof ClinicalIntakeDraft["hpi"], string]> = [
+  ["onset", "Onset"],
+  ["duration", "Duration"],
+  ["character", "Character"],
+  ["location", "Location"],
+  ["radiation", "Radiation"],
+  ["severity", "Severity"],
+  ["aggravating", "Aggravating factors"],
+  ["relieving", "Relieving factors"],
+  ["associatedSymptoms", "Associated symptoms"],
+];
+
+function parseClinicalIntake(
+  interpretation: string
+): ClinicalIntakeDraft | null {
+  try {
+    const parsed = JSON.parse(interpretation);
+
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      typeof parsed.chiefComplaint !== "string" ||
+      !parsed.hpi ||
+      typeof parsed.hpi !== "object"
+    ) {
+      return null;
+    }
+
+    return {
+      preferredLanguage: parsed.preferredLanguage,
+      mode: parsed.mode,
+      consent: parsed.consent || {},
+      chiefComplaint: String(parsed.chiefComplaint || ""),
+      hpi: {
+        onset: String(parsed.hpi.onset || ""),
+        duration: String(parsed.hpi.duration || ""),
+        character: String(parsed.hpi.character || ""),
+        location: String(parsed.hpi.location || ""),
+        radiation: String(parsed.hpi.radiation || ""),
+        severity: String(parsed.hpi.severity || ""),
+        aggravating: String(parsed.hpi.aggravating || ""),
+        relieving: String(parsed.hpi.relieving || ""),
+        associatedSymptoms: String(parsed.hpi.associatedSymptoms || ""),
+      },
+      pastMedicalHistory: Array.isArray(parsed.pastMedicalHistory)
+        ? parsed.pastMedicalHistory.map(String)
+        : [],
+      pastSurgicalHistory: Array.isArray(parsed.pastSurgicalHistory)
+        ? parsed.pastSurgicalHistory.map(String)
+        : [],
+      medications: Array.isArray(parsed.medications)
+        ? parsed.medications.map(String)
+        : [],
+      allergies: Array.isArray(parsed.allergies)
+        ? parsed.allergies.map(String)
+        : [],
+      familyHistory: Array.isArray(parsed.familyHistory)
+        ? parsed.familyHistory.map(String)
+        : [],
+      personalHistory: {
+        diet: String(parsed.personalHistory?.diet || ""),
+        sleep: String(parsed.personalHistory?.sleep || ""),
+        smoking: String(parsed.personalHistory?.smoking || ""),
+        alcohol: String(parsed.personalHistory?.alcohol || ""),
+        occupation: String(parsed.personalHistory?.occupation || ""),
+      },
+      reviewOfSystems:
+        parsed.reviewOfSystems && typeof parsed.reviewOfSystems === "object"
+          ? parsed.reviewOfSystems
+          : {},
+      priorInvestigations: Array.isArray(parsed.priorInvestigations)
+        ? parsed.priorInvestigations.map(String)
+        : [],
+      ayush:
+        parsed.ayush && typeof parsed.ayush === "object" ? parsed.ayush : {},
+      redFlags: Array.isArray(parsed.redFlags)
+        ? parsed.redFlags.map(String)
+        : [],
+      sourceDocuments: Array.isArray(parsed.sourceDocuments)
+        ? parsed.sourceDocuments
+        : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function joinClinicalList(values: string[]) {
+  return values.join("\n");
+}
+
+function splitClinicalList(value: string) {
+  return value
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function isClinicalIntake(documentType: string) {
+  return (
+    String(documentType || "").trim().toUpperCase() === "CLINICAL_INTAKE"
+  );
+}
+
+/* =========================================================
    STATUS HELPERS
    ========================================================= */
 
@@ -232,6 +392,20 @@ function mapRecordToCase(
         ? record.verificationAudits
         : [],
   };
+}
+
+/* =========================================================
+   RED FLAGS
+   Cases from the AI-assisted case-taking flow may carry
+   patient-reported red flags detected at submission time.
+   ========================================================= */
+
+function getCaseRedFlags(item: VerificationCase): string[] {
+  if (!isClinicalIntake(item.documentType)) {
+    return [];
+  }
+
+  return parseClinicalIntake(item.interpretation || "")?.redFlags || [];
 }
 
 /* =========================================================
@@ -365,6 +539,307 @@ function getLatestVitals(
 }
 
 /* =========================================================
+   CLINICAL INTAKE REVIEW
+   Structured, field-by-field editing of a patient-reported
+   clinical intake draft, including the Dashavidha Pariksha
+   (AYUSH) fields when the patient chose AYUSH-mode intake.
+   ========================================================= */
+
+function IntakeField({
+  label,
+  value,
+  onChange,
+  disabled,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  multiline?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+          rows={3}
+          className="w-full rounded-xl border bg-slate-50 p-3 text-sm leading-6 outline-none focus:border-teal-500 disabled:opacity-60"
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+          className="w-full rounded-xl border bg-slate-50 p-3 text-sm outline-none focus:border-teal-500 disabled:opacity-60"
+        />
+      )}
+    </label>
+  );
+}
+
+function IntakeListField({
+  label,
+  helpText,
+  values,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  helpText?: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+  disabled: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      {helpText && (
+        <span className="mb-1.5 block text-xs text-slate-400">
+          {helpText}
+        </span>
+      )}
+      <textarea
+        value={joinClinicalList(values)}
+        onChange={(event) =>
+          onChange(splitClinicalList(event.target.value))
+        }
+        disabled={disabled}
+        rows={3}
+        placeholder="One item per line"
+        className="w-full rounded-xl border bg-slate-50 p-3 text-sm leading-6 outline-none focus:border-teal-500 disabled:opacity-60"
+      />
+    </label>
+  );
+}
+
+function ClinicalIntakeReview({
+  draft,
+  onChange,
+  disabled,
+}: {
+  draft: ClinicalIntakeDraft;
+  onChange: (value: ClinicalIntakeDraft) => void;
+  disabled: boolean;
+}) {
+  const isAyush =
+    draft.mode === "AYUSH" ||
+    AYUSH_FIELD_LABELS.some(([key]) => (draft.ayush[key] || "").trim());
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-4">
+        <p className="text-sm font-semibold text-teal-900">
+          Structured clinical-intake verification
+        </p>
+        <p className="mt-1 text-sm leading-6 text-teal-800">
+          This is the patient&apos;s own AI-assisted case-taking history.
+          Review each field against the original document and correct
+          the draft before verification.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border bg-white p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Stethoscope size={20} className="text-teal-700" />
+          <h3 className="font-semibold">Chief complaint</h3>
+        </div>
+        <textarea
+          value={draft.chiefComplaint}
+          onChange={(event) =>
+            onChange({ ...draft, chiefComplaint: event.target.value })
+          }
+          disabled={disabled}
+          rows={3}
+          className="w-full rounded-xl border bg-slate-50 p-3 leading-6 outline-none focus:border-teal-500 disabled:opacity-60"
+        />
+      </div>
+
+      <div className="rounded-2xl border bg-white p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <History size={20} className="text-teal-700" />
+          <h3 className="font-semibold">History of present illness</h3>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {HPI_FIELD_LABELS.map(([field, label]) => (
+            <IntakeField
+              key={field}
+              label={label}
+              value={draft.hpi[field]}
+              onChange={(value) =>
+                onChange({
+                  ...draft,
+                  hpi: { ...draft.hpi, [field]: value },
+                })
+              }
+              disabled={disabled}
+              multiline={field === "associatedSymptoms"}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border bg-white p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <FileText size={20} className="text-teal-700" />
+          <h3 className="font-semibold">Past &amp; current history</h3>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <IntakeListField
+            label="Past medical history"
+            values={draft.pastMedicalHistory}
+            onChange={(values) =>
+              onChange({ ...draft, pastMedicalHistory: values })
+            }
+            disabled={disabled}
+          />
+          <IntakeListField
+            label="Past surgical history"
+            values={draft.pastSurgicalHistory}
+            onChange={(values) =>
+              onChange({ ...draft, pastSurgicalHistory: values })
+            }
+            disabled={disabled}
+          />
+          <IntakeListField
+            label="Allergies"
+            values={draft.allergies}
+            onChange={(values) => onChange({ ...draft, allergies: values })}
+            disabled={disabled}
+          />
+          <IntakeListField
+            label="Family history"
+            values={draft.familyHistory}
+            onChange={(values) =>
+              onChange({ ...draft, familyHistory: values })
+            }
+            disabled={disabled}
+          />
+          <IntakeListField
+            label="Prior investigations"
+            values={draft.priorInvestigations}
+            onChange={(values) =>
+              onChange({ ...draft, priorInvestigations: values })
+            }
+            disabled={disabled}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border bg-white p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <UserRound size={20} className="text-teal-700" />
+          <h3 className="font-semibold">Personal history</h3>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {(
+            [
+              ["diet", "Diet"],
+              ["sleep", "Sleep"],
+              ["smoking", "Smoking"],
+              ["alcohol", "Alcohol"],
+              ["occupation", "Occupation"],
+            ] as Array<[keyof ClinicalIntakeDraft["personalHistory"], string]>
+          ).map(([field, label]) => (
+            <IntakeField
+              key={field}
+              label={label}
+              value={draft.personalHistory[field]}
+              onChange={(value) =>
+                onChange({
+                  ...draft,
+                  personalHistory: {
+                    ...draft.personalHistory,
+                    [field]: value,
+                  },
+                })
+              }
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      </div>
+
+      {Object.keys(draft.reviewOfSystems).length > 0 && (
+        <div className="rounded-2xl border bg-white p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <ShieldCheck size={20} className="text-teal-700" />
+            <h3 className="font-semibold">Review of systems</h3>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {Object.entries(draft.reviewOfSystems).map(([system, value]) => (
+              <IntakeField
+                key={system}
+                label={system}
+                value={value}
+                onChange={(nextValue) =>
+                  onChange({
+                    ...draft,
+                    reviewOfSystems: {
+                      ...draft.reviewOfSystems,
+                      [system]: nextValue,
+                    },
+                  })
+                }
+                disabled={disabled}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isAyush && (
+        <div className="rounded-2xl border border-teal-100 bg-white p-5">
+          <div className="mb-1 flex items-center gap-2">
+            <Activity size={20} className="text-teal-700" />
+            <h3 className="font-semibold">
+              Dashavidha Pariksha (AYUSH assessment)
+            </h3>
+          </div>
+          <p className="mb-4 text-sm text-slate-500">
+            Patient-reported, in their own words. Verify against clinical
+            judgment — this is not a scored or diagnostic instrument.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {AYUSH_FIELD_LABELS.map(([key, label]) => (
+              <IntakeField
+                key={key}
+                label={label}
+                value={draft.ayush[key] || ""}
+                onChange={(value) =>
+                  onChange({
+                    ...draft,
+                    ayush: { ...draft.ayush, [key]: value },
+                  })
+                }
+                disabled={disabled}
+                multiline
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {Array.isArray(draft.sourceDocuments) &&
+        draft.sourceDocuments.length > 1 && (
+          <p className="text-xs text-slate-400">
+            {draft.sourceDocuments.length} documents were attached at
+            intake. The primary document is shown on the left; additional
+            attachments are not yet individually viewable here.
+          </p>
+        )}
+    </div>
+  );
+}
+
+/* =========================================================
    PAGE
    ========================================================= */
 
@@ -389,6 +864,11 @@ export default function ClinicianPage() {
     interpretation,
     setInterpretation,
   ] = useState("");
+
+  const [
+    clinicalIntakeDraft,
+    setClinicalIntakeDraft,
+  ] = useState<ClinicalIntakeDraft | null>(null);
 
   const [
     medications,
@@ -443,11 +923,17 @@ export default function ClinicianPage() {
   const pendingCases =
     useMemo(
       () =>
-        cases.filter(
-          (item) =>
-            item.status ===
-            "Pending Review"
-        ),
+        [...cases]
+          .filter(
+            (item) =>
+              item.status ===
+              "Pending Review"
+          )
+          .sort((first, second) => {
+            const firstFlags = getCaseRedFlags(first).length > 0 ? 1 : 0;
+            const secondFlags = getCaseRedFlags(second).length > 0 ? 1 : 0;
+            return secondFlags - firstFlags;
+          }),
       [cases]
     );
 
@@ -793,6 +1279,12 @@ export default function ClinicianPage() {
         ""
     );
 
+    setClinicalIntakeDraft(
+      isClinicalIntake(item.documentType)
+        ? parseClinicalIntake(item.interpretation || "")
+        : null
+    );
+
     setMedications(
       item.medications || []
     );
@@ -921,7 +1413,16 @@ export default function ClinicianPage() {
               id:
                 selectedCase.id,
 
-              interpretation,
+              interpretation:
+                isClinicalIntake(selectedCase.documentType) &&
+                clinicalIntakeDraft
+                  ? JSON.stringify({
+                      ...clinicalIntakeDraft,
+                      medications: medications
+                        .map((medication) => medication.name.trim())
+                        .filter(Boolean),
+                    })
+                  : interpretation,
 
               medications,
 
@@ -1388,7 +1889,10 @@ export default function ClinicianPage() {
             ) : (
               <div className="space-y-3">
                 {pendingCases.map(
-                  (item) => (
+                  (item) => {
+                    const flagCount = getCaseRedFlags(item).length;
+
+                    return (
                     <button
                       key={item.id}
                       type="button"
@@ -1401,6 +1905,8 @@ export default function ClinicianPage() {
                         selectedCase?.id ===
                         item.id
                           ? "border-teal-500 bg-teal-50"
+                          : flagCount > 0
+                          ? "border-rose-200 bg-rose-50/40 hover:border-rose-300"
                           : "hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
@@ -1419,9 +1925,16 @@ export default function ClinicianPage() {
                           </p>
                         </div>
 
-                        <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-                          Pending
-                        </span>
+                        {flagCount > 0 ? (
+                          <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
+                            <MessageSquareWarning size={12} />
+                            Urgent
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                            Pending
+                          </span>
+                        )}
                       </div>
 
                       <p className="mt-3 truncate text-xs text-slate-400">
@@ -1437,7 +1950,8 @@ export default function ClinicianPage() {
                         )}
                       </p>
                     </button>
-                  )
+                    );
+                  }
                 )}
               </div>
             )}
@@ -2198,38 +2712,80 @@ export default function ClinicianPage() {
                         </div>
                       </div>
 
-                      {/* INTERPRETATION */}
+                      {isClinicalIntake(selectedCase.documentType) &&
+                      clinicalIntakeDraft &&
+                      clinicalIntakeDraft.redFlags.length > 0 && (
+                        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                          <div className="flex gap-3">
+                            <MessageSquareWarning
+                              className="mt-0.5 shrink-0 text-rose-700"
+                              size={21}
+                            />
 
-                      <div>
-                        <div className="mb-3 flex items-center gap-2">
-                          <FileText
-                            size={20}
-                          />
+                            <div>
+                              <h3 className="font-semibold text-rose-900">
+                                Patient-reported red flags at intake
+                              </h3>
 
-                          <h3 className="font-semibold">
-                            Document interpretation
-                          </h3>
+                              <ul className="mt-2 space-y-1 text-sm leading-6 text-rose-800">
+                                {clinicalIntakeDraft.redFlags.map((flag) => (
+                                  <li key={flag}>• {flag}</li>
+                                ))}
+                              </ul>
+
+                              <p className="mt-2 text-xs text-rose-700">
+                                Detected automatically from the patient&apos;s
+                                own words at submission time. This is a
+                                triage aid, not a diagnosis — confirm with
+                                the patient and escalate if clinically
+                                warranted.
+                              </p>
+                            </div>
+                          </div>
                         </div>
+                      )}
 
-                        <textarea
-                          value={
-                            interpretation
-                          }
-                          onChange={(
-                            event
-                          ) =>
-                            setInterpretation(
-                              event.target
-                                .value
-                            )
-                          }
-                          disabled={
-                            saving
-                          }
-                          rows={8}
-                          className="w-full rounded-2xl border bg-slate-50 p-4 leading-6 outline-none transition focus:border-teal-500 disabled:opacity-60"
+                      {isClinicalIntake(selectedCase.documentType) &&
+                      clinicalIntakeDraft ? (
+                        <ClinicalIntakeReview
+                          draft={clinicalIntakeDraft}
+                          onChange={setClinicalIntakeDraft}
+                          disabled={saving}
                         />
-                      </div>
+                      ) : (
+                        <div>
+                          {/* INTERPRETATION */}
+
+                          <div className="mb-3 flex items-center gap-2">
+                            <FileText
+                              size={20}
+                            />
+
+                            <h3 className="font-semibold">
+                              Document interpretation
+                            </h3>
+                          </div>
+
+                          <textarea
+                            value={
+                              interpretation
+                            }
+                            onChange={(
+                              event
+                            ) =>
+                              setInterpretation(
+                                event.target
+                                  .value
+                              )
+                            }
+                            disabled={
+                              saving
+                            }
+                            rows={8}
+                            className="w-full rounded-2xl border bg-slate-50 p-4 leading-6 outline-none transition focus:border-teal-500 disabled:opacity-60"
+                          />
+                        </div>
+                      )}
 
                       {/* MEDICATIONS */}
 
