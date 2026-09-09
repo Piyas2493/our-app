@@ -343,6 +343,38 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    /*
+     * Mirror the consent checkboxes collected at intake into the
+     * auditable consent log, so the consent center reflects real
+     * activity rather than only what was embedded in this record's
+     * interpretation JSON.
+     */
+    await prisma.consentEvent.createMany({
+      data: [
+        {
+          patientId: user.id,
+          category: "CLINICAL_HISTORY",
+          granted: Boolean(consent.clinicalHistory),
+          source: "CLINICAL_INTAKE",
+          medicalRecordId: medicalRecord.id,
+        },
+        {
+          patientId: user.id,
+          category: "DOCUMENT_PROCESSING",
+          granted: Boolean(consent.documentProcessing),
+          source: "CLINICAL_INTAKE",
+          medicalRecordId: medicalRecord.id,
+        },
+        {
+          patientId: user.id,
+          category: "CLINICIAN_SHARING",
+          granted: Boolean(consent.clinicianSharing),
+          source: "CLINICAL_INTAKE",
+          medicalRecordId: medicalRecord.id,
+        },
+      ],
+    });
+
     return NextResponse.json({
       success: true,
 

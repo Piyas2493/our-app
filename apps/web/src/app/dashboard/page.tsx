@@ -302,6 +302,7 @@ const navItems = [
   {
     label: "Consent & Privacy",
     icon: ShieldCheck,
+    href: "/consent",
   },
 ];
 

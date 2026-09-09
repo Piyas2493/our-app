@@ -121,6 +121,8 @@ model User {
   labOrders  LabOrder[]  @relation("PatientLabOrders")
   labReports LabReport[] @relation("PatientLabReports")
 
+  consentEvents ConsentEvent[] @relation("PatientConsentEvents")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -583,4 +585,38 @@ model LabReport {
   @@index([patientId, reportDate])
   @@index([labId, reportDate])
   @@index([status, reportDate])
+}
+
+enum ConsentCategory {
+  CLINICAL_HISTORY
+  DOCUMENT_PROCESSING
+  CLINICIAN_SHARING
+  RESEARCH_DATA_SHARING
+  REMINDERS_NOTIFICATIONS
+}
+
+// Append-only consent log. The current status for a category is the
+// most recent event for that (patientId, category) pair — never
+// mutated in place, so every grant/revoke stays independently
+// auditable rather than being overwritten.
+model ConsentEvent {
+  id String @id @default(cuid())
+
+  patientId String
+
+  patient User @relation("PatientConsentEvents", fields: [patientId], references: [id], onDelete: Cascade)
+
+  category ConsentCategory
+
+  granted Boolean
+
+  source String
+
+  medicalRecordId String?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId, category, createdAt])
 }

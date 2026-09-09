@@ -295,7 +295,7 @@ const navItems = [
   { label: "Voice Assistant", icon: Mic },
   { label: "Clinician Verification", icon: UserCheck },
   { label: "FHIR / ABDM", icon: Workflow },
-  { label: "Consent & Privacy", icon: ShieldCheck },
+  { label: "Consent & Privacy", icon: ShieldCheck, href: "/consent" },
 ];
 
 function getNavLabel(label: string, t: (key: string) => string) {
