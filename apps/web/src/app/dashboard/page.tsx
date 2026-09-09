@@ -15,6 +15,7 @@ import {
   FileText,
   ClipboardList,
   HeartPulse,
+  LifeBuoy,
   Link2,
   LogOut,
   Mic,
@@ -304,6 +305,12 @@ const navItems = [
     icon: ShieldCheck,
     href: "/consent",
   },
+
+  {
+    label: "Help & Support",
+    icon: LifeBuoy,
+    href: "/support",
+  },
 ];
 
 function getNavLabel(
@@ -324,6 +331,7 @@ function getNavLabel(
     "Clinician Verification": t("nav.clinician"),
     "FHIR / ABDM": t("nav.fhir"),
     "Consent & Privacy": t("nav.consent"),
+    "Help & Support": t("nav.support"),
   };
 
   return labels[label] ?? label;

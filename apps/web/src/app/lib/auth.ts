@@ -5,7 +5,7 @@ export type AuthenticatedUser = {
   id: string;
   name: string;
   email: string;
-  role: "PATIENT" | "CLINICIAN";
+  role: "PATIENT" | "CLINICIAN" | "HELPDESK";
 };
 
 /**

@@ -188,6 +188,36 @@ export async function proxy(
     }
 
     /*
+     * HELPDESK-only pages.
+     */
+    const helpdeskRoutes = [
+      "/helpdesk",
+    ];
+
+    const isHelpdeskRoute =
+      helpdeskRoutes.some(
+        (route) =>
+          pathname === route ||
+          pathname.startsWith(
+            `${route}/`
+          )
+      );
+
+    if (
+      isHelpdeskRoute &&
+      role !== "HELPDESK"
+    ) {
+      return NextResponse.redirect(
+        new URL(
+          role === "CLINICIAN"
+            ? "/clinician"
+            : "/dashboard",
+          request.url
+        )
+      );
+    }
+
+    /*
      * Unknown protected pages:
      * authenticated users may continue.
      */

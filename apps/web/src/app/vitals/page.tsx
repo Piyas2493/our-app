@@ -17,6 +17,7 @@ import {
   Mic,
   Pill,
   RefreshCw,
+  LifeBuoy,
   ShieldCheck,
   Thermometer,
   Upload,
@@ -281,6 +282,12 @@ const navItems = [
     icon: ShieldCheck,
     href: "/consent",
   },
+
+  {
+    label: "Help & Support",
+    icon: LifeBuoy,
+    href: "/support",
+  },
 ];
 
 /* =========================================================
@@ -372,6 +379,7 @@ const navLabelKeys: Record<string, string> = {
   "Clinician Verification": "nav.clinician",
   "FHIR / ABDM": "nav.fhir",
   "Consent & Privacy": "nav.consent",
+  "Help & Support": "nav.support",
 };
 
 function getVitalLabel(type: VitalType, t: (key: string) => string) {

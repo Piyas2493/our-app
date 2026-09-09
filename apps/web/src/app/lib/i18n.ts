@@ -53,6 +53,7 @@ const en = {
   "nav.clinician": "Clinician Verification",
   "nav.fhir": "FHIR / ABDM",
   "nav.consent": "Consent & Privacy",
+  "nav.support": "Help & Support",
 
   "consent.pageTitle": "Consent & Privacy",
   "consent.pageSubtitle": "Control what JeevanLink is allowed to do with your health information. Every change here is logged and stays visible to you.",
@@ -336,6 +337,7 @@ const hi: Partial<Record<keyof typeof en, string>> = {
   "nav.clinician": "क्लिनिशियन सत्यापन",
   "nav.fhir": "FHIR / ABDM",
   "nav.consent": "सहमति और गोपनीयता",
+  "nav.support": "सहायता और समर्थन",
 
   "consent.pageTitle": "सहमति और गोपनीयता",
   "consent.pageSubtitle": "JeevanLink को आपकी स्वास्थ्य जानकारी के साथ क्या करने की अनुमति है, यह आप तय करें। यहाँ हर बदलाव दर्ज होता है और आपको हमेशा दिखता है।",
@@ -619,6 +621,7 @@ const bn: Partial<Record<keyof typeof en, string>> = {
   "nav.clinician": "ক্লিনিশিয়ান যাচাই",
   "nav.fhir": "FHIR / ABDM",
   "nav.consent": "সম্মতি ও গোপনীয়তা",
+  "nav.support": "সহায়তা ও সহযোগিতা",
 
   "consent.pageTitle": "সম্মতি ও গোপনীয়তা",
   "consent.pageSubtitle": "JeevanLink আপনার স্বাস্থ্য তথ্য নিয়ে কী করতে পারবে তা আপনি ঠিক করুন। এখানে প্রতিটি পরিবর্তন লগ হয় এবং সবসময় আপনার কাছে দৃশ্যমান থাকে।",
@@ -832,6 +835,7 @@ const ta: Partial<Record<keyof typeof en, string>> = {
   "nav.clinician": "மருத்துவர் சரிபார்ப்பு",
   "nav.fhir": "FHIR / ABDM",
   "nav.consent": "ஒப்புதல் & தனியுரிமை",
+  "nav.support": "உதவி & ஆதரவு",
 
   "consent.pageTitle": "ஒப்புதல் & தனியுரிமை",
   "consent.pageSubtitle": "உங்கள் சுகாதாரத் தகவலைக் கொண்டு JeevanLink என்ன செய்யலாம் என்பதை நீங்கள் கட்டுப்படுத்துங்கள். இங்குள்ள ஒவ்வொரு மாற்றமும் பதிவு செய்யப்பட்டு எப்போதும் உங்களுக்குத் தெரியும்.",

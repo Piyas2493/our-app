@@ -12,6 +12,7 @@ import {
   FileText,
   FlaskConical,
   HeartPulse,
+  LifeBuoy,
   Link2,
   Mic,
   Pill,
@@ -119,6 +120,7 @@ const navItems = [
   { label: "Clinician Verification", icon: UserCheck },
   { label: "FHIR / ABDM", icon: Workflow },
   { label: "Consent & Privacy", icon: ShieldCheck, href: "/consent" },
+  { label: "Help & Support", icon: LifeBuoy, href: "/support" },
 ];
 
 function getNavLabel(label: string, t: (key: string) => string) {
@@ -136,6 +138,7 @@ function getNavLabel(label: string, t: (key: string) => string) {
     "Clinician Verification": t("nav.clinician"),
     "FHIR / ABDM": t("nav.fhir"),
     "Consent & Privacy": t("nav.consent"),
+    "Help & Support": t("nav.support"),
   };
 
   return labels[label] ?? label;

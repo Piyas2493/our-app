@@ -28,7 +28,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type UserRole = "PATIENT" | "CLINICIAN";
+type UserRole = "PATIENT" | "CLINICIAN" | "HELPDESK";
 
 type SessionUser = {
   id: string;
@@ -121,6 +121,12 @@ export default function LoginPage() {
       ) {
         router.replace(
           "/clinician"
+        );
+      } else if (
+        user.role === "HELPDESK"
+      ) {
+        router.replace(
+          "/helpdesk"
         );
       } else {
         router.replace(

@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   PATIENT
   CLINICIAN
+  HELPDESK
 }
 
 enum RecordStatus {
@@ -122,6 +123,10 @@ model User {
   labReports LabReport[] @relation("PatientLabReports")
 
   consentEvents ConsentEvent[] @relation("PatientConsentEvents")
+
+  requestedTickets Ticket[]        @relation("TicketRequester")
+  assignedTickets  Ticket[]        @relation("TicketAssignee")
+  ticketMessages   TicketMessage[] @relation("TicketMessageAuthor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -619,4 +624,79 @@ model ConsentEvent {
   createdAt DateTime @default(now())
 
   @@index([patientId, category, createdAt])
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  ACCOUNT
+  APPOINTMENT
+  TECHNICAL
+  RECORD_CORRECTION
+  BILLING
+  OTHER
+}
+
+model Ticket {
+  id String @id @default(cuid())
+
+  ticketNumber String @unique
+
+  requesterId String
+  requester   User   @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  subject     String
+  description String
+
+  category TicketCategory @default(OTHER)
+  priority TicketPriority @default(NORMAL)
+  status   TicketStatus   @default(OPEN)
+
+  relatedRecordId String?
+
+  messages TicketMessage[]
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  resolvedAt DateTime?
+  closedAt   DateTime?
+
+  @@index([requesterId, createdAt])
+  @@index([assignedToId, status])
+  @@index([status, createdAt])
+}
+
+model TicketMessage {
+  id String @id @default(cuid())
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  body String
+
+  isInternalNote Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
 }
