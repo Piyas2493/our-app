@@ -122,14 +122,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { subject, description, category, priority, relatedRecordId } =
-      (body ?? {}) as {
-        subject?: unknown;
-        description?: unknown;
-        category?: unknown;
-        priority?: unknown;
-        relatedRecordId?: unknown;
-      };
+    const {
+      subject,
+      description,
+      category,
+      priority,
+      relatedRecordId,
+      callbackRequested,
+      callbackPhone,
+    } = (body ?? {}) as {
+      subject?: unknown;
+      description?: unknown;
+      category?: unknown;
+      priority?: unknown;
+      relatedRecordId?: unknown;
+      callbackRequested?: unknown;
+      callbackPhone?: unknown;
+    };
 
     const cleanSubject = typeof subject === "string" ? subject.trim() : "";
     const cleanDescription =
@@ -163,6 +172,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const wantsCallback = callbackRequested === true;
+    const cleanCallbackPhone =
+      typeof callbackPhone === "string" ? callbackPhone.trim() : "";
+
+    if (wantsCallback && !cleanCallbackPhone) {
+      return NextResponse.json(
+        { success: false, error: "A phone number is required to request a callback." },
+        { status: 400 },
+      );
+    }
+
     const existingCount = await prisma.ticket.count();
     const ticketNumber = `JL-${String(existingCount + 1).padStart(6, "0")}`;
 
@@ -179,6 +199,8 @@ export async function POST(request: NextRequest) {
           typeof relatedRecordId === "string" && relatedRecordId.trim()
             ? relatedRecordId.trim()
             : null,
+        callbackRequested: wantsCallback,
+        callbackPhone: wantsCallback ? cleanCallbackPhone : null,
         messages: {
           create: {
             authorId: user.id,

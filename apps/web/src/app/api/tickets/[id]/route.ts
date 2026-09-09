@@ -136,10 +136,11 @@ export async function PATCH(
       );
     }
 
-    const { status, priority, assignToSelf } = (body ?? {}) as {
+    const { status, priority, assignToSelf, markCallbackDone } = (body ?? {}) as {
       status?: unknown;
       priority?: unknown;
       assignToSelf?: unknown;
+      markCallbackDone?: unknown;
     };
 
     if (status !== undefined && !isValid(status, VALID_STATUSES)) {
@@ -171,6 +172,7 @@ export async function PATCH(
       assignedToId?: string;
       resolvedAt?: Date | null;
       closedAt?: Date | null;
+      callbackCompletedAt?: Date;
     } = {};
 
     if (status) {
@@ -189,6 +191,10 @@ export async function PATCH(
       if (existing.status === "OPEN") {
         data.status = "ASSIGNED";
       }
+    }
+
+    if (markCallbackDone === true && existing.callbackRequested) {
+      data.callbackCompletedAt = new Date();
     }
 
     const ticket = await prisma.ticket.update({

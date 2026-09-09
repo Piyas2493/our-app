@@ -8,6 +8,7 @@ import {
   Inbox,
   LifeBuoy,
   Lock,
+  PhoneCall,
   RefreshCw,
   Send,
   UserPlus,
@@ -50,6 +51,9 @@ type Ticket = {
   updatedAt: string;
   requester: { id: string; name: string; role: string };
   assignedTo: { id: string; name: string } | null;
+  callbackRequested: boolean;
+  callbackPhone: string | null;
+  callbackCompletedAt: string | null;
   messages?: TicketMessage[];
   _count?: { messages: number };
 };
@@ -432,6 +436,20 @@ export default function HelpdeskPage() {
                       Assigned to {ticket.assignedTo.name}
                     </p>
                   )}
+                  {ticket.callbackRequested && (
+                    <p
+                      className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        ticket.callbackCompletedAt
+                          ? "bg-slate-100 text-slate-500"
+                          : "bg-rose-50 text-rose-700"
+                      }`}
+                    >
+                      <PhoneCall size={11} />
+                      {ticket.callbackCompletedAt
+                        ? "Callback done"
+                        : `Call requested · ${ticket.callbackPhone}`}
+                    </p>
+                  )}
                 </button>
               ))
             )}
@@ -453,19 +471,46 @@ export default function HelpdeskPage() {
                     <h3 className="mt-0.5 font-semibold text-slate-800">
                       {selectedTicket.subject}
                     </h3>
+                    {selectedTicket.callbackRequested && (
+                      <p
+                        className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          selectedTicket.callbackCompletedAt
+                            ? "bg-slate-100 text-slate-500"
+                            : "bg-rose-50 text-rose-700"
+                        }`}
+                      >
+                        <PhoneCall size={13} />
+                        Call {selectedTicket.callbackPhone}
+                        {selectedTicket.callbackCompletedAt ? " · done" : " · pending"}
+                      </p>
+                    )}
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={updating || Boolean(selectedTicket.assignedTo)}
-                    onClick={() => void updateTicket({ assignToSelf: true })}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    <UserPlus size={13} />
-                    {selectedTicket.assignedTo
-                      ? `Assigned to ${selectedTicket.assignedTo.name}`
-                      : "Assign to me"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedTicket.callbackRequested && !selectedTicket.callbackCompletedAt && (
+                      <button
+                        type="button"
+                        disabled={updating}
+                        onClick={() => void updateTicket({ markCallbackDone: true })}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                      >
+                        <PhoneCall size={13} />
+                        Mark as called
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={updating || Boolean(selectedTicket.assignedTo)}
+                      onClick={() => void updateTicket({ assignToSelf: true })}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <UserPlus size={13} />
+                      {selectedTicket.assignedTo
+                        ? `Assigned to ${selectedTicket.assignedTo.name}`
+                        : "Assign to me"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-3">

@@ -13,6 +13,7 @@ import {
   LifeBuoy,
   Link2,
   Mic,
+  PhoneCall,
   Pill,
   Plus,
   RefreshCw,
@@ -67,6 +68,9 @@ type Ticket = {
   updatedAt: string;
   requester: { id: string; name: string; role: string };
   assignedTo: { id: string; name: string } | null;
+  callbackRequested: boolean;
+  callbackPhone: string | null;
+  callbackCompletedAt: string | null;
   messages?: TicketMessage[];
   _count?: { messages: number };
 };
@@ -161,6 +165,8 @@ export default function SupportPage() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<TicketCategory>("OTHER");
   const [priority, setPriority] = useState<TicketPriority>("NORMAL");
+  const [callbackRequested, setCallbackRequested] = useState(false);
+  const [callbackPhone, setCallbackPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [replyText, setReplyText] = useState("");
@@ -243,6 +249,11 @@ export default function SupportPage() {
       return;
     }
 
+    if (callbackRequested && !callbackPhone.trim()) {
+      setError("A phone number is required to request a callback.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -251,7 +262,14 @@ export default function SupportPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, description, category, priority }),
+        body: JSON.stringify({
+          subject,
+          description,
+          category,
+          priority,
+          callbackRequested,
+          callbackPhone: callbackRequested ? callbackPhone : undefined,
+        }),
       });
 
       const result = await response.json().catch(() => null);
@@ -264,6 +282,8 @@ export default function SupportPage() {
       setDescription("");
       setCategory("OTHER");
       setPriority("NORMAL");
+      setCallbackRequested(false);
+      setCallbackPhone("");
       setShowNewTicket(false);
 
       await loadTickets();
@@ -502,6 +522,28 @@ export default function SupportPage() {
                   </label>
                 </div>
 
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={callbackRequested}
+                      onChange={(event) => setCallbackRequested(event.target.checked)}
+                    />
+                    <PhoneCall size={15} className="text-teal-700" />
+                    Request a callback instead of waiting for a reply here
+                  </label>
+
+                  {callbackRequested && (
+                    <input
+                      type="tel"
+                      value={callbackPhone}
+                      onChange={(event) => setCallbackPhone(event.target.value)}
+                      placeholder="Phone number to call"
+                      className="mt-3 w-full max-w-xs rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                    />
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
@@ -557,6 +599,12 @@ export default function SupportPage() {
                     <p className="mt-2 text-[11px] text-slate-400">
                       {CATEGORY_LABELS[ticket.category]} · {formatDate(ticket.updatedAt)}
                     </p>
+                    {ticket.callbackRequested && (
+                      <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700">
+                        <PhoneCall size={11} />
+                        {ticket.callbackCompletedAt ? "Callback completed" : "Callback requested"}
+                      </p>
+                    )}
                   </button>
                 ))
               )}
@@ -575,6 +623,13 @@ export default function SupportPage() {
                         {selectedTicket.ticketNumber}
                       </p>
                       <h3 className="font-semibold text-slate-800">{selectedTicket.subject}</h3>
+                      {selectedTicket.callbackRequested && (
+                        <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-teal-700">
+                          <PhoneCall size={12} />
+                          {selectedTicket.callbackPhone}
+                          {selectedTicket.callbackCompletedAt ? " · Called" : " · Callback pending"}
+                        </p>
+                      )}
                     </div>
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[selectedTicket.status]}`}

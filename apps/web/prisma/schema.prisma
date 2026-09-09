@@ -671,6 +671,10 @@ model Ticket {
 
   relatedRecordId String?
 
+  callbackRequested   Boolean   @default(false)
+  callbackPhone       String?
+  callbackCompletedAt DateTime?
+
   messages TicketMessage[]
 
   createdAt  DateTime  @default(now())
