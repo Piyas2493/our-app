@@ -26,6 +26,7 @@ import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { CLINICAL_INTAKE_COPY as copy } from "../clinical-intake-copy";
 
 type IntakeMode = "GENERAL" | "AYUSH";
+type ComplaintCategory = "chestPain" | "fever" | "cough" | "abdominalPain" | "headache" | "general";
 type HistoryState = {
   chiefComplaint: string;
   onset: string;
@@ -139,6 +140,46 @@ const defaultState: HistoryState = {
 
 const steps = ["consent", "complaint", "hpi", "history", "review", "reviewSubmit"] as const;
 
+type HpiFieldKey =
+  | "onset"
+  | "duration"
+  | "character"
+  | "location"
+  | "radiation"
+  | "severity"
+  | "aggravating"
+  | "relieving"
+  | "associatedSymptoms";
+
+// The full SOCRATES-style field set, in teaching order. Which of these are
+// actually asked is adaptive: it narrows based on the chief-complaint
+// category the patient picked (see hpiFieldsByCategory below), rather than
+// always showing all nine fields to every patient regardless of complaint.
+const ALL_HPI_FIELDS: HpiFieldKey[] = [
+  "onset",
+  "duration",
+  "character",
+  "location",
+  "radiation",
+  "severity",
+  "aggravating",
+  "relieving",
+  "associatedSymptoms",
+];
+
+const hpiFieldsByCategory: Record<ComplaintCategory, ReadonlySet<HpiFieldKey>> = {
+  // Chest pain and abdominal pain are classic full-SOCRATES presentations
+  // (location + radiation both carry real clinical signal) — ask everything.
+  chestPain: new Set(ALL_HPI_FIELDS),
+  abdominalPain: new Set(ALL_HPI_FIELDS),
+  general: new Set(ALL_HPI_FIELDS),
+  // Headache rarely "radiates" in the SOCRATES sense.
+  headache: new Set(ALL_HPI_FIELDS.filter((field) => field !== "radiation")),
+  // Fever and cough don't have a body "location" or "radiation" pattern.
+  fever: new Set(ALL_HPI_FIELDS.filter((field) => field !== "location" && field !== "radiation")),
+  cough: new Set(ALL_HPI_FIELDS.filter((field) => field !== "location" && field !== "radiation")),
+};
+
 export default function ClinicalIntakePage() {
   const router = useRouter();
   const { language } = useLanguage() as { language?: string };
@@ -160,6 +201,7 @@ export default function ClinicalIntakePage() {
   const [mode, setMode] = useState<IntakeMode>("GENERAL");
   const [step, setStep] = useState(0);
   const [history, setHistory] = useState<HistoryState>(defaultState);
+  const [complaintCategory, setComplaintCategory] = useState<ComplaintCategory>("general");
   const [consent, setConsent] = useState({
     clinicalHistory: false,
     documentProcessing: false,
@@ -370,6 +412,18 @@ export default function ClinicalIntakePage() {
 
   function updateField(field: keyof HistoryState, value: string) {
     setHistory((current) => ({ ...current, [field]: value }));
+
+    // Free-typed or dictated chief-complaint text doesn't carry a known
+    // category the way a quick-choice tap does, so fall back to asking
+    // the full HPI field set rather than guessing from the text.
+    if (field === "chiefComplaint") {
+      setComplaintCategory("general");
+    }
+  }
+
+  function selectQuickComplaint(category: ComplaintCategory, label: string) {
+    setHistory((current) => ({ ...current, chiefComplaint: label }));
+    setComplaintCategory(category);
   }
 
   function updateAyushField(field: string, value: string) {
@@ -715,20 +769,33 @@ export default function ClinicalIntakePage() {
     setListening(false);
   }
 
-  const hpiFields = useMemo(
-    () => [
-      ["onset", text.onset],
-      ["duration", text.duration],
-      ["character", text.character],
-      ["location", text.location],
-      ["radiation", text.radiation],
-      ["severity", text.severity],
-      ["aggravating", text.aggravating],
-      ["relieving", text.relieving],
-      ["associatedSymptoms", text.associatedSymptoms],
-    ] as const,
-    [text],
-  );
+  const hpiFields = useMemo(() => {
+    const labels: Record<HpiFieldKey, string> = {
+      onset: text.onset,
+      duration: text.duration,
+      character: text.character,
+      location: text.location,
+      radiation: text.radiation,
+      severity: text.severity,
+      aggravating: text.aggravating,
+      relieving: text.relieving,
+      associatedSymptoms: text.associatedSymptoms,
+    };
+
+    const active = hpiFieldsByCategory[complaintCategory];
+
+    return ALL_HPI_FIELDS.filter((field) => active.has(field)).map(
+      (field) => [field, labels[field]] as const,
+    );
+  }, [text, complaintCategory]);
+
+  const hpiHint = ({
+    chestPain: text.hpiHintChestPain,
+    fever: text.hpiHintFever,
+    cough: text.hpiHintCough,
+    abdominalPain: text.hpiHintAbdominalPain,
+    headache: text.hpiHintHeadache,
+  } as Partial<Record<ComplaintCategory, string>>)[complaintCategory];
 
   const canContinue = useMemo(() => {
     if (step === 0) return consent.clinicalHistory && consent.clinicianSharing;
@@ -1131,13 +1198,28 @@ export default function ClinicalIntakePage() {
               <div>
                 <SectionHeading icon={<ClipboardList size={22} />} title={text.chiefComplaint} subtitle={text.chiefComplaintSubtitle} />
                 <VoiceField label={text.chiefComplaint} value={history.chiefComplaint} onChange={(value) => updateField("chiefComplaint", value)} onVoice={() => startVoice("chiefComplaint")} listening={listening && activeFieldRef.current === "chiefComplaint"} supported={voiceSupported} />
-                <QuickChoices values={[text.quickChestPain, text.quickFever, text.quickCough, text.quickAbdominalPain, text.quickHeadache, text.quickOther]} onSelect={(value) => updateField("chiefComplaint", value)} />
+                <QuickChoices
+                  options={[
+                    { label: text.quickChestPain, category: "chestPain" },
+                    { label: text.quickFever, category: "fever" },
+                    { label: text.quickCough, category: "cough" },
+                    { label: text.quickAbdominalPain, category: "abdominalPain" },
+                    { label: text.quickHeadache, category: "headache" },
+                    { label: text.quickOther, category: "general" },
+                  ]}
+                  onSelect={selectQuickComplaint}
+                />
               </div>
             )}
 
             {!submitted && step === 2 && (
               <div>
                 <SectionHeading icon={<Stethoscope size={22} />} title={text.hpiTitle} subtitle={text.hpiSubtitle} />
+                {hpiHint && (
+                  <div className="mb-4 rounded-2xl border border-teal-100 bg-teal-50/60 p-3 text-xs leading-5 text-teal-800">
+                    {hpiHint}
+                  </div>
+                )}
                 <div className="grid gap-4 md:grid-cols-2">
                   {hpiFields.map(([field, label]) => (
                     <VoiceField key={field} label={label} value={history[field]} onChange={(value) => updateField(field, value)} onVoice={() => startVoice(field)} listening={listening && activeFieldRef.current === field} supported={voiceSupported} multiline={field === "associatedSymptoms"} speakLabel={text.speak} listeningLabel={text.listening} />
@@ -1352,8 +1434,27 @@ function TextArea({ label, value, onChange, placeholder, rows = 4 }: { label: st
   return <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-800">{label}</span><textarea value={value} onChange={(event) => onChange(event.target.value)} rows={rows} placeholder={placeholder} className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100" /></label>;
 }
 
-function QuickChoices({ values, onSelect }: { values: string[]; onSelect: (value: string) => void }) {
-  return <div className="mt-4 flex flex-wrap gap-2">{values.map((value) => <button key={value} type="button" onClick={() => onSelect(value)} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700">{value}</button>)}</div>;
+function QuickChoices({
+  options,
+  onSelect,
+}: {
+  options: { label: string; category: ComplaintCategory }[];
+  onSelect: (category: ComplaintCategory, label: string) => void;
+}) {
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button
+          key={option.label}
+          type="button"
+          onClick={() => onSelect(option.category, option.label)}
+          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function SummaryBlock({ title, value, emptyLabel = "Not reported" }: { title: string; value: string; emptyLabel?: string }) {
