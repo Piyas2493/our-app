@@ -1,9 +1,16 @@
+import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { requireRole } from "@/app/lib/auth";
 import { collectIntakeText, detectRedFlags } from "@/app/lib/redFlags";
 
 export const runtime = "nodejs";
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+const ai = GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: GEMINI_API_KEY })
+  : null;
 
 function cleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -16,6 +23,168 @@ function cleanArray(value: unknown): string[] {
     .filter((item) => typeof item === "string")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+/*
+ * The PS requires the physician-facing summary to be in English/Hindi
+ * regardless of what language the patient answered in -- every clinician
+ * console in this app is English-only, so English is the target here.
+ * Best-effort only: this must never block a clinical intake submission.
+ * If it fails for any reason (quota, network, malformed response), the
+ * intake still saves with the patient's original-language answers; the
+ * clinician just won't see an English translation for that one record.
+ */
+async function translateIntakeToEnglish(
+  payload: {
+    chiefComplaint: string;
+    hpi: Record<string, unknown>;
+    personalHistory: Record<string, unknown>;
+    reviewOfSystems: Record<string, unknown>;
+    pastMedicalHistory: string[];
+    pastSurgicalHistory: string[];
+    medications: string[];
+    allergies: string[];
+    familyHistory: string[];
+    priorInvestigations: string[];
+  },
+  sourceLanguage: string,
+): Promise<Record<string, unknown> | null> {
+  if (!ai) return null;
+
+  const entries: { path: string; text: string }[] = [];
+
+  if (payload.chiefComplaint) {
+    entries.push({ path: "chiefComplaint", text: payload.chiefComplaint });
+  }
+
+  for (const [key, value] of Object.entries(payload.hpi || {})) {
+    if (typeof value === "string" && value.trim()) {
+      entries.push({ path: `hpi.${key}`, text: value.trim() });
+    }
+  }
+
+  for (const [key, value] of Object.entries(payload.personalHistory || {})) {
+    if (typeof value === "string" && value.trim()) {
+      entries.push({ path: `personalHistory.${key}`, text: value.trim() });
+    }
+  }
+
+  const reviewGeneral = payload.reviewOfSystems?.general;
+
+  if (typeof reviewGeneral === "string" && reviewGeneral.trim()) {
+    entries.push({ path: "reviewOfSystems.general", text: reviewGeneral.trim() });
+  }
+
+  for (const listKey of [
+    "pastMedicalHistory",
+    "pastSurgicalHistory",
+    "medications",
+    "allergies",
+    "familyHistory",
+    "priorInvestigations",
+  ] as const) {
+    payload[listKey].forEach((item, index) => {
+      if (item && item.trim()) {
+        entries.push({ path: `${listKey}.${index}`, text: item.trim() });
+      }
+    });
+  }
+
+  if (entries.length === 0) return null;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `Translate each "text" value below from ${sourceLanguage} into clear, plain English for a clinician who does not read ${sourceLanguage}. Preserve medical meaning exactly -- do not summarize, add, or omit information. Return every "path" unchanged with its English "translation".\n\n${JSON.stringify(
+                entries,
+              )}`,
+            },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              path: { type: Type.STRING },
+              translation: { type: Type.STRING },
+            },
+            required: ["path", "translation"],
+          },
+        },
+      },
+    });
+
+    const text = response.text;
+    if (!text || !text.trim()) return null;
+
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) return null;
+
+    const translationByPath = new Map<string, string>();
+
+    for (const item of parsed) {
+      if (
+        item &&
+        typeof item.path === "string" &&
+        typeof item.translation === "string"
+      ) {
+        translationByPath.set(item.path, item.translation);
+      }
+    }
+
+    if (translationByPath.size === 0) return null;
+
+    const result: Record<string, unknown> = {
+      chiefComplaint: translationByPath.get("chiefComplaint") || payload.chiefComplaint,
+      hpi: Object.fromEntries(
+        Object.keys(payload.hpi || {}).map((key) => [
+          key,
+          translationByPath.get(`hpi.${key}`) ?? (payload.hpi as Record<string, unknown>)[key],
+        ]),
+      ),
+      personalHistory: Object.fromEntries(
+        Object.keys(payload.personalHistory || {}).map((key) => [
+          key,
+          translationByPath.get(`personalHistory.${key}`) ??
+            (payload.personalHistory as Record<string, unknown>)[key],
+        ]),
+      ),
+      reviewOfSystems: {
+        general:
+          translationByPath.get("reviewOfSystems.general") ?? reviewGeneral ?? "",
+      },
+    };
+
+    for (const listKey of [
+      "pastMedicalHistory",
+      "pastSurgicalHistory",
+      "medications",
+      "allergies",
+      "familyHistory",
+      "priorInvestigations",
+    ] as const) {
+      result[listKey] = payload[listKey].map(
+        (item, index) => translationByPath.get(`${listKey}.${index}`) ?? item,
+      );
+    }
+
+    return result;
+  } catch (error) {
+    console.error(
+      "Clinical intake English translation failed (submission continues without it):",
+      error,
+    );
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -190,6 +359,48 @@ export async function POST(request: NextRequest) {
     );
 
     /*
+     * Physician-facing English translation of the patient's own-language
+     * answers (PS requirement: clinician-facing text in English/Hindi
+     * regardless of what language the patient used). Every clinician
+     * console in this app is English-only today, so English is the
+     * target. Skipped entirely when the patient already answered in
+     * English -- nothing to translate. Best-effort: a failure here
+     * (quota, network, etc.) must never block the submission itself.
+     */
+    const languageNames: Record<string, string> = {
+      hi: "Hindi",
+      bn: "Bengali",
+      ta: "Tamil",
+      te: "Telugu",
+      mr: "Marathi",
+      gu: "Gujarati",
+      kn: "Kannada",
+      ml: "Malayalam",
+      pa: "Punjabi",
+      or: "Odia",
+      as: "Assamese",
+    };
+
+    const englishTranslation =
+      preferredLanguage !== "en"
+        ? await translateIntakeToEnglish(
+            {
+              chiefComplaint,
+              hpi,
+              personalHistory,
+              reviewOfSystems,
+              pastMedicalHistory,
+              pastSurgicalHistory,
+              medications,
+              allergies,
+              familyHistory,
+              priorInvestigations,
+            },
+            languageNames[preferredLanguage] || preferredLanguage,
+          )
+        : null;
+
+    /*
      * Store the complete patient-reported intake as the
      * interpretation/draft.
      *
@@ -227,6 +438,8 @@ export async function POST(request: NextRequest) {
         sourceDocuments,
 
         redFlags,
+
+        englishTranslation,
 
         safetyNote:
           "This is a patient-reported clinical intake draft. It is not a diagnosis or treatment recommendation and requires clinician verification.",

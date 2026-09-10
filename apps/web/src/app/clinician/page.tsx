@@ -15,6 +15,7 @@ import {
   FileText,
   HeartPulse,
   History,
+  Languages,
   LockKeyhole,
   MessageSquareWarning,
   Pill,
@@ -187,6 +188,25 @@ type ClinicalIntakeDraft = {
   ayush: Record<string, string>;
   redFlags: string[];
   sourceDocuments?: Array<{ name: string; type: string; url: string }>;
+  englishTranslation?: ClinicalIntakeTranslation | null;
+};
+
+// English translation of the patient's own-language answers, generated
+// once at submission time (see api/clinical-intake/route.ts). Only
+// present when the patient answered in a language other than English.
+// This mirrors the translatable subset of ClinicalIntakeDraft -- it's
+// reference-only, never the field the clinician actually edits.
+type ClinicalIntakeTranslation = {
+  chiefComplaint: string;
+  hpi: Record<string, string>;
+  personalHistory: Record<string, string>;
+  reviewOfSystems: Record<string, string>;
+  pastMedicalHistory: string[];
+  pastSurgicalHistory: string[];
+  medications: string[];
+  allergies: string[];
+  familyHistory: string[];
+  priorInvestigations: string[];
 };
 
 const AYUSH_FIELD_LABELS: Array<[string, string]> = [
@@ -215,6 +235,21 @@ const AYUSH_FIELD_LABELS: Array<[string, string]> = [
   ["nidana", "Nidana (perceived cause/trigger)"],
   ["samprapti", "Samprapti (disease process)"],
 ];
+
+const INTAKE_LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  hi: "Hindi",
+  bn: "Bengali",
+  ta: "Tamil",
+  te: "Telugu",
+  mr: "Marathi",
+  gu: "Gujarati",
+  kn: "Kannada",
+  ml: "Malayalam",
+  pa: "Punjabi",
+  or: "Odia",
+  as: "Assamese",
+};
 
 const HPI_FIELD_LABELS: Array<[keyof ClinicalIntakeDraft["hpi"], string]> = [
   ["onset", "Onset"],
@@ -297,6 +332,51 @@ function parseClinicalIntake(
       sourceDocuments: Array.isArray(parsed.sourceDocuments)
         ? parsed.sourceDocuments
         : [],
+      englishTranslation:
+        parsed.englishTranslation && typeof parsed.englishTranslation === "object"
+          ? {
+              chiefComplaint: String(parsed.englishTranslation.chiefComplaint || ""),
+              hpi:
+                parsed.englishTranslation.hpi &&
+                typeof parsed.englishTranslation.hpi === "object"
+                  ? parsed.englishTranslation.hpi
+                  : {},
+              personalHistory:
+                parsed.englishTranslation.personalHistory &&
+                typeof parsed.englishTranslation.personalHistory === "object"
+                  ? parsed.englishTranslation.personalHistory
+                  : {},
+              reviewOfSystems:
+                parsed.englishTranslation.reviewOfSystems &&
+                typeof parsed.englishTranslation.reviewOfSystems === "object"
+                  ? parsed.englishTranslation.reviewOfSystems
+                  : {},
+              pastMedicalHistory: Array.isArray(
+                parsed.englishTranslation.pastMedicalHistory
+              )
+                ? parsed.englishTranslation.pastMedicalHistory.map(String)
+                : [],
+              pastSurgicalHistory: Array.isArray(
+                parsed.englishTranslation.pastSurgicalHistory
+              )
+                ? parsed.englishTranslation.pastSurgicalHistory.map(String)
+                : [],
+              medications: Array.isArray(parsed.englishTranslation.medications)
+                ? parsed.englishTranslation.medications.map(String)
+                : [],
+              allergies: Array.isArray(parsed.englishTranslation.allergies)
+                ? parsed.englishTranslation.allergies.map(String)
+                : [],
+              familyHistory: Array.isArray(parsed.englishTranslation.familyHistory)
+                ? parsed.englishTranslation.familyHistory.map(String)
+                : [],
+              priorInvestigations: Array.isArray(
+                parsed.englishTranslation.priorInvestigations
+              )
+                ? parsed.englishTranslation.priorInvestigations.map(String)
+                : [],
+            }
+          : null,
     };
   } catch {
     return null;
@@ -635,6 +715,106 @@ function IntakeListField({
   );
 }
 
+function ClinicalIntakeTranslationPanel({
+  draft,
+}: {
+  draft: ClinicalIntakeDraft;
+}) {
+  const translation = draft.englishTranslation;
+
+  if (!translation) return null;
+
+  const sourceLanguageName =
+    INTAKE_LANGUAGE_NAMES[draft.preferredLanguage || ""] ||
+    draft.preferredLanguage ||
+    "the patient's language";
+
+  const hpiLines = HPI_FIELD_LABELS.map(([field, label]) => [
+    label,
+    translation.hpi[field] || "",
+  ]).filter(([, value]) => value.trim());
+
+  const listSections: Array<[string, string[]]> = (
+    [
+      ["Past medical history", translation.pastMedicalHistory],
+      ["Past surgical history", translation.pastSurgicalHistory],
+      ["Current medications", translation.medications],
+      ["Allergies", translation.allergies],
+      ["Family history", translation.familyHistory],
+      ["Prior investigations", translation.priorInvestigations],
+    ] as Array<[string, string[]]>
+  ).filter(([, values]) => values.some((value) => value.trim()));
+
+  const personalHistoryLines = [
+    ["Diet", translation.personalHistory.diet],
+    ["Sleep", translation.personalHistory.sleep],
+    ["Smoking / tobacco", translation.personalHistory.smoking],
+    ["Alcohol", translation.personalHistory.alcohol],
+    ["Occupation", translation.personalHistory.occupation],
+  ].filter(([, value]) => (value || "").trim());
+
+  const reviewOfSystemsText = translation.reviewOfSystems?.general || "";
+
+  return (
+    <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <Languages size={20} className="text-blue-700" />
+        <h3 className="font-semibold text-blue-900">
+          English translation (reference only)
+        </h3>
+      </div>
+      <p className="mb-4 text-xs leading-5 text-blue-800">
+        The patient answered in {sourceLanguageName}. This is an AI-generated
+        translation for your reference — edit the original-language fields
+        below, not this panel.
+      </p>
+
+      <div className="space-y-3 text-sm leading-6 text-slate-700">
+        {translation.chiefComplaint.trim() && (
+          <p>
+            <strong className="text-slate-800">Chief complaint: </strong>
+            {translation.chiefComplaint}
+          </p>
+        )}
+
+        {hpiLines.map(([label, value]) => (
+          <p key={label}>
+            <strong className="text-slate-800">{label}: </strong>
+            {value}
+          </p>
+        ))}
+
+        {personalHistoryLines.map(([label, value]) => (
+          <p key={label}>
+            <strong className="text-slate-800">{label}: </strong>
+            {value}
+          </p>
+        ))}
+
+        {reviewOfSystemsText.trim() && (
+          <p>
+            <strong className="text-slate-800">Review of systems: </strong>
+            {reviewOfSystemsText}
+          </p>
+        )}
+
+        {listSections.map(([label, values]) => (
+          <div key={label}>
+            <strong className="text-slate-800">{label}: </strong>
+            <ul className="mt-1 list-inside list-disc">
+              {values
+                .filter((value) => value.trim())
+                .map((value, index) => (
+                  <li key={`${label}-${index}`}>{value}</li>
+                ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ClinicalIntakeReview({
   draft,
   onChange,
@@ -660,6 +840,8 @@ function ClinicalIntakeReview({
           the draft before verification.
         </p>
       </div>
+
+      <ClinicalIntakeTranslationPanel draft={draft} />
 
       <div className="rounded-2xl border bg-white p-5">
         <div className="mb-4 flex items-center gap-2">
