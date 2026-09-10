@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Medication = {
   name: string;
@@ -117,6 +118,8 @@ function StatusBadge({
 }: {
   record: MedicalRecord;
 }) {
+  const { t } = useLanguage();
+
   const status =
     getRecordStatus(record);
 
@@ -124,7 +127,7 @@ function StatusBadge({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
         <CheckCircle2 size={14} />
-        Clinician Verified
+        {t("records.status.verified")}
       </span>
     );
   }
@@ -133,7 +136,7 @@ function StatusBadge({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">
         <XCircle size={14} />
-        Needs Attention
+        {t("records.status.rejected")}
       </span>
     );
   }
@@ -141,7 +144,7 @@ function StatusBadge({
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
       <Clock size={14} />
-      Pending Verification
+      {t("records.status.pending")}
     </span>
   );
 }
@@ -151,10 +154,11 @@ function StatusBadge({
    ========================================================= */
 
 function formatDate(
-  value?: string | null
+  value?: string | null,
+  unavailableLabel = "Date unavailable"
 ) {
   if (!value) {
-    return "Date unavailable";
+    return unavailableLabel;
   }
 
   const date = new Date(value);
@@ -181,10 +185,11 @@ function formatDate(
    ========================================================= */
 
 function auditLabel(
-  action?: string
+  action?: string,
+  defaultLabel = "Record update"
 ) {
   return String(
-    action || "Record update"
+    action || defaultLabel
   )
     .replace(/_/g, " ")
     .toLowerCase()
@@ -200,6 +205,8 @@ function auditLabel(
    ========================================================= */
 
 export default function RecordsPage() {
+  const { t } = useLanguage();
+
   const [records, setRecords] =
     useState<MedicalRecord[]>(
       []
@@ -384,15 +391,15 @@ export default function RecordsPage() {
                 patientName:
                   record.patientName ||
                   user?.name ||
-                  "Patient",
+                  t("common.patient"),
 
                 documentName:
                   record.documentName ||
-                  "Medical Document",
+                  t("common.medicalDocument"),
 
                 documentType:
                   record.documentType ||
-                  "Medical Document",
+                  t("common.medicalDocument"),
 
                 interpretation:
                   record.interpretation ??
@@ -507,7 +514,7 @@ export default function RecordsPage() {
           setLoading(false);
         }
       },
-      [user?.name]
+      [user?.name, t]
     );
 
   /* =========================================================
@@ -630,7 +637,7 @@ export default function RecordsPage() {
             className="animate-spin"
           />
 
-          Checking access...
+          {t("records.checkingAccess")}
 
         </div>
 
@@ -664,20 +671,20 @@ export default function RecordsPage() {
                 size={16}
               />
 
-              Back to dashboard
+              {t("records.backDashboard")}
 
             </Link>
 
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-              Medical Records
+              {t("records.eyebrow")}
             </p>
 
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-              My Health Records
+              {t("records.title")}
             </h1>
 
             <p className="mt-2 text-slate-500">
-              View your uploaded medical documents and their clinician verification status.
+              {t("records.description")}
             </p>
 
           </div>
@@ -705,7 +712,7 @@ export default function RecordsPage() {
                     </p>
 
                     <p className="text-xs text-slate-500">
-                      Patient
+                      {t("common.patient")}
                     </p>
 
                   </div>
@@ -721,7 +728,7 @@ export default function RecordsPage() {
               className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700 shadow-sm hover:bg-teal-100"
             >
 
-              Health timeline
+              {t("records.healthTimeline")}
 
             </Link>
 
@@ -745,7 +752,7 @@ export default function RecordsPage() {
                 />
               )}
 
-              Refresh
+              {t("records.refresh")}
 
             </button>
 
@@ -777,7 +784,7 @@ export default function RecordsPage() {
                 size={22}
               />
             }
-            title="Total records"
+            title={t("records.summary.total")}
             value={
               records.length
             }
@@ -789,7 +796,7 @@ export default function RecordsPage() {
                 size={22}
               />
             }
-            title="Clinician verified"
+            title={t("records.summary.verified")}
             value={
               verifiedCount
             }
@@ -801,7 +808,7 @@ export default function RecordsPage() {
                 size={22}
               />
             }
-            title="Pending"
+            title={t("records.summary.pending")}
             value={
               pendingCount
             }
@@ -813,7 +820,7 @@ export default function RecordsPage() {
                 size={22}
               />
             }
-            title="Needs attention"
+            title={t("records.summary.attention")}
             value={
               rejectedCount
             }
@@ -828,22 +835,22 @@ export default function RecordsPage() {
           {[
             [
               "all",
-              "All",
+              t("records.filters.all"),
             ],
 
             [
               "verified",
-              "Verified",
+              t("records.filters.verified"),
             ],
 
             [
               "pending",
-              "Pending",
+              t("records.filters.pending"),
             ],
 
             [
               "rejected",
-              "Needs Attention",
+              t("records.filters.attention"),
             ],
           ].map(
             ([value, label]) => (
@@ -884,16 +891,15 @@ export default function RecordsPage() {
             <div className="mb-5">
 
               <h2 className="font-semibold">
-                Your records
+                {t("records.list.title")}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 {filteredRecords.length}{" "}
-                record
                 {filteredRecords.length ===
                 1
-                  ? ""
-                  : "s"}
+                  ? t("records.list.record")
+                  : t("records.list.records")}
               </p>
 
             </div>
@@ -908,7 +914,7 @@ export default function RecordsPage() {
                 />
 
                 <p className="font-medium">
-                  Loading records...
+                  {t("records.list.loading")}
                 </p>
 
               </div>
@@ -924,14 +930,14 @@ export default function RecordsPage() {
                 />
 
                 <p className="font-medium text-slate-700">
-                  No records found
+                  {t("records.list.none")}
                 </p>
 
                 <p className="mt-1 text-sm text-slate-500">
                   {records.length ===
                   0
-                    ? "No medical records are currently available."
-                    : "No records match the selected filter."}
+                    ? t("records.list.noRecords")
+                    : t("records.list.noMatch")}
                 </p>
 
               </div>
@@ -967,12 +973,12 @@ export default function RecordsPage() {
 
                           <p className="font-semibold text-slate-800">
                             {record.documentName ||
-                              "Medical Document"}
+                              t("common.medicalDocument")}
                           </p>
 
                           <p className="mt-1 text-sm text-slate-500">
                             {record.documentType ||
-                              "Medical Record"}
+                              t("common.medicalDocument")}
                           </p>
 
                         </div>
@@ -992,7 +998,8 @@ export default function RecordsPage() {
                       <p className="mt-3 text-xs text-slate-400">
                         {formatDate(
                           record.submittedAt ||
-                            record.createdAt
+                            record.createdAt,
+                          t("records.dateUnavailable")
                         )}
                       </p>
 
@@ -1023,11 +1030,11 @@ export default function RecordsPage() {
                 />
 
                 <h2 className="text-xl font-semibold">
-                  Select a record
+                  {t("records.details.select")}
                 </h2>
 
                 <p className="mt-2 max-w-md text-slate-500">
-                  Select a medical record to view its details.
+                  {t("records.details.selectHint")}
                 </p>
 
               </div>
@@ -1054,17 +1061,17 @@ export default function RecordsPage() {
 
                       <p className="text-sm text-slate-500">
                         {selectedRecord.patientName ||
-                          "Patient"}
+                          t("common.patient")}
                       </p>
 
                       <h2 className="text-2xl font-semibold">
                         {selectedRecord.documentName ||
-                          "Medical Document"}
+                          t("common.medicalDocument")}
                       </h2>
 
                       <p className="mt-1 text-sm text-slate-500">
                         {selectedRecord.documentType ||
-                          "Medical Document"}
+                          t("common.medicalDocument")}
                       </p>
 
                     </div>
@@ -1100,11 +1107,11 @@ export default function RecordsPage() {
                       <div>
 
                         <h3 className="font-semibold">
-                          Original document
+                          {t("records.original.title")}
                         </h3>
 
                         <p className="mt-1 text-sm text-slate-500">
-                          Your private uploaded medical document.
+                          {t("records.original.description")}
                         </p>
 
                       </div>
@@ -1129,7 +1136,7 @@ export default function RecordsPage() {
                             size={16}
                           />
 
-                          View original
+                          {t("records.original.view")}
 
                         </button>
 
@@ -1144,7 +1151,7 @@ export default function RecordsPage() {
                             size={16}
                           />
 
-                          Open
+                          {t("records.open")}
 
                         </a>
 
@@ -1153,7 +1160,7 @@ export default function RecordsPage() {
                     ) : (
 
                       <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-500">
-                        Original unavailable
+                        {t("records.original.unavailable")}
                       </span>
 
                     )}
@@ -1167,7 +1174,7 @@ export default function RecordsPage() {
                 <div className="mt-8">
 
                   <h3 className="text-lg font-semibold">
-                    Clinical interpretation
+                    {t("records.interpretation")}
                   </h3>
 
                   <div className="mt-3 rounded-2xl border bg-slate-50 p-5">
@@ -1175,7 +1182,7 @@ export default function RecordsPage() {
                     <p className="leading-7 text-slate-700">
                       {selectedRecord.interpretation ||
                         selectedRecord.summary ||
-                        "No interpretation available."}
+                        t("records.noInterpretation")}
                     </p>
 
                   </div>
@@ -1187,7 +1194,7 @@ export default function RecordsPage() {
                 <div className="mt-8">
 
                   <h3 className="text-lg font-semibold">
-                    Medications
+                    {t("records.medications.title")}
                   </h3>
 
                   {selectedRecord.medications &&
@@ -1217,7 +1224,7 @@ export default function RecordsPage() {
 
                               <span>
                                 <strong className="text-slate-700">
-                                  Dosage:
+                                  {t("records.medications.dosage")}
                                 </strong>{" "}
                                 {medication.dosage ||
                                   "—"}
@@ -1225,7 +1232,7 @@ export default function RecordsPage() {
 
                               <span>
                                 <strong className="text-slate-700">
-                                  Frequency:
+                                  {t("records.medications.frequency")}
                                 </strong>{" "}
                                 {medication.frequency ||
                                   "—"}
@@ -1233,7 +1240,7 @@ export default function RecordsPage() {
 
                               <span>
                                 <strong className="text-slate-700">
-                                  Duration:
+                                  {t("records.medications.duration")}
                                 </strong>{" "}
                                 {medication.duration ||
                                   "—"}
@@ -1251,7 +1258,7 @@ export default function RecordsPage() {
                   ) : (
 
                     <div className="mt-3 rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">
-                      No medications recorded.
+                      {t("records.medications.none")}
                     </div>
 
                   )}
@@ -1279,12 +1286,12 @@ export default function RecordsPage() {
                       <div className="flex-1">
 
                         <h3 className="font-semibold text-amber-900">
-                          Needs correction
+                          {t("records.correction.title")}
                         </h3>
 
                         <p className="mt-2 text-sm leading-6 text-amber-800">
                           {selectedRecord.rejectionReason ||
-                            "Your clinician has requested a correction to this document."}
+                            t("records.correction.default")}
                         </p>
 
                         <button
@@ -1301,7 +1308,7 @@ export default function RecordsPage() {
                             size={17}
                           />
 
-                          Upload corrected document
+                          {t("records.correction.upload")}
 
                         </button>
 
@@ -1318,7 +1325,7 @@ export default function RecordsPage() {
                 <div className="mt-8 border-t pt-8">
 
                   <h3 className="text-lg font-semibold">
-                    Verification history
+                    {t("records.history.title")}
                   </h3>
 
                   {selectedRecord.verificationAudits &&
@@ -1345,13 +1352,15 @@ export default function RecordsPage() {
 
                               <p className="text-sm font-semibold text-slate-800">
                                 {auditLabel(
-                                  audit.action
+                                  audit.action,
+                                  t("records.auditDefault")
                                 )}
                               </p>
 
                               <time className="text-xs text-slate-400">
                                 {formatDate(
-                                  audit.createdAt
+                                  audit.createdAt,
+                                  t("records.dateUnavailable")
                                 )}
                               </time>
 
@@ -1382,7 +1391,7 @@ export default function RecordsPage() {
                       />
 
                       <p className="font-medium text-slate-600">
-                        No verification history
+                        {t("records.history.none")}
                       </p>
 
                     </div>
@@ -1418,11 +1427,11 @@ export default function RecordsPage() {
               <div>
 
                 <p className="font-semibold text-slate-900">
-                  Original medical document
+                  {t("records.original.title")}
                 </p>
 
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Private patient document
+                  {t("records.original.private")}
                 </p>
 
               </div>
@@ -1440,7 +1449,7 @@ export default function RecordsPage() {
                     size={16}
                   />
 
-                  Open
+                  {t("records.open")}
 
                 </a>
 
@@ -1453,7 +1462,7 @@ export default function RecordsPage() {
                   }
                   className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                 >
-                  Close
+                  {t("records.close")}
                 </button>
 
               </div>
