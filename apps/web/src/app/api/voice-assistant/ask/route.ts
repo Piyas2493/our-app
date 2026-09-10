@@ -32,6 +32,58 @@ const LANGUAGE_NAMES: Record<string, string> = {
   as: "Assamese",
 };
 
+/*
+ * Closed set of pages the assistant is allowed to send the patient to.
+ * The model must pick from this exact list (enforced via schema enum)
+ * -- it can never invent a route.
+ */
+const NAVIGABLE_PAGES: Record<string, string> = {
+  "/dashboard": "Dashboard / home overview",
+  "/records": "Health Records",
+  "/health-timeline": "Health Timeline",
+  "/prescriptions": "Prescriptions",
+  "/vitals": "Vitals",
+  "/medications": "Medication & Reminders",
+  "/personalized-health": "Personalized Health",
+  "/hospitals-labs": "Hospitals & Labs",
+  "/consent": "Consent & Privacy",
+  "/support": "Help & Support",
+  "/clinical-intake": "Clinical Intake (start a new case)",
+  "/voice-assistant": "Voice Assistant",
+};
+
+/*
+ * The only action type the assistant can draft right now: logging a
+ * vital measurement. Deliberately narrow -- one well-validated action
+ * beats several shallow ones. Mirrors VALID_VITAL_TYPES in
+ * api/vitals/route.ts.
+ */
+const VOICE_VITAL_TYPES = [
+  "HEART_RATE",
+  "BLOOD_PRESSURE",
+  "OXYGEN_SATURATION",
+  "TEMPERATURE",
+  "WEIGHT",
+  "BLOOD_GLUCOSE",
+  "STEPS",
+  "SLEEP_DURATION",
+] as const;
+
+const VOICE_VITAL_UNITS: Record<string, string> = {
+  HEART_RATE: "bpm",
+  BLOOD_PRESSURE: "mmHg",
+  OXYGEN_SATURATION: "%",
+  TEMPERATURE: "°F",
+  WEIGHT: "kg",
+  BLOOD_GLUCOSE: "mg/dL",
+  STEPS: "steps",
+  SLEEP_DURATION: "hours",
+};
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 /* =========================================================
    GEMINI RETRY HELPER
    (mirrors analyze-document/route.ts and transcribe/route.ts)
@@ -270,31 +322,62 @@ export async function POST(request: NextRequest) {
 
     const context = await buildPatientContext(user.id);
 
-    const prompt = `
-You are JeevanLink's patient-facing voice assistant. You answer the
-patient's question STRICTLY using the health data provided below,
-which belongs to this patient only.
+    const pageList = Object.entries(NAVIGABLE_PAGES)
+      .map(([path, description]) => `- ${path}: ${description}`)
+      .join("\n");
 
-RULES:
-1. Only use information explicitly present in the data below. Never
-   invent facts, values, or dates that are not there.
-2. Do NOT give medical advice, a diagnosis, a treatment recommendation,
-   or your own interpretation of what a result "means" clinically.
-   You may read back what is on file; you may not explain it medically.
-3. If the question requires medical judgment, or the data below does not
-   contain the answer, say so plainly and suggest they ask their
-   clinician or raise a request in Help & Support. Do not guess.
-4. If the question is unrelated to this patient's own health data
-   (general medical questions, other people, anything else), politely
-   decline and redirect them to their clinician.
-5. Keep the answer short (2-4 sentences) and conversational, since it
-   may be read aloud.
-6. Answer in ${languageName}, the language the patient asked in.
+    const prompt = `
+You are JeevanLink's patient-facing voice assistant. You handle the
+patient's spoken or typed request using STRICTLY the health data
+provided below, which belongs to this patient only.
+
+Classify the request into exactly one responseType:
+
+1. "navigate" -- the patient wants to go to a part of the app (e.g.
+   "open my medications", "take me to health records", "show my
+   vitals"). Set navigateTo to the single closest matching path from
+   this exact list -- never invent a path, and only use this
+   responseType if one of these is clearly what they want:
+${pageList}
+
+2. "action_draft" -- the patient wants to log a NEW vital measurement
+   AND has stated a specific number (e.g. "log my blood pressure as
+   120 over 80", "record my weight as 70 kg", "my heart rate is 72").
+   Set actionDraft.vitalType to one of: ${VOICE_VITAL_TYPES.join(", ")}.
+   Set actionDraft.value (and actionDraft.secondaryValue for
+   BLOOD_PRESSURE only, systolic first then diastolic) to EXACTLY the
+   number(s) stated -- never invent, round, or guess a value. If they
+   want to log something but did not give a clear number, use
+   responseType "answer" instead and ask them to repeat it with the
+   value.
+
+3. "answer" -- everything else, including all questions about their
+   own data. Follow these rules for it:
+   a. Only use information explicitly present in the data below. Never
+      invent facts, values, or dates that are not there.
+   b. Do NOT give medical advice, a diagnosis, a treatment
+      recommendation, or your own interpretation of what a result
+      "means" clinically. You may read back what is on file; you may
+      not explain it medically.
+   c. If the question requires medical judgment, or the data below
+      does not contain the answer, say so plainly and suggest they ask
+      their clinician or raise a request in Help & Support. Do not
+      guess.
+   d. If the question is unrelated to this patient's own health data
+      (general medical questions, other people, anything else),
+      politely decline and redirect them to their clinician.
+
+GENERAL RULES:
+- Always fill "answer" with a short (1-3 sentence), conversational
+  reply suitable for being read aloud, even for "navigate" (e.g.
+  "Opening your medications.") and "action_draft" (e.g. "Here is a
+  blood pressure reading of 120 over 80 to confirm.").
+- Respond in ${languageName}, the language the patient used.
 
 PATIENT'S HEALTH DATA:
 ${context}
 
-PATIENT'S QUESTION:
+PATIENT'S REQUEST:
 ${cleanQuestion}
 
 Return ONLY structured JSON matching the requested schema.
@@ -312,17 +395,44 @@ Return ONLY structured JSON matching the requested schema.
             responseSchema: {
               type: Type.OBJECT,
               properties: {
+                responseType: {
+                  type: Type.STRING,
+                  enum: ["answer", "navigate", "action_draft"],
+                  description: "Which kind of response this is.",
+                },
                 answer: {
                   type: Type.STRING,
-                  description: "The short, spoken-style answer to the patient.",
+                  description: "The short, spoken-style reply to the patient.",
+                },
+                navigateTo: {
+                  type: Type.STRING,
+                  enum: Object.keys(NAVIGABLE_PAGES),
+                  description: "Only set when responseType is 'navigate'.",
+                },
+                actionDraft: {
+                  type: Type.OBJECT,
+                  description:
+                    "Required whenever responseType is 'action_draft'; omit entirely otherwise.",
+                  properties: {
+                    vitalType: {
+                      type: Type.STRING,
+                      enum: [...VOICE_VITAL_TYPES],
+                    },
+                    value: { type: Type.NUMBER },
+                    secondaryValue: {
+                      type: Type.NUMBER,
+                      description: "Diastolic value, BLOOD_PRESSURE only.",
+                    },
+                  },
+                  required: ["vitalType", "value"],
                 },
                 outOfScope: {
                   type: Type.BOOLEAN,
                   description:
-                    "True if the question needed medical judgment or was unrelated to the patient's own data on file.",
+                    "True if an 'answer' needed medical judgment or was unrelated to the patient's own data on file.",
                 },
               },
-              required: ["answer", "outOfScope"],
+              required: ["responseType", "answer", "outOfScope"],
             },
           },
         }),
@@ -366,7 +476,17 @@ Return ONLY structured JSON matching the requested schema.
       );
     }
 
-    let parsed: { answer?: unknown; outOfScope?: unknown };
+    let parsed: {
+      responseType?: unknown;
+      answer?: unknown;
+      navigateTo?: unknown;
+      actionDraft?: {
+        vitalType?: unknown;
+        value?: unknown;
+        secondaryValue?: unknown;
+      };
+      outOfScope?: unknown;
+    };
 
     try {
       parsed = JSON.parse(text);
@@ -386,8 +506,59 @@ Return ONLY structured JSON matching the requested schema.
       );
     }
 
+    /*
+     * Validate navigate/action_draft independently of what the model
+     * claims -- never forward a navigation target or an action draft
+     * to the client unless it passes validation here. Falls back to a
+     * plain answer rather than risk an invalid or invented action.
+     */
+    if (parsed.responseType === "navigate") {
+      const navigateTo =
+        typeof parsed.navigateTo === "string" ? parsed.navigateTo : "";
+
+      if (navigateTo in NAVIGABLE_PAGES) {
+        return NextResponse.json({
+          success: true,
+          responseType: "navigate",
+          answer,
+          navigateTo,
+        });
+      }
+    }
+
+    if (parsed.responseType === "action_draft") {
+      const draft = parsed.actionDraft;
+      const vitalType =
+        typeof draft?.vitalType === "string" ? draft.vitalType : "";
+      const value = draft?.value;
+      const secondaryValue = draft?.secondaryValue;
+
+      const isKnownVitalType = (VOICE_VITAL_TYPES as readonly string[]).includes(vitalType);
+      const isBloodPressure = vitalType === "BLOOD_PRESSURE";
+
+      const valid =
+        isKnownVitalType &&
+        isFiniteNumber(value) &&
+        (!isBloodPressure || isFiniteNumber(secondaryValue));
+
+      if (valid) {
+        return NextResponse.json({
+          success: true,
+          responseType: "action_draft",
+          answer,
+          actionDraft: {
+            vitalType,
+            value,
+            secondaryValue: isBloodPressure ? secondaryValue : undefined,
+            unit: VOICE_VITAL_UNITS[vitalType],
+          },
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
+      responseType: "answer",
       answer,
       outOfScope: parsed.outOfScope === true,
     });

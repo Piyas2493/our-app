@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 
 import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import GlobalVoiceLauncher from "@/components/GlobalVoiceLauncher";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /* =========================================================
@@ -1435,16 +1436,7 @@ export default function VitalsPage() {
 
             <LanguageSwitcher />
 
-            <button
-              type="button"
-              className="circle-button voice-top"
-            >
-
-              <Mic
-                size={20}
-              />
-
-            </button>
+            <GlobalVoiceLauncher />
 
             <button
               type="button"

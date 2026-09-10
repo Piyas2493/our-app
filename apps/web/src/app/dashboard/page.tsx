@@ -34,6 +34,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import GlobalVoiceLauncher from "@/components/GlobalVoiceLauncher";
 import { useLanguage } from "@/components/LanguageProvider";
 
 type MedicalRecord = {
@@ -1317,14 +1318,7 @@ export default function Home() {
 
             <LanguageSwitcher />
 
-            <button
-              type="button"
-              className="circle-button voice-top"
-            >
-              <Mic
-                size={20}
-              />
-            </button>
+            <GlobalVoiceLauncher />
 
             <button
               type="button"

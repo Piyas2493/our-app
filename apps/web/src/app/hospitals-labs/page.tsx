@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import GlobalVoiceLauncher from "@/components/GlobalVoiceLauncher";
 import { useLanguage } from "@/components/LanguageProvider";
 
 type Hospital = {
@@ -738,15 +739,7 @@ export default function HospitalsLabsPage() {
           <div className="top-actions">
             <LanguageSwitcher />
 
-            <button
-              type="button"
-              className="circle-button voice-top"
-              title="Voice Assistant"
-              aria-label="Voice Assistant"
-              disabled
-            >
-              <Mic size={20} />
-            </button>
+            <GlobalVoiceLauncher />
 
             <button
               type="button"
