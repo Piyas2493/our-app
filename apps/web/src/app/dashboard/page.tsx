@@ -412,6 +412,9 @@ export default function Home() {
       null
     );
 
+  const [loggingOut, setLoggingOut] =
+    useState(false);
+
   const [records, setRecords] =
     useState<MedicalRecord[]>(
       []
@@ -1088,6 +1091,34 @@ export default function Home() {
   }
 
   /* =======================================================
+     LOGOUT
+     ======================================================= */
+
+  async function handleLogout() {
+    if (loggingOut) {
+      return;
+    }
+
+    setLoggingOut(true);
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Logout failed with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      window.location.replace("/login");
+    }
+  }
+
+  /* =======================================================
      LOADING
      ======================================================= */
 
@@ -1344,15 +1375,17 @@ export default function Home() {
 
             </div>
 
-            <Link
-              href="/auth/logout"
-              className="ml-2 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              disabled={loggingOut}
+              className="ml-2 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <LogOut
                 size={16}
               />
               {t("common.logout")}
-            </Link>
+            </button>
 
           </div>
 
