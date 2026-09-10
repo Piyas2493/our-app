@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import LogoutButton from "@/components/LogoutButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Vital = {
   id: string;
@@ -135,18 +136,19 @@ type PersonalizedResponse = {
   safetyNote: string;
 };
 
-function formatVitalLabel(type: string) {
-  const labels: Record<string, string> = {
-    BLOOD_PRESSURE: "Blood Pressure",
-    HEART_RATE: "Heart Rate",
-    OXYGEN_SATURATION: "Oxygen Saturation",
-    TEMPERATURE: "Temperature",
-    WEIGHT: "Weight",
-    BLOOD_GLUCOSE: "Blood Glucose",
-    STEPS: "Steps",
-    SLEEP_DURATION: "Sleep Duration",
+function formatVitalLabel(type: string, t: (key: any) => string) {
+  const keys: Record<string, string> = {
+    BLOOD_PRESSURE: "vitals.type.bloodPressure",
+    HEART_RATE: "vitals.type.heartRate",
+    OXYGEN_SATURATION: "vitals.type.oxygenSaturation",
+    TEMPERATURE: "vitals.type.temperature",
+    WEIGHT: "vitals.type.weight",
+    BLOOD_GLUCOSE: "vitals.type.bloodGlucose",
+    STEPS: "vitals.type.steps",
+    SLEEP_DURATION: "vitals.type.sleepDuration",
   };
-  return labels[type] || type.replaceAll("_", " ");
+  const key = keys[type];
+  return key ? t(key) : type.replaceAll("_", " ");
 }
 
 function formatVitalValue(item: {
@@ -172,14 +174,18 @@ function formatDate(value: string) {
   });
 }
 
-function directionLabel(direction: PersonalizedResponse["vitals"]["trends"][number]["direction"]) {
-  if (direction === "UP") return "Increasing";
-  if (direction === "DOWN") return "Decreasing";
-  if (direction === "STABLE") return "Stable";
-  return "More data needed";
+function directionLabel(
+  direction: PersonalizedResponse["vitals"]["trends"][number]["direction"],
+  t: (key: any) => string
+) {
+  if (direction === "UP") return t("personalizedHealth.direction.up");
+  if (direction === "DOWN") return t("personalizedHealth.direction.down");
+  if (direction === "STABLE") return t("personalizedHealth.direction.stable");
+  return t("personalizedHealth.direction.insufficient");
 }
 
 export default function PersonalizedHealthPage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<PersonalizedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -201,7 +207,7 @@ export default function PersonalizedHealthPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to load personalized health.");
+        throw new Error(result?.error || t("personalizedHealth.errors.load"));
       }
 
       setData(result);
@@ -209,12 +215,12 @@ export default function PersonalizedHealthPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to load personalized health."
+          : t("personalizedHealth.errors.load")
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -246,16 +252,16 @@ export default function PersonalizedHealthPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to generate AI health insights.");
+        throw new Error(result?.error || t("personalizedHealth.errors.generate"));
       }
 
       setData(result);
-      setAiMessage("Personalized AI insights updated.");
+      setAiMessage(t("personalizedHealth.ai.updated"));
     } catch (err) {
       setAiMessage(
         err instanceof Error
           ? err.message
-          : "Unable to generate AI health insights."
+          : t("personalizedHealth.errors.generate")
       );
     } finally {
       setGenerating(false);
@@ -276,7 +282,7 @@ export default function PersonalizedHealthPage() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="flex items-center gap-3 text-slate-500">
             <RefreshCw size={20} className="animate-spin" />
-            Loading personalized health...
+            {t("personalizedHealth.loading")}
           </div>
         </div>
       </main>
@@ -293,20 +299,19 @@ export default function PersonalizedHealthPage() {
               className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
             >
               <ArrowLeft size={16} />
-              Back to dashboard
+              {t("personalizedHealth.backDashboard")}
             </Link>
 
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-              PERSONALIZED HEALTH
+              {t("personalizedHealth.eyebrow")}
             </p>
 
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-              Your health, connected.
+              {t("personalizedHealth.title")}
             </h1>
 
             <p className="mt-2 max-w-3xl text-slate-500">
-              JeevanLink combines clinician-verified records, verified medications,
-              and longitudinal vital measurements into one explainable health view.
+              {t("personalizedHealth.description")}
             </p>
           </div>
 
@@ -318,7 +323,7 @@ export default function PersonalizedHealthPage() {
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium shadow-sm hover:bg-slate-50 disabled:opacity-60"
             >
               <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
-              Refresh
+              {t("personalizedHealth.refresh")}
             </button>
             <LogoutButton />
           </div>
@@ -337,11 +342,11 @@ export default function PersonalizedHealthPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700">
                     <ShieldCheck size={14} />
-                    Verified + patient data
+                    {t("personalizedHealth.badge.verified")}
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
                     <BrainCircuit size={14} />
-                    Explainable
+                    {t("personalizedHealth.badge.explainable")}
                   </span>
                 </div>
 
@@ -368,7 +373,7 @@ export default function PersonalizedHealthPage() {
               <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
                   <Sparkles size={17} />
-                  JeevanLink health signal
+                  {t("personalizedHealth.healthSignal.title")}
                 </div>
 
                 <div className="mt-4 flex items-end gap-2">
@@ -381,13 +386,12 @@ export default function PersonalizedHealthPage() {
                 </div>
 
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Based on available vital measurements and data coverage. This is
-                  a continuity/wellness signal, not a diagnosis.
+                  {t("personalizedHealth.healthSignal.description")}
                 </p>
 
                 <div className="mt-6">
                   <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
-                    <span>Data coverage</span>
+                    <span>{t("personalizedHealth.healthSignal.coverage")}</span>
                     <span>{data.snapshot.coverage}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-slate-100">
@@ -403,31 +407,31 @@ export default function PersonalizedHealthPage() {
             <section className="mb-8 grid gap-5 md:grid-cols-4">
               <MetricCard
                 icon={<FileText size={21} />}
-                label="Verified records"
+                label={t("personalizedHealth.metrics.records.label")}
                 value={String(data.profile.verifiedRecords)}
-                description="Clinician-verified medical history."
+                description={t("personalizedHealth.metrics.records.description")}
               />
               <MetricCard
                 icon={<Pill size={21} />}
-                label="Verified medications"
+                label={t("personalizedHealth.metrics.medications.label")}
                 value={String(data.profile.verifiedMedications)}
-                description="Current medication context."
+                description={t("personalizedHealth.metrics.medications.description")}
               />
               <MetricCard
                 icon={<Activity size={21} />}
-                label="Vital measurements"
+                label={t("personalizedHealth.metrics.vitals.label")}
                 value={String(data.profile.vitalMeasurements)}
-                description="Longitudinal measurements available."
+                description={t("personalizedHealth.metrics.vitals.description")}
               />
               <MetricCard
                 icon={<CheckCircle2 size={21} />}
-                label="Medication adherence"
+                label={t("personalizedHealth.metrics.adherence.label")}
                 value={
                   data.medications.overallAdherencePercent === null
                     ? "—"
                     : `${data.medications.overallAdherencePercent}%`
                 }
-                description="Based on recorded reminder actions."
+                description={t("personalizedHealth.metrics.adherence.description")}
               />
             </section>
 
@@ -435,9 +439,9 @@ export default function PersonalizedHealthPage() {
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-semibold">What changed in your vitals</h2>
+                    <h2 className="text-xl font-semibold">{t("personalizedHealth.trends.title")}</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      Repeated measurements are compared with previous available readings.
+                      {t("personalizedHealth.trends.description")}
                     </p>
                   </div>
                   <TrendingUp size={21} className="text-teal-700" />
@@ -445,7 +449,7 @@ export default function PersonalizedHealthPage() {
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   {data.vitals.trends.length === 0 ? (
-                    <EmptyBlock text="Not enough repeated vital measurements yet." />
+                    <EmptyBlock text={t("personalizedHealth.trends.empty")} />
                   ) : (
                     data.vitals.trends.map((trend) => {
                       const increasing = trend.direction === "UP";
@@ -458,7 +462,7 @@ export default function PersonalizedHealthPage() {
                         >
                           <div className="flex items-center justify-between gap-3">
                             <span className="font-semibold text-slate-800">
-                              {formatVitalLabel(trend.vitalType)}
+                              {formatVitalLabel(trend.vitalType, t)}
                             </span>
                             {increasing ? (
                               <TrendingUp size={16} className="text-amber-600" />
@@ -470,14 +474,18 @@ export default function PersonalizedHealthPage() {
                           </div>
 
                           <div className="mt-3 text-sm text-slate-600">
-                            <strong>{directionLabel(trend.direction)}</strong>
+                            <strong>{directionLabel(trend.direction, t)}</strong>
                             {trend.changePercent !== null && (
                               <> · {Math.abs(trend.changePercent)}%</>
                             )}
                           </div>
 
                           <p className="mt-2 text-xs leading-5 text-slate-500">
-                            {trend.count} reading{trend.count === 1 ? "" : "s"} available.
+                            {trend.count}{" "}
+                            {trend.count === 1
+                              ? t("personalizedHealth.trends.reading")
+                              : t("personalizedHealth.trends.readings")}{" "}
+                            {t("personalizedHealth.trends.available")}
                           </p>
                         </div>
                       );
@@ -488,15 +496,15 @@ export default function PersonalizedHealthPage() {
 
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div>
-                  <h2 className="text-xl font-semibold">Latest vital snapshot</h2>
+                  <h2 className="text-xl font-semibold">{t("personalizedHealth.latest.title")}</h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Most recent measurement for each tracked vital type.
+                    {t("personalizedHealth.latest.description")}
                   </p>
                 </div>
 
                 <div className="mt-6 space-y-3">
                   {data.vitals.latest.length === 0 ? (
-                    <EmptyBlock text="No vital measurements available." />
+                    <EmptyBlock text={t("personalizedHealth.latest.empty")} />
                   ) : (
                     data.vitals.latest.map((item) => (
                       <div
@@ -505,7 +513,7 @@ export default function PersonalizedHealthPage() {
                       >
                         <div>
                           <p className="font-semibold text-slate-800">
-                            {formatVitalLabel(item.vitalType)}
+                            {formatVitalLabel(item.vitalType, t)}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {formatDate(item.recordedAt)} · {item.source}
@@ -524,16 +532,16 @@ export default function PersonalizedHealthPage() {
             <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold">Medication adherence</h2>
+                  <h2 className="text-xl font-semibold">{t("personalizedHealth.metrics.adherence.label")}</h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Reminder actions are summarized without changing prescription instructions.
+                    {t("personalizedHealth.medicationSection.description")}
                   </p>
                 </div>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {data.medications.items.length === 0 ? (
-                  <EmptyBlock text="No clinician-verified medications with reminder data yet." />
+                  <EmptyBlock text={t("personalizedHealth.medicationSection.empty")} />
                 ) : (
                   data.medications.items.map((medication) => (
                     <div
@@ -546,7 +554,7 @@ export default function PersonalizedHealthPage() {
                             {medication.name}
                           </h3>
                           <p className="mt-1 text-xs text-slate-500">
-                            {medication.dosage || "Dose not specified"}
+                            {medication.dosage || t("personalizedHealth.medicationSection.doseNotSpecified")}
                             {medication.frequency ? ` · ${medication.frequency}` : ""}
                           </p>
                         </div>
@@ -554,20 +562,22 @@ export default function PersonalizedHealthPage() {
                       </div>
 
                       <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs">
-                        <AdherenceStat label="Taken" value={medication.taken} />
-                        <AdherenceStat label="Skipped" value={medication.skipped} />
-                        <AdherenceStat label="Snoozed" value={medication.snoozed} />
+                        <AdherenceStat label={t("personalizedHealth.adherenceStat.taken")} value={medication.taken} />
+                        <AdherenceStat label={t("personalizedHealth.adherenceStat.skipped")} value={medication.skipped} />
+                        <AdherenceStat label={t("personalizedHealth.adherenceStat.snoozed")} value={medication.snoozed} />
                       </div>
 
                       <div className="mt-5 flex items-center justify-between text-xs">
                         <span className="text-slate-500">
-                          {medication.activeReminders} active reminder
-                          {medication.activeReminders === 1 ? "" : "s"}
+                          {medication.activeReminders}{" "}
+                          {medication.activeReminders === 1
+                            ? t("personalizedHealth.medicationSection.activeReminder")
+                            : t("personalizedHealth.medicationSection.activeReminders")}
                         </span>
                         <strong className="text-teal-700">
                           {medication.adherencePercent === null
                             ? "—"
-                            : `${medication.adherencePercent}% adherence`}
+                            : `${medication.adherencePercent}% ${t("personalizedHealth.medicationSection.adherenceSuffix")}`}
                         </strong>
                       </div>
                     </div>
@@ -580,11 +590,11 @@ export default function PersonalizedHealthPage() {
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-2">
                   <BrainCircuit size={21} />
-                  <h2 className="text-xl font-semibold">Personalized insights</h2>
+                  <h2 className="text-xl font-semibold">{t("personalizedHealth.insights.title")}</h2>
                 </div>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Patterns and signals worth understanding or discussing with your clinician.
+                  {t("personalizedHealth.insights.description")}
                 </p>
 
                 <div className="mt-6 space-y-3">
@@ -621,12 +631,10 @@ export default function PersonalizedHealthPage() {
 
               <div className="rounded-3xl border border-teal-100 bg-teal-50/50 p-6">
                 <h2 className="text-xl font-semibold text-teal-950">
-                  Generate deeper AI health insights
+                  {t("personalizedHealth.ai.title")}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-teal-900/80">
-                  Gemini will review the structured JeevanLink context currently
-                  available for this patient and return observations, data gaps,
-                  and practical next steps. It is not allowed to diagnose or change medication.
+                  {t("personalizedHealth.ai.description")}
                 </p>
 
                 <button
@@ -640,7 +648,7 @@ export default function PersonalizedHealthPage() {
                   ) : (
                     <Sparkles size={17} />
                   )}
-                  {generating ? "Generating..." : "Generate AI insights"}
+                  {generating ? t("personalizedHealth.ai.generating") : t("personalizedHealth.ai.generate")}
                 </button>
 
                 {aiMessage && (
@@ -649,11 +657,10 @@ export default function PersonalizedHealthPage() {
 
                 <div className="mt-8 rounded-2xl border border-teal-100 bg-white/70 p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-700">
-                    Safety boundary
+                    {t("personalizedHealth.ai.safetyTitle")}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Personalized Health explains patterns from available data.
-                    Clinical decisions remain with the patient and clinician.
+                    {t("personalizedHealth.ai.safetyDescription")}
                   </p>
                 </div>
               </div>
@@ -662,12 +669,12 @@ export default function PersonalizedHealthPage() {
             <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-2">
                 <FileText size={21} />
-                <h2 className="text-xl font-semibold">Recent verified record context</h2>
+                <h2 className="text-xl font-semibold">{t("personalizedHealth.recordsSection.title")}</h2>
               </div>
 
               <div className="mt-5 space-y-3">
                 {data.records.length === 0 ? (
-                  <EmptyBlock text="No verified records are available yet." />
+                  <EmptyBlock text={t("personalizedHealth.recordsSection.empty")} />
                 ) : (
                   data.records.slice(0, 6).map((record) => (
                     <div
@@ -684,7 +691,7 @@ export default function PersonalizedHealthPage() {
                           </p>
                         </div>
                         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                          Verified
+                          {t("personalizedHealth.recordsSection.verifiedBadge")}
                         </span>
                       </div>
                       {record.interpretation && (
@@ -702,7 +709,7 @@ export default function PersonalizedHealthPage() {
               <div className="flex items-start gap-3">
                 <ShieldCheck size={20} className="mt-0.5 shrink-0 text-amber-700" />
                 <div>
-                  <h2 className="font-semibold text-amber-900">Data gaps & safety note</h2>
+                  <h2 className="font-semibold text-amber-900">{t("personalizedHealth.dataGaps.title")}</h2>
                   <ul className="mt-2 space-y-2 text-sm leading-6 text-amber-800">
                     {data.dataGaps.map((gap, index) => (
                       <li key={`${gap}-${index}`}>• {gap}</li>
