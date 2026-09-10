@@ -32,6 +32,30 @@ button {
   font: inherit;
 }
 
+/* =========================
+   ACCESSIBILITY MODES
+   Toggled via AccessibilityProvider (jeevanlink_accessibility in
+   localStorage) by adding/removing these classes on <html>.
+========================= */
+
+html.a11y-large-text {
+  /* Most of the app is styled with rem-based Tailwind utilities, so
+     scaling the root font size scales the whole UI proportionally
+     without needing per-component changes. */
+  font-size: 118%;
+}
+
+html.a11y-high-contrast {
+  /* A broad contrast/saturation boost rather than a full per-component
+     re-theme -- the app's Tailwind classes use many hardcoded colors,
+     so this is the pragmatic way to raise contrast everywhere at once. */
+  filter: contrast(1.35) saturate(1.15);
+}
+
+html.a11y-high-contrast body {
+  background: #ffffff;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;

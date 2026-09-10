@@ -148,6 +148,9 @@ const en: ClinicalIntakeText = {
   consentClinicalHistory: "I consent to clinical-history capture.",
   consentDocumentProcessing: "I understand medical documents may be processed to prepare context.",
   consentClinicianSharing: "I consent to sharing this draft with the treating clinician for review.",
+  a11yAudioGuided: "Audio guide",
+  a11yHighContrast: "High contrast",
+  a11yLargeText: "Large text",
 };
 
 const hi: ClinicalIntakeText = {
@@ -298,6 +301,9 @@ const hi: ClinicalIntakeText = {
   consentClinicalHistory: "मैं क्लिनिकल हिस्ट्री कैप्चर के लिए सहमत हूँ।",
   consentDocumentProcessing: "मैं समझता/समझती हूँ कि संदर्भ तैयार करने के लिए मेडिकल दस्तावेज़ प्रोसेस किए जा सकते हैं।",
   consentClinicianSharing: "मैं इस ड्राफ्ट को उपचार कर रहे क्लिनिशियन के साथ समीक्षा के लिए साझा करने के लिए सहमत हूँ।",
+  a11yAudioGuided: "ऑडियो गाइड",
+  a11yHighContrast: "उच्च कंट्रास्ट",
+  a11yLargeText: "बड़ा टेक्स्ट",
 };
 
 const bn: ClinicalIntakeText = {
@@ -448,6 +454,9 @@ const bn: ClinicalIntakeText = {
   consentClinicalHistory: "আমি ক্লিনিকাল ইতিহাস সংগ্রহে সম্মতি দিচ্ছি।",
   consentDocumentProcessing: "আমি বুঝি যে প্রসঙ্গ তৈরির জন্য মেডিকেল নথি প্রক্রিয়াকরণ করা হতে পারে।",
   consentClinicianSharing: "আমি এই খসড়াটি চিকিৎসাকারী ক্লিনিশিয়ানের সঙ্গে পর্যালোচনার জন্য শেয়ার করতে সম্মতি দিচ্ছি।",
+  a11yAudioGuided: "অডিও গাইড",
+  a11yHighContrast: "উচ্চ কনট্রাস্ট",
+  a11yLargeText: "বড় লেখা",
 };
 
 const ta: ClinicalIntakeText = {
@@ -598,6 +607,9 @@ const ta: ClinicalIntakeText = {
   consentClinicalHistory: "மருத்துவ வரலாறு சேகரிப்புக்கு நான் ஒப்புக்கொள்கிறேன்.",
   consentDocumentProcessing: "சூழல் தயாரிக்க மருத்துவ ஆவணங்கள் செயலாக்கப்படலாம் என்பதை நான் புரிந்துகொள்கிறேன்.",
   consentClinicianSharing: "இந்த வரைவை சிகிச்சை அளிக்கும் மருத்துவருடன் மதிப்பாய்வுக்காக பகிர ஒப்புக்கொள்கிறேன்.",
+  a11yAudioGuided: "ஆடியோ வழிகாட்டி",
+  a11yHighContrast: "அதிக மாறுபாடு",
+  a11yLargeText: "பெரிய எழுத்து",
 };
 
 const te: ClinicalIntakeText = {
@@ -703,6 +715,9 @@ const te: ClinicalIntakeText = {
   consentClinicalHistory: "క్లినికల్ హిస్టరీ సేకరణకు నేను సమ్మతిస్తున్నాను.",
   consentDocumentProcessing: "సందర్భం సిద్ధం చేయడానికి వైద్య పత్రాలు ప్రాసెస్ చేయబడవచ్చని నాకు తెలుసు.",
   consentClinicianSharing: "ఈ డ్రాఫ్ట్‌ను చికిత్స చేసే క్లినిషియన్‌తో సమీక్ష కోసం పంచుకోవడానికి నేను సమ్మతిస్తున్నాను.",
+  a11yAudioGuided: "ఆడియో గైడ్",
+  a11yHighContrast: "అధిక కాంట్రాస్ట్",
+  a11yLargeText: "పెద్ద టెక్స్ట్",
 };
 
 const mr: ClinicalIntakeText = {
@@ -808,6 +823,9 @@ const mr: ClinicalIntakeText = {
   consentClinicalHistory: "मी क्लिनिकल हिस्ट्री नोंदणीस संमती देतो/देते.",
   consentDocumentProcessing: "संदर्भ तयार करण्यासाठी वैद्यकीय कागदपत्रांवर प्रक्रिया होऊ शकते हे मला समजते.",
   consentClinicianSharing: "हा मसुदा उपचार करणाऱ्या क्लिनिशियनसोबत पुनरावलोकनासाठी शेअर करण्यास मी संमती देतो/देते.",
+  a11yAudioGuided: "ऑडिओ मार्गदर्शक",
+  a11yHighContrast: "उच्च कॉन्ट्रास्ट",
+  a11yLargeText: "मोठा मजकूर",
 };
 
 const gu: ClinicalIntakeText = {
@@ -913,6 +931,9 @@ const gu: ClinicalIntakeText = {
   consentClinicalHistory: "હું ક્લિનિકલ હિસ્ટરી કૅપ્ચર માટે સંમત છું.",
   consentDocumentProcessing: "હું સમજું છું કે સંદર્ભ તૈયાર કરવા માટે તબીબી દસ્તાવેજો પ્રોસેસ થઈ શકે છે.",
   consentClinicianSharing: "આ ડ્રાફ્ટને સારવાર કરતા ક્લિનિશિયન સાથે સમીક્ષા માટે શેર કરવા હું સંમત છું.",
+  a11yAudioGuided: "ઓડિયો ગાઇડ",
+  a11yHighContrast: "ઉચ્ચ કોન્ટ્રાસ્ટ",
+  a11yLargeText: "મોટું લખાણ",
 };
 
 const kn: ClinicalIntakeText = {
@@ -1018,6 +1039,9 @@ const kn: ClinicalIntakeText = {
   consentClinicalHistory: "ಕ್ಲಿನಿಕಲ್ ಹಿಸ್ಟರಿ ಸಂಗ್ರಹಕ್ಕೆ ನಾನು ಒಪ್ಪುತ್ತೇನೆ.",
   consentDocumentProcessing: "ಸಂದರ್ಭ ಸಿದ್ಧಪಡಿಸಲು ವೈದ್ಯಕೀಯ ದಾಖಲೆಗಳನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಬಹುದು ಎಂದು ನಾನು ಅರ್ಥಮಾಡಿಕೊಂಡಿದ್ದೇನೆ.",
   consentClinicianSharing: "ಈ ಡ್ರಾಫ್ಟ್ ಅನ್ನು ಚಿಕಿತ್ಸೆ ನೀಡುವ ವೈದ್ಯರೊಂದಿಗೆ ಪರಿಶೀಲನೆಗಾಗಿ ಹಂಚಿಕೊಳ್ಳಲು ನಾನು ಒಪ್ಪುತ್ತೇನೆ.",
+  a11yAudioGuided: "ಆಡಿಯೋ ಗೈಡ್",
+  a11yHighContrast: "ಹೆಚ್ಚಿನ ಕಾಂಟ್ರಾಸ್ಟ್",
+  a11yLargeText: "ದೊಡ್ಡ ಪಠ್ಯ",
 };
 
 const ml: ClinicalIntakeText = {
@@ -1123,6 +1147,9 @@ const ml: ClinicalIntakeText = {
   consentClinicalHistory: "ക്ലിനിക്കൽ ചരിത്ര ശേഖരണത്തിന് ഞാൻ സമ്മതിക്കുന്നു.",
   consentDocumentProcessing: "പശ്ചാത്തലം തയ്യാറാക്കാൻ മെഡിക്കൽ രേഖകൾ പ്രോസസ്സ് ചെയ്യാം എന്ന് ഞാൻ മനസ്സിലാക്കുന്നു.",
   consentClinicianSharing: "ഈ ഡ്രാഫ്റ്റ് ചികിത്സിക്കുന്ന ക്ലിനീഷ്യനുമായി അവലോകനത്തിനായി പങ്കിടാൻ ഞാൻ സമ്മതിക്കുന്നു.",
+  a11yAudioGuided: "ഓഡിയോ ഗൈഡ്",
+  a11yHighContrast: "ഉയർന്ന കോൺട്രാസ്റ്റ്",
+  a11yLargeText: "വലിയ ടെക്സ്റ്റ്",
 };
 
 const pa: ClinicalIntakeText = {
@@ -1228,6 +1255,9 @@ const pa: ClinicalIntakeText = {
   consentClinicalHistory: "ਮੈਂ ਕਲੀਨੀਕਲ ਹਿਸਟਰੀ ਕੈਪਚਰ ਲਈ ਸਹਿਮਤ ਹਾਂ।",
   consentDocumentProcessing: "ਮੈਂ ਸਮਝਦਾ/ਸਮਝਦੀ ਹਾਂ ਕਿ ਸੰਦਰਭ ਤਿਆਰ ਕਰਨ ਲਈ ਮੈਡੀਕਲ ਦਸਤਾਵੇਜ਼ ਪ੍ਰੋਸੈਸ ਕੀਤੇ ਜਾ ਸਕਦੇ ਹਨ।",
   consentClinicianSharing: "ਮੈਂ ਇਸ ਡਰਾਫਟ ਨੂੰ ਇਲਾਜ ਕਰ ਰਹੇ ਕਲੀਨੀਸ਼ੀਅਨ ਨਾਲ ਸਮੀਖਿਆ ਲਈ ਸਾਂਝਾ ਕਰਨ ਲਈ ਸਹਿਮਤ ਹਾਂ।",
+  a11yAudioGuided: "ਆਡੀਓ ਗਾਈਡ",
+  a11yHighContrast: "ਉੱਚ ਕੰਟ੍ਰਾਸਟ",
+  a11yLargeText: "ਵੱਡਾ ਟੈਕਸਟ",
 };
 
 const or: ClinicalIntakeText = {
@@ -1333,6 +1363,9 @@ const or: ClinicalIntakeText = {
   consentClinicalHistory: "ମୁଁ କ୍ଲିନିକାଲ ଇତିହାସ ସଂଗ୍ରହ ପାଇଁ ସମ୍ମତ।",
   consentDocumentProcessing: "ସନ୍ଦର୍ଭ ପ୍ରସ୍ତୁତ କରିବା ପାଇଁ ଚିକିତ୍ସା ଦଲିଲ ପ୍ରକ୍ରିୟାକରଣ ହୋଇପାରେ ବୋଲି ମୁଁ ବୁଝୁଛି।",
   consentClinicianSharing: "ଏହି ଡ୍ରାଫ୍ଟକୁ ଚିକିତ୍ସା କରୁଥିବା କ୍ଲିନିସିଆନ୍ ସହ ସମୀକ୍ଷା ପାଇଁ ଭାଗ କରିବାକୁ ମୁଁ ସମ୍ମତ।",
+  a11yAudioGuided: "ଅଡିଓ ଗାଇଡ୍",
+  a11yHighContrast: "ଉଚ୍ଚ କଣ୍ଟ୍ରାଷ୍ଟ",
+  a11yLargeText: "ବଡ଼ ଟେକ୍ସଟ୍",
 };
 
 const as: ClinicalIntakeText = {
@@ -1438,6 +1471,9 @@ const as: ClinicalIntakeText = {
   consentClinicalHistory: "মই ক্লিনিকেল ইতিহাস সংগ্ৰহৰ বাবে সন্মত।",
   consentDocumentProcessing: "প্ৰসংগ প্ৰস্তুত কৰিবলৈ চিকিৎসা নথি প্ৰক্ৰিয়াকৰণ হ’ব পাৰে বুলি মই বুজি পাইছোঁ।",
   consentClinicianSharing: "এই খচৰা চিকিৎসা কৰা ক্লিনিচিয়ানৰ সৈতে পৰ্যালোচনাৰ বাবে শ্বেয়াৰ কৰিবলৈ মই সন্মত।",
+  a11yAudioGuided: "অডিঅ' গাইড",
+  a11yHighContrast: "উচ্চ কনট্ৰাষ্ট",
+  a11yLargeText: "ডাঙৰ লিখনী",
 };
 
 export const CLINICAL_INTAKE_COPY: Record<string, ClinicalIntakeText> = {

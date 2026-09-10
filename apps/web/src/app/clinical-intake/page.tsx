@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../components/LanguageProvider";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import { useAccessibility } from "../../components/AccessibilityProvider";
 import { CLINICAL_INTAKE_COPY as copy } from "../clinical-intake-copy";
 
 type IntakeMode = "GENERAL" | "AYUSH";
@@ -183,6 +184,14 @@ const hpiFieldsByCategory: Record<ComplaintCategory, ReadonlySet<HpiFieldKey>> =
 export default function ClinicalIntakePage() {
   const router = useRouter();
   const { language } = useLanguage() as { language?: string };
+  const {
+    highContrast,
+    largeText,
+    audioGuided,
+    toggleHighContrast,
+    toggleLargeText,
+    toggleAudioGuided,
+  } = useAccessibility();
 
   // LanguageProvider uses locale-style codes such as bn-IN, while the
   // clinical-intake translation dictionary uses base language codes such as bn.
@@ -797,6 +806,39 @@ export default function ClinicalIntakePage() {
     headache: text.hpiHintHeadache,
   } as Partial<Record<ComplaintCategory, string>>)[complaintCategory];
 
+  function getStepNarration(stepIndex: number): string {
+    switch (steps[stepIndex]) {
+      case "consent":
+        return [text.consentTitle, text.consentText].filter(Boolean).join(". ");
+      case "complaint":
+        return [text.chiefComplaint, text.chiefComplaintSubtitle].filter(Boolean).join(". ");
+      case "hpi":
+        return [text.hpiTitle, text.hpiSubtitle, hpiHint].filter(Boolean).join(". ");
+      case "history":
+        return [text.pastTitle, text.pastSubtitle].filter(Boolean).join(". ");
+      case "review":
+        return [text.reviewTitle, text.reviewSubtitle].filter(Boolean).join(". ");
+      case "reviewSubmit":
+        return [text.review, text.reviewSubtitle2].filter(Boolean).join(". ");
+      default:
+        return "";
+    }
+  }
+
+  // Audio-guided mode: narrate each screen automatically as the patient
+  // moves through the intake, reusing the same TTS pipeline the manual
+  // "Listen to explanation" button on the consent step already uses.
+  useEffect(() => {
+    if (!audioGuided || submitted || loadingCorrection) return;
+
+    const narration = getStepNarration(step);
+
+    if (narration) {
+      void say(narration);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, audioGuided, lang]);
+
   const canContinue = useMemo(() => {
     if (step === 0) return consent.clinicalHistory && consent.clinicianSharing;
     if (step === 1) return history.chiefComplaint.trim().length > 0;
@@ -1079,13 +1121,31 @@ export default function ClinicalIntakePage() {
             className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white"
           >
             <ArrowLeft size={17} />
-            Back to dashboard
+            {text.backDashboard}
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <AccessibilityToggle
+              active={audioGuided}
+              icon={<Volume2 size={14} />}
+              label={text.a11yAudioGuided}
+              onClick={toggleAudioGuided}
+            />
+            <AccessibilityToggle
+              active={highContrast}
+              icon={<CircleAlert size={14} />}
+              label={text.a11yHighContrast}
+              onClick={toggleHighContrast}
+            />
+            <AccessibilityToggle
+              active={largeText}
+              icon={<span className="text-[13px] font-black leading-none">A</span>}
+              label={text.a11yLargeText}
+              onClick={toggleLargeText}
+            />
             <LanguageSwitcher />
             <div className="hidden items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm sm:flex">
               <ShieldCheck size={15} />
-              Human verification required
+              {text.humanVerification}
             </div>
           </div>
         </header>
@@ -1427,6 +1487,34 @@ function VoiceField({ label, value, onChange, onVoice, listening, supported, mul
       <div className="mb-2 flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-800">{label}</label><button type="button" onClick={onVoice} disabled={!supported || listening} className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${listening ? "bg-rose-50 text-rose-700" : "bg-white text-teal-700 shadow-sm hover:bg-teal-50"}`}>{listening ? <MicOff size={14} /> : <Mic size={14} />}{listening ? listeningLabel : speakLabel}</button></div>
       {multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} rows={4} className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" /> : <input value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />}
     </div>
+  );
+}
+
+function AccessibilityToggle({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+        active
+          ? "border-teal-600 bg-teal-600 text-white"
+          : "border-white/70 bg-white/80 text-slate-600 hover:bg-white"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

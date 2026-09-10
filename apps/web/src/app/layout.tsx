@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
+import AccessibilityProvider from "@/components/AccessibilityProvider";
 
 export const metadata: Metadata = {
   title: "JeevanLink",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <LanguageProvider>
-          {children}
+          <AccessibilityProvider>
+            {children}
+          </AccessibilityProvider>
         </LanguageProvider>
       </body>
     </html>
