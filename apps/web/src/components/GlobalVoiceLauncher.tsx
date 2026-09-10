@@ -114,7 +114,7 @@ export default function GlobalVoiceLauncher() {
               </button>
             </div>
 
-            <VoiceAssistant language={language} compact />
+            <VoiceAssistant language={language} compact autoStart />
           </div>,
           document.body,
         )}

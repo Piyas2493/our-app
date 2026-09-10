@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -63,9 +63,13 @@ const VITAL_LABELS: Record<string, string> = {
 export default function VoiceAssistant({
   language = "en",
   compact = false,
+  autoStart = false,
 }: {
   language?: string;
   compact?: boolean;
+  /** Start listening immediately on mount, like a hardware assistant
+   * button, instead of waiting for a second click on an inner mic. */
+  autoStart?: boolean;
 }) {
   const router = useRouter();
   const lang = (language.split("-")[0] || "en").toLowerCase();
@@ -315,6 +319,28 @@ export default function VoiceAssistant({
       recorder.stop();
     }
   }
+
+  // Start listening immediately, like pressing a hardware assistant
+  // button -- only once per mount, so re-renders don't re-trigger it.
+  useEffect(() => {
+    if (autoStart && voiceSupported) {
+      void startVoice();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Stop any in-progress recording and playback if the panel is
+  // closed or the page is left mid-recording -- otherwise the
+  // microphone stays hot in the background with nothing listening.
+  useEffect(() => {
+    return () => {
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop();
+      }
+      audioPlaybackRef.current?.pause();
+    };
+  }, []);
 
   return (
     <div>
