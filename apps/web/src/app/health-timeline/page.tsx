@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Clock,
@@ -18,6 +19,7 @@ import {
   FileSearch,
   FileText,
   Filter,
+  FlaskConical,
   History,
   Loader2,
   Pill,
@@ -34,6 +36,14 @@ type Medication = {
   dosage?: string | null;
   frequency?: string | null;
   duration?: string | null;
+};
+
+type LabResultEntry = {
+  testName?: string | null;
+  value?: string | null;
+  unit?: string | null;
+  referenceRange?: string | null;
+  status?: string | null;
 };
 
 type VerificationAudit = {
@@ -60,6 +70,7 @@ type MedicalRecord = {
   originalFileUrl?: string | null;
   originalFileType?: string | null;
   verificationAudits?: VerificationAudit[];
+  labResults?: LabResultEntry[];
 };
 
 type SessionUser = {
@@ -148,6 +159,131 @@ function formatDay(value?: string | null) {
     month: "long",
     year: "numeric",
   });
+}
+
+/*
+ * Small curated set of well-known, clinically significant interaction
+ * pairs, matched by case-insensitive substring against medication name
+ * strings across ALL of a patient's records (not just one document).
+ * This is deliberately a short, deterministic, hardcoded list rather
+ * than a model-based check: it needs no API call so it's always
+ * available and testable, at the cost of only covering the pairs
+ * listed here. It will miss interactions involving brand names not
+ * listed, combination products, or anything not on this list -- it is
+ * not a substitute for pharmacist or clinician review.
+ */
+const DRUG_INTERACTIONS: { a: string[]; b: string[]; note: string }[] = [
+  {
+    a: ["warfarin"],
+    b: ["aspirin", "ibuprofen", "naproxen", "diclofenac"],
+    note: "Combining an anticoagulant with aspirin/an NSAID can significantly increase bleeding risk.",
+  },
+  {
+    a: ["warfarin"],
+    b: ["clopidogrel"],
+    note: "Combining warfarin with clopidogrel increases bleeding risk.",
+  },
+  {
+    a: ["aspirin"],
+    b: ["clopidogrel"],
+    note: "Dual antiplatelet use needs clinician-guided monitoring for bleeding risk.",
+  },
+  {
+    a: ["sildenafil", "tadalafil", "vardenafil"],
+    b: ["nitroglycerin", "isosorbide", "nitrate"],
+    note: "Combining a PDE5 inhibitor with nitrates can cause a severe, dangerous drop in blood pressure.",
+  },
+  {
+    a: ["simvastatin", "atorvastatin", "lovastatin"],
+    b: ["clarithromycin", "erythromycin", "itraconazole", "ketoconazole"],
+    note: "This combination can raise statin levels and increase the risk of muscle damage (rhabdomyolysis).",
+  },
+  {
+    a: ["lisinopril", "enalapril", "ramipril", "losartan", "valsartan", "telmisartan"],
+    b: ["spironolactone", "potassium"],
+    note: "Combining an ACE inhibitor/ARB with a potassium-sparing agent can raise potassium to dangerous levels.",
+  },
+  {
+    a: ["lithium"],
+    b: ["ibuprofen", "naproxen", "diclofenac", "lisinopril", "enalapril", "ramipril"],
+    note: "NSAIDs and ACE inhibitors can raise lithium levels into the toxic range.",
+  },
+  {
+    a: ["digoxin"],
+    b: ["amiodarone"],
+    note: "Amiodarone can raise digoxin levels, increasing the risk of digoxin toxicity.",
+  },
+  {
+    a: ["methotrexate"],
+    b: ["ibuprofen", "naproxen", "diclofenac", "aspirin"],
+    note: "NSAIDs can reduce methotrexate clearance and increase its toxicity.",
+  },
+  {
+    a: ["glimepiride", "glipizide", "glyburide", "glibenclamide"],
+    b: ["fluconazole"],
+    note: "Fluconazole can increase sulfonylurea levels, raising the risk of low blood sugar.",
+  },
+  {
+    a: ["theophylline"],
+    b: ["ciprofloxacin"],
+    note: "Ciprofloxacin can raise theophylline levels, increasing the risk of toxicity.",
+  },
+  {
+    a: ["alprazolam", "diazepam", "clonazepam", "lorazepam"],
+    b: ["tramadol", "morphine", "codeine", "oxycodone"],
+    note: "Combining a benzodiazepine with an opioid increases the risk of severe sedation and slowed breathing.",
+  },
+  {
+    a: ["sertraline", "fluoxetine", "escitalopram", "paroxetine"],
+    b: ["tramadol"],
+    note: "Combining an SSRI with tramadol increases the risk of serotonin syndrome.",
+  },
+];
+
+type InteractionFlag = {
+  medicationA: string;
+  medicationB: string;
+  note: string;
+};
+
+function findDrugInteractions(medicationNames: string[]): InteractionFlag[] {
+  const names = Array.from(
+    new Set(medicationNames.map((name) => name.trim()).filter(Boolean))
+  );
+
+  const results: InteractionFlag[] = [];
+
+  for (const rule of DRUG_INTERACTIONS) {
+    const matchesA = names.filter((name) =>
+      rule.a.some((term) => name.toLowerCase().includes(term))
+    );
+    const matchesB = names.filter((name) =>
+      rule.b.some((term) => name.toLowerCase().includes(term))
+    );
+
+    for (const medicationA of matchesA) {
+      for (const medicationB of matchesB) {
+        if (medicationA.toLowerCase() === medicationB.toLowerCase()) continue;
+        results.push({ medicationA, medicationB, note: rule.note });
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+
+  return results.filter((flag) => {
+    const key = [flag.medicationA.toLowerCase(), flag.medicationB.toLowerCase()]
+      .sort()
+      .join("::");
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isAbnormalStatus(status?: string | null) {
+  return /high|low|abnormal/i.test(String(status || ""));
 }
 
 function auditLabel(action?: string) {
@@ -280,6 +416,9 @@ export default function HealthTimelinePage() {
         verificationAudits: Array.isArray(record.verificationAudits)
           ? record.verificationAudits
           : [],
+        labResults: Array.isArray(record.labResults)
+          ? record.labResults
+          : [],
       })) as MedicalRecord[];
 
       normalized.sort(
@@ -334,6 +473,57 @@ export default function HealthTimelinePage() {
     () => records.find((record) => record.id === selectedRecordId) || null,
     [records, selectedRecordId]
   );
+
+  /*
+   * Cross-document safety signals: unlike everything else on this page
+   * (which looks at one record at a time), these two look ACROSS every
+   * record the patient has, which is what the PS actually asks for --
+   * abnormal-value and drug-interaction highlighting across documents,
+   * not just per-document.
+   */
+  const abnormalFindings = useMemo(() => {
+    const findings: Array<{
+      recordId: string;
+      documentName: string;
+      date: string;
+      testName: string;
+      value: string;
+      unit: string;
+      referenceRange: string;
+      status: string;
+    }> = [];
+
+    for (const record of records) {
+      for (const result of record.labResults || []) {
+        if (!isAbnormalStatus(result.status)) continue;
+
+        findings.push({
+          recordId: record.id,
+          documentName: record.documentName || "Medical Document",
+          date: getDateValue(record),
+          testName: result.testName || "Unnamed test",
+          value: result.value || "—",
+          unit: result.unit || "",
+          referenceRange: result.referenceRange || "",
+          status: result.status || "",
+        });
+      }
+    }
+
+    return findings.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [records]);
+
+  const interactionFlags = useMemo(() => {
+    const activeMedicationNames = records
+      .filter((record) => getRecordStatus(record) !== "attention")
+      .flatMap((record) => record.medications || [])
+      .map((medication) => medication.name || "")
+      .filter(Boolean) as string[];
+
+    return findDrugInteractions(activeMedicationNames);
+  }, [records]);
 
   const groupedTimeline = useMemo(() => {
     const groups = new Map<string, MedicalRecord[]>();
@@ -441,6 +631,100 @@ export default function HealthTimelinePage() {
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
+        )}
+
+        {(abnormalFindings.length > 0 || interactionFlags.length > 0) && (
+          <section className="mb-7 rounded-3xl border border-amber-200 bg-amber-50/60 p-5 md:p-7">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="rounded-xl bg-white p-2.5 text-amber-700 shadow-sm">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-amber-900">
+                  Cross-document safety signals
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-amber-800">
+                  Patterns found across your stored documents, not just within one.
+                  AI-assisted and not a diagnosis — always discuss these with your
+                  clinician.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {abnormalFindings.length > 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <FlaskConical size={16} className="text-amber-700" />
+                    <h3 className="text-sm font-semibold text-slate-800">
+                      Abnormal lab values ({abnormalFindings.length})
+                    </h3>
+                  </div>
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                    {abnormalFindings.map((finding, index) => (
+                      <button
+                        key={`${finding.recordId}-${finding.testName}-${index}`}
+                        type="button"
+                        onClick={() => setSelectedRecordId(finding.recordId)}
+                        className="block w-full rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-left hover:border-amber-300 hover:bg-amber-50"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-slate-800">
+                            {finding.testName}
+                          </span>
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-800">
+                            {finding.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {finding.value} {finding.unit}
+                          {finding.referenceRange
+                            ? ` · Reference: ${finding.referenceRange}`
+                            : ""}
+                          {" · "}
+                          {formatDate(finding.date)}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-400">
+                          {finding.documentName}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {interactionFlags.length > 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Pill size={16} className="text-amber-700" />
+                    <h3 className="text-sm font-semibold text-slate-800">
+                      Potential medication interactions ({interactionFlags.length})
+                    </h3>
+                  </div>
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                    {interactionFlags.map((flag, index) => (
+                      <div
+                        key={`${flag.medicationA}-${flag.medicationB}-${index}`}
+                        className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"
+                      >
+                        <p className="text-sm font-semibold text-slate-800">
+                          {flag.medicationA} + {flag.medicationB}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">
+                          {flag.note}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[11px] leading-5 text-slate-400">
+                    Based on a small curated list of well-known interactions
+                    matched by medication name. Not exhaustive — always confirm
+                    with your clinician or pharmacist.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
         )}
 
         <section className="mb-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">

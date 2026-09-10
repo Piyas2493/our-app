@@ -146,6 +146,12 @@ model MedicalRecord {
   originalFileUrl  String?
   originalFileType String?
 
+  // AI-extracted structured lab results (testName/value/unit/referenceRange/
+  // status per entry) captured at upload time. Persisted so cross-document
+  // abnormal-value tracking on the health timeline survives past the
+  // pre-submission review screen, instead of being discarded at submit.
+  labResults Json?
+
   patientId String?
 
   patient User? @relation("PatientRecords", fields: [patientId], references: [id], onDelete: SetNull)

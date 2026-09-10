@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { getCurrentUser } from "@/app/lib/auth";
+import { collectIntakeText, detectRedFlags } from "@/app/lib/redFlags";
 
 export const runtime = "nodejs";
 
@@ -18,77 +19,60 @@ function buildRedFlags(interpretation: string): string[] {
     return [];
   }
 
-  const record = parsed as {
-    chiefComplaint?: unknown;
-    hpi?: unknown;
-    reviewOfSystems?: unknown;
-  };
+  return detectRedFlags(
+    collectIntakeText(
+      parsed as {
+        chiefComplaint?: unknown;
+        hpi?: unknown;
+        reviewOfSystems?: unknown;
+      }
+    )
+  );
+}
 
-  const text = [
-    record.chiefComplaint,
-    ...(record.hpi && typeof record.hpi === "object"
-      ? Object.values(record.hpi as Record<string, unknown>)
-      : []),
-    ...(record.reviewOfSystems && typeof record.reviewOfSystems === "object"
-      ? Object.values(record.reviewOfSystems as Record<string, unknown>)
-      : []),
-  ]
-    .filter((value) => typeof value === "string")
-    .join(" ")
-    .toLowerCase();
+type SanitizedLabResult = {
+  testName: string;
+  value: string;
+  unit: string;
+  referenceRange: string;
+  status: string;
+};
 
-  const patterns = [
-    {
-      label: "Chest pain or chest pressure reported.",
-      terms: ["chest pain", "chest pressure", "pain in chest"],
-    },
-    {
-      label: "Severe breathing difficulty reported.",
-      terms: [
-        "severe breathlessness",
-        "severe shortness of breath",
-        "can't breathe",
-        "cannot breathe",
-        "difficulty breathing",
-      ],
-    },
-    {
-      label: "Loss of consciousness or fainting reported.",
-      terms: ["unconscious", "loss of consciousness", "fainted", "fainting"],
-    },
-    {
-      label: "Possible acute neurological symptom reported.",
-      terms: [
-        "face drooping",
-        "facial droop",
-        "slurred speech",
-        "sudden weakness",
-        "sudden numbness",
-        "unable to speak",
-        "seizure",
-      ],
-    },
-    {
-      label: "Severe bleeding reported.",
-      terms: [
-        "severe bleeding",
-        "heavy bleeding",
-        "vomiting blood",
-        "blood vomiting",
-        "coughing blood",
-      ],
-    },
-  ];
-
-  const flags: string[] = [];
-
-  for (const pattern of patterns) {
-    if (pattern.terms.some((term) => text.includes(term))) {
-      flags.push(pattern.label);
-    }
+// Structured lab results come straight from the client (the AI extraction
+// result the patient reviewed before submitting), so treat every field as
+// untrusted and coerce to strings rather than trusting the shape.
+function sanitizeLabResults(value: unknown): SanitizedLabResult[] | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
   }
 
-  return Array.from(new Set(flags));
+  const toText = (input: unknown) =>
+    typeof input === "string"
+      ? input.trim()
+      : typeof input === "number"
+        ? String(input)
+        : "";
+
+  const sanitized = value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const entry = item as Record<string, unknown>;
+      const testName = toText(entry.testName ?? entry.name);
+
+      if (!testName) return null;
+
+      return {
+        testName,
+        value: toText(entry.value ?? entry.result),
+        unit: toText(entry.unit),
+        referenceRange: toText(entry.referenceRange ?? entry.reference_range),
+        status: toText(entry.status),
+      };
+    })
+    .filter((item): item is SanitizedLabResult => item !== null);
+
+  return sanitized.length > 0 ? sanitized : null;
 }
 
 /* =========================================================
@@ -198,6 +182,7 @@ export async function POST(request: NextRequest) {
       medications = [],
       originalFileUrl,
       originalFileType,
+      labResults,
     } = body;
 
     if (!documentName || !documentType) {
@@ -242,6 +227,9 @@ export async function POST(request: NextRequest) {
             originalFileType.trim()
               ? originalFileType.trim()
               : null,
+
+          labResults:
+            sanitizeLabResults(labResults) ?? Prisma.JsonNull,
 
           medications: {
             create:
@@ -354,6 +342,7 @@ export async function PATCH(request: NextRequest) {
       originalFileType,
       documentName,
       documentType,
+      labResults,
     } = body;
 
     if (!id) {
@@ -526,6 +515,15 @@ export async function PATCH(request: NextRequest) {
                 typeof originalFileType === "string" &&
                 originalFileType.trim()
                   ? originalFileType.trim()
+                  : undefined,
+
+              // Only touch labResults when the caller actually sent the
+              // field (a corrected resubmission re-analyzes the document
+              // and sends fresh results); a plain clinician verify/reject
+              // never includes it, and must leave the existing value alone.
+              labResults:
+                labResults !== undefined
+                  ? (sanitizeLabResults(labResults) ?? Prisma.JsonNull)
                   : undefined,
 
               medications: {

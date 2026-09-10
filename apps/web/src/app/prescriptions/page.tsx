@@ -581,6 +581,18 @@ export default function PrescriptionsPage() {
           );
 
       /*
+       * Structured lab results (with abnormal/high/low status per test)
+       * from the AI extraction. Sent through so cross-document abnormal-
+       * value tracking on the health timeline has something to work with,
+       * instead of this data being shown once here and then discarded.
+       */
+      const labResultsForSubmission =
+        data.labResults ||
+        data.lab_results ||
+        data.keyInformation ||
+        [];
+
+      /*
        * STEP 3
        *
        * NORMAL SUBMISSION:
@@ -618,6 +630,9 @@ export default function PrescriptionsPage() {
 
                 medications:
                   validMedications,
+
+                labResults:
+                  labResultsForSubmission,
 
                 documentName:
                   selectedFile.name,
@@ -697,6 +712,9 @@ export default function PrescriptionsPage() {
 
               medications:
                 validMedications,
+
+              labResults:
+                labResultsForSubmission,
 
               originalFileUrl,
 
