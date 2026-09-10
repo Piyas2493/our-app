@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Medication = {
   name: string;
@@ -69,6 +70,7 @@ type ExtractedData = {
 
 export default function PrescriptionsPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [selectedFile, setSelectedFile] =
     useState<File | null>(null);
@@ -146,7 +148,7 @@ export default function PrescriptionsPage() {
             await response.json();
         } catch {
           throw new Error(
-            "The server returned an invalid response."
+            t("prescriptions.errors.correctionLoadFailed")
           );
         }
 
@@ -156,7 +158,7 @@ export default function PrescriptionsPage() {
         ) {
           throw new Error(
             result?.error ||
-              "Unable to load the correction request."
+              t("prescriptions.errors.correctionLoadFailed")
           );
         }
 
@@ -173,7 +175,7 @@ export default function PrescriptionsPage() {
 
         if (!record) {
           throw new Error(
-            "The medical record awaiting correction could not be found."
+            t("prescriptions.errors.correctionNotFound")
           );
         }
 
@@ -184,7 +186,7 @@ export default function PrescriptionsPage() {
           "REJECTED"
         ) {
           throw new Error(
-            "This record is not currently awaiting correction."
+            t("prescriptions.errors.correctionNotAwaiting")
           );
         }
 
@@ -233,7 +235,7 @@ export default function PrescriptionsPage() {
           setError(
             error instanceof Error
               ? error.message
-              : "Unable to load correction request."
+              : t("prescriptions.errors.correctionLoadFailed")
           );
         }
       } finally {
@@ -248,7 +250,7 @@ export default function PrescriptionsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   /* =========================================================
      FILE SELECTION
@@ -290,7 +292,7 @@ export default function PrescriptionsPage() {
   async function handleExtraction() {
     if (!selectedFile) {
       setError(
-        "Please upload a medical document first."
+        t("prescriptions.errors.noFile")
       );
 
       return;
@@ -327,7 +329,7 @@ export default function PrescriptionsPage() {
           await response.json();
       } catch {
         throw new Error(
-          "The server returned an invalid response. Please try again."
+          t("prescriptions.errors.invalidResponseRetry")
         );
       }
 
@@ -343,7 +345,7 @@ export default function PrescriptionsPage() {
         throw new Error(
           result?.error ||
             result?.message ||
-            "Unable to analyze this document."
+            t("prescriptions.errors.analyzeFailed")
         );
       }
 
@@ -379,7 +381,7 @@ export default function PrescriptionsPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to analyze this document."
+          : t("prescriptions.errors.analyzeFailed")
       );
     } finally {
       setExtracting(false);
@@ -452,7 +454,7 @@ export default function PrescriptionsPage() {
       !extracted
     ) {
       alert(
-        "Please analyze a document before sending it for verification."
+        t("prescriptions.errors.notAnalyzed")
       );
 
       return;
@@ -500,7 +502,7 @@ export default function PrescriptionsPage() {
           await uploadResponse.json();
       } catch {
         throw new Error(
-          "The server returned an invalid response while storing the document."
+          t("prescriptions.errors.uploadInvalidResponse")
         );
       }
 
@@ -510,7 +512,7 @@ export default function PrescriptionsPage() {
       ) {
         throw new Error(
           uploadResult?.error ||
-            "Unable to store the uploaded document."
+            t("prescriptions.errors.uploadFailed")
         );
       }
 
@@ -522,7 +524,7 @@ export default function PrescriptionsPage() {
 
       if (!originalFileUrl) {
         throw new Error(
-          "The document was stored but no file reference was returned."
+          t("prescriptions.errors.noFileReference")
         );
       }
 
@@ -637,7 +639,7 @@ export default function PrescriptionsPage() {
             await updateResponse.json();
         } catch {
           throw new Error(
-            "The server returned an invalid resubmission response."
+            t("prescriptions.errors.resubmitInvalidResponse")
           );
         }
 
@@ -647,14 +649,14 @@ export default function PrescriptionsPage() {
         ) {
           throw new Error(
             updateResult?.error ||
-              "Unable to resubmit the corrected document."
+              t("prescriptions.errors.resubmitFailed")
           );
         }
 
         setSubmitted(true);
 
         alert(
-          "Corrected document has been resubmitted for clinician verification."
+          t("prescriptions.success.resubmitted")
         );
 
         router.push(
@@ -711,7 +713,7 @@ export default function PrescriptionsPage() {
           await recordResponse.json();
       } catch {
         throw new Error(
-          "The server returned an invalid response while creating the medical record."
+          t("prescriptions.errors.createInvalidResponse")
         );
       }
 
@@ -721,7 +723,7 @@ export default function PrescriptionsPage() {
       ) {
         throw new Error(
           recordResult?.error ||
-            "Unable to create the medical record."
+            t("prescriptions.errors.createFailed")
         );
       }
 
@@ -733,7 +735,7 @@ export default function PrescriptionsPage() {
       setSubmitted(true);
 
       alert(
-        "Document has been successfully sent to the clinician for verification."
+        t("prescriptions.success.sent")
       );
 
       router.push(
@@ -750,7 +752,7 @@ export default function PrescriptionsPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "Unable to send the document for verification. Please try again.";
+          : t("prescriptions.errors.sendFailed");
 
       setError(message);
 
@@ -767,12 +769,12 @@ export default function PrescriptionsPage() {
   const documentType =
     data.documentType ||
     data.document_type ||
-    "Medical Document";
+    t("prescriptions.display.documentTypeFallback");
 
   const summary =
     data.summary ||
     data.interpretation ||
-    "AI extracted structured information from the uploaded document.";
+    t("prescriptions.display.summaryFallback");
 
   const labResults =
     data.labResults ||
@@ -814,7 +816,7 @@ export default function PrescriptionsPage() {
                 className="inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900"
               >
                 <ArrowLeft size={17} />
-                Back to dashboard
+                {t("prescriptions.backDashboard")}
               </Link>
 
               <LogoutButton />
@@ -829,32 +831,31 @@ export default function PrescriptionsPage() {
               />
 
               <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-800">
-                AI-Assisted Document Intake
+                {t("prescriptions.eyebrow")}
               </span>
 
             </div>
 
             <h1 className="max-w-2xl font-serif text-5xl leading-[1.05] text-slate-800 md:text-6xl">
 
-              From document
+              {t("prescriptions.title.part1")}
               <br />
 
-              to{" "}
+              {t("prescriptions.title.part2")}{" "}
 
               <span className="text-[#23766d]">
-                verified care.
+                {t("prescriptions.title.highlight")}
               </span>
 
             </h1>
 
             <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-600 md:text-base">
 
-              Upload a prescription, lab report, X-ray report, MRI report,
-              CT report, or other medical document.
+              {t("prescriptions.description.line1")}
 
               <br />
 
-              JeevanLink creates a structured draft for human verification.
+              {t("prescriptions.description.line2")}
 
             </p>
 
@@ -877,11 +878,11 @@ export default function PrescriptionsPage() {
                 <div className="flex-1">
 
                   <p className="font-semibold text-slate-800">
-                    Upload
+                    {t("prescriptions.steps.upload.title")}
                   </p>
 
                   <p className="text-xs text-slate-500">
-                    Document uploaded
+                    {t("prescriptions.steps.upload.subtitle")}
                   </p>
 
                 </div>
@@ -910,11 +911,11 @@ export default function PrescriptionsPage() {
                 <div className="flex-1">
 
                   <p className="font-semibold text-slate-800">
-                    AI Extracts
+                    {t("prescriptions.steps.extract.title")}
                   </p>
 
                   <p className="text-xs text-slate-500">
-                    Information extracted
+                    {t("prescriptions.steps.extract.subtitle")}
                   </p>
 
                 </div>
@@ -943,13 +944,15 @@ export default function PrescriptionsPage() {
                 <div className="flex-1">
 
                   <p className="font-semibold text-slate-800">
-                    {correctionRecord ? "Resubmit" : "Verify"}
+                    {correctionRecord
+                      ? t("prescriptions.steps.verify.resubmitTitle")
+                      : t("prescriptions.steps.verify.title")}
                   </p>
 
                   <p className="text-xs text-slate-500">
                     {correctionRecord
-                      ? "Send corrected record"
-                      : "Clinician verification"}
+                      ? t("prescriptions.steps.verify.resubmitSubtitle")
+                      : t("prescriptions.steps.verify.subtitle")}
                   </p>
 
                 </div>
@@ -991,14 +994,14 @@ export default function PrescriptionsPage() {
 
               <h2 className="text-lg font-semibold text-slate-800">
                 {correctionRecord
-                  ? "Upload corrected document"
-                  : "Upload medical document"}
+                  ? t("prescriptions.upload.correctedTitle")
+                  : t("prescriptions.upload.title")}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 {correctionRecord
-                  ? "Upload the corrected document requested by your clinician."
-                  : "Add an image or PDF for AI-assisted extraction."}
+                  ? t("prescriptions.upload.correctedDescription")
+                  : t("prescriptions.upload.description")}
               </p>
 
 
@@ -1008,12 +1011,12 @@ export default function PrescriptionsPage() {
             <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
 
               <p className="text-sm font-semibold text-amber-900">
-                Clinician requested a correction
+                {t("prescriptions.upload.correctionNoticeTitle")}
               </p>
 
               <p className="mt-1 text-sm leading-6 text-amber-800">
                 {correctionRecord.rejectionReason ||
-                  "Please upload a corrected document and resubmit it for verification."}
+                  t("prescriptions.upload.correctionNoticeDefault")}
               </p>
 
             </div>
@@ -1030,15 +1033,15 @@ export default function PrescriptionsPage() {
               </div>
 
               <p className="mt-4 font-medium text-slate-800">
-                Drag and drop file here
+                {t("prescriptions.upload.dragDrop")}
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                or click to browse
+                {t("prescriptions.upload.browse")}
               </p>
 
               <p className="mt-3 text-xs text-slate-400">
-                PDF, JPG, JPEG, PNG up to 15 MB
+                {t("prescriptions.upload.fileTypes")}
               </p>
 
               <input
@@ -1069,7 +1072,7 @@ export default function PrescriptionsPage() {
                 </p>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  {fileSize} · Ready for processing
+                  {fileSize} · {t("prescriptions.upload.readyForProcessing")}
                 </p>
 
               </div>
@@ -1087,7 +1090,7 @@ export default function PrescriptionsPage() {
                   submitting
                 }
                 className="rounded-full p-2 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed"
-                aria-label="Remove file"
+                aria-label={t("prescriptions.upload.removeFile")}
               >
                 <X size={20} />
               </button>
@@ -1124,7 +1127,7 @@ export default function PrescriptionsPage() {
                   className="animate-spin"
                 />
 
-                Analyzing document...
+                {t("prescriptions.upload.analyzing")}
               </>
 
             ) : (
@@ -1132,7 +1135,7 @@ export default function PrescriptionsPage() {
               <>
                 <Sparkles size={20} />
 
-                Extract with AI
+                {t("prescriptions.upload.extractButton")}
               </>
 
             )}
@@ -1147,8 +1150,7 @@ export default function PrescriptionsPage() {
             />
 
             <p className="text-sm leading-5 text-slate-600">
-              AI output is treated as a draft and requires clinician
-              verification.
+              {t("prescriptions.upload.safetyNote")}
             </p>
 
           </div>
@@ -1170,11 +1172,11 @@ export default function PrescriptionsPage() {
               <div>
 
                 <h2 className="text-lg font-semibold text-slate-800">
-                  AI extracted draft
+                  {t("prescriptions.panel.title")}
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Structured information from the uploaded document.
+                  {t("prescriptions.panel.description")}
                 </p>
 
               </div>
@@ -1191,12 +1193,12 @@ export default function PrescriptionsPage() {
                     size={16}
                   />
 
-                  Extraction completed
+                  {t("prescriptions.panel.completed")}
 
                 </div>
 
                 <p className="mt-2 text-xs text-slate-500">
-                  Review before clinician verification
+                  {t("prescriptions.panel.reviewNote")}
                 </p>
 
               </div>
@@ -1215,18 +1217,18 @@ export default function PrescriptionsPage() {
                 </div>
 
                 <h3 className="mt-5 text-lg font-semibold text-slate-700">
-                  Awaiting document analysis
+                  {t("prescriptions.panel.awaitingTitle")}
                 </h3>
 
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
 
-                  Upload a medical document and select{" "}
+                  {t("prescriptions.panel.awaitingPrefix")}{" "}
 
                   <span className="font-medium text-slate-700">
-                    Extract with AI
+                    {t("prescriptions.upload.extractButton")}
                   </span>{" "}
 
-                  to generate a structured clinical draft.
+                  {t("prescriptions.panel.awaitingSuffix")}
 
                 </p>
 
@@ -1244,11 +1246,11 @@ export default function PrescriptionsPage() {
               />
 
               <h3 className="mt-5 text-lg font-semibold text-slate-800">
-                JeevanLink AI is analyzing your document
+                {t("prescriptions.panel.analyzingTitle")}
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
-                Extracting relevant medical information...
+                {t("prescriptions.panel.analyzingSubtitle")}
               </p>
 
             </div>
@@ -1271,7 +1273,7 @@ export default function PrescriptionsPage() {
                   />
 
                   <h3 className="font-semibold text-slate-800">
-                    Document interpretation
+                    {t("prescriptions.interpretation.title")}
                   </h3>
 
                 </div>
@@ -1281,7 +1283,7 @@ export default function PrescriptionsPage() {
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
 
                     <p className="text-xs font-medium text-slate-500">
-                      Document type
+                      {t("prescriptions.interpretation.documentType")}
                     </p>
 
                     <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
@@ -1299,7 +1301,7 @@ export default function PrescriptionsPage() {
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
 
                     <p className="text-xs font-medium text-slate-500">
-                      Summary
+                      {t("prescriptions.interpretation.summary")}
                     </p>
 
                     <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -1330,7 +1332,7 @@ export default function PrescriptionsPage() {
                       />
 
                       <h3 className="font-semibold text-slate-800">
-                        Key information
+                        {t("prescriptions.labResults.title")}
                       </h3>
 
                     </div>
@@ -1344,23 +1346,23 @@ export default function PrescriptionsPage() {
                           <tr>
 
                             <th className="px-4 py-3">
-                              Test name
+                              {t("prescriptions.labResults.testName")}
                             </th>
 
                             <th className="px-4 py-3">
-                              Result
+                              {t("prescriptions.labResults.result")}
                             </th>
 
                             <th className="px-4 py-3">
-                              Unit
+                              {t("prescriptions.labResults.unit")}
                             </th>
 
                             <th className="px-4 py-3">
-                              Reference range
+                              {t("prescriptions.labResults.referenceRange")}
                             </th>
 
                             <th className="px-4 py-3">
-                              Status
+                              {t("prescriptions.labResults.status")}
                             </th>
 
                           </tr>
@@ -1378,7 +1380,7 @@ export default function PrescriptionsPage() {
                               const testName =
                                 item.testName ||
                                 item.name ||
-                                "Not specified";
+                                t("prescriptions.labResults.notSpecified");
 
                               const resultValue =
                                 item.result ??
@@ -1392,7 +1394,7 @@ export default function PrescriptionsPage() {
 
                               const status =
                                 item.status ||
-                                "Reviewed";
+                                t("prescriptions.labResults.reviewed");
 
                               return (
 
@@ -1466,7 +1468,7 @@ export default function PrescriptionsPage() {
                   />
 
                   <h3 className="font-semibold text-slate-800">
-                    Medications
+                    {t("records.medications.title")}
                   </h3>
 
                 </div>
@@ -1479,12 +1481,11 @@ export default function PrescriptionsPage() {
                     <div>
 
                       <p className="font-medium text-slate-700">
-                        No medication entries identified.
+                        {t("prescriptions.medications.none")}
                       </p>
 
                       <p className="mt-1 text-sm leading-6 text-slate-500">
-                        This may be a diagnostic report, imaging report, or
-                        another non-prescription medical document.
+                        {t("prescriptions.medications.noneHint")}
                       </p>
 
                     </div>
@@ -1509,7 +1510,7 @@ export default function PrescriptionsPage() {
                             <div className="mb-3 flex items-center justify-between">
 
                               <p className="font-semibold text-slate-700">
-                                Medication{" "}
+                                {t("prescriptions.medications.itemLabel")}{" "}
                                 {index + 1}
                               </p>
 
@@ -1557,7 +1558,7 @@ export default function PrescriptionsPage() {
                                       .value
                                   )
                                 }
-                                placeholder="Medication name"
+                                placeholder={t("prescriptions.medications.placeholderName")}
                                 className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 disabled:opacity-60"
                               />
 
@@ -1580,7 +1581,7 @@ export default function PrescriptionsPage() {
                                       .value
                                   )
                                 }
-                                placeholder="Dosage"
+                                placeholder={t("prescriptions.medications.placeholderDosage")}
                                 className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 disabled:opacity-60"
                               />
 
@@ -1603,7 +1604,7 @@ export default function PrescriptionsPage() {
                                       .value
                                   )
                                 }
-                                placeholder="Frequency"
+                                placeholder={t("prescriptions.medications.placeholderFrequency")}
                                 className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 disabled:opacity-60"
                               />
 
@@ -1626,7 +1627,7 @@ export default function PrescriptionsPage() {
                                       .value
                                   )
                                 }
-                                placeholder="Duration"
+                                placeholder={t("prescriptions.medications.placeholderDuration")}
                                 className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 disabled:opacity-60"
                               />
 
@@ -1664,7 +1665,7 @@ export default function PrescriptionsPage() {
                     size={19}
                   />
 
-                  Add medication
+                  {t("prescriptions.medications.add")}
 
                 </button>
 
@@ -1691,7 +1692,7 @@ export default function PrescriptionsPage() {
                         className="animate-spin"
                       />
 
-                      Sending...
+                      {t("prescriptions.actions.sending")}
                     </>
 
                   ) : submitted ? (
@@ -1701,7 +1702,7 @@ export default function PrescriptionsPage() {
                         size={19}
                       />
 
-                      Sent for verification
+                      {t("prescriptions.actions.sent")}
                     </>
 
                   ) : (
@@ -1711,7 +1712,7 @@ export default function PrescriptionsPage() {
                         size={19}
                       />
 
-                      Send for clinician verification
+                      {t("prescriptions.actions.send")}
                     </>
 
                   )}
