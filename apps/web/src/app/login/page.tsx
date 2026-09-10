@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   FileCheck2,
-  FileText,
   HeartPulse,
   LayoutDashboard,
   LifeBuoy,

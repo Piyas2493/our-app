@@ -102,7 +102,7 @@ export default function PrescriptionsPage() {
   const [correctionRecord, setCorrectionRecord] =
     useState<any | null>(null);
 
-  const [loadingCorrection, setLoadingCorrection] =
+  const [, setLoadingCorrection] =
     useState(false);
 
   /* =========================================================

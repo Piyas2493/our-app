@@ -894,36 +894,6 @@ export default function VitalsPage() {
     );
 
   /* =========================================================
-     LATEST BY TYPE
-     ========================================================= */
-
-  const latestByType =
-    useMemo(() => {
-      const map =
-        new Map<
-          VitalType,
-          VitalMeasurement
-        >();
-
-      for (
-        const vital of vitals
-      ) {
-        if (
-          !map.has(
-            vital.vitalType
-          )
-        ) {
-          map.set(
-            vital.vitalType,
-            vital
-          );
-        }
-      }
-
-      return map;
-    }, [vitals]);
-
-  /* =========================================================
      FILTERED HISTORY
      ========================================================= */
 

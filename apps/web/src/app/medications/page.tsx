@@ -22,7 +22,6 @@ import {
   ShieldCheck,
   SkipForward,
   Sparkles,
-  XCircle,
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
@@ -182,8 +181,7 @@ function sortReminders(
    ========================================================= */
 
 export default function MedicationsPage() {
-  const { t, language } = useLanguage();
-  const formatLocale = language === "en" ? "en-IN" : `${language}-IN`;
+  const { t } = useLanguage();
   const [
     medications,
     setMedications,

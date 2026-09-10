@@ -26,7 +26,6 @@ import {
   Workflow,
   Clock,
   CheckCircle2,
-  AlertCircle,
   ChevronDown,
   RefreshCw,
 } from "lucide-react";

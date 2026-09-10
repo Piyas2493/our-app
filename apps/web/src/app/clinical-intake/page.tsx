@@ -767,17 +767,6 @@ export default function ClinicalIntakePage() {
     }
   }
 
-  function stopVoice() {
-    const recorder = mediaRecorderRef.current;
-
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-      return;
-    }
-
-    setListening(false);
-  }
-
   const hpiFields = useMemo(() => {
     const labels: Record<HpiFieldKey, string> = {
       onset: text.onset,
@@ -798,13 +787,19 @@ export default function ClinicalIntakePage() {
     );
   }, [text, complaintCategory]);
 
-  const hpiHint = ({
-    chestPain: text.hpiHintChestPain,
-    fever: text.hpiHintFever,
-    cough: text.hpiHintCough,
-    abdominalPain: text.hpiHintAbdominalPain,
-    headache: text.hpiHintHeadache,
-  } as Partial<Record<ComplaintCategory, string>>)[complaintCategory];
+  const hpiHint = useMemo(
+    () =>
+      (
+        {
+          chestPain: text.hpiHintChestPain,
+          fever: text.hpiHintFever,
+          cough: text.hpiHintCough,
+          abdominalPain: text.hpiHintAbdominalPain,
+          headache: text.hpiHintHeadache,
+        } as Partial<Record<ComplaintCategory, string>>
+      )[complaintCategory],
+    [text, complaintCategory],
+  );
 
   function getStepNarration(stepIndex: number): string {
     switch (steps[stepIndex]) {

@@ -16,60 +16,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import LogoutButton from "@/components/LogoutButton";
 import { useLanguage } from "@/components/LanguageProvider";
-
-type Vital = {
-  id: string;
-  vitalType: string;
-  value: number | null;
-  secondaryValue: number | null;
-  unit: string;
-  recordedAt: string;
-  source: string;
-  deviceName?: string | null;
-  notes?: string | null;
-};
-
-type Medication = {
-  id: string;
-  name: string;
-  dosage?: string | null;
-  frequency?: string | null;
-  duration?: string | null;
-  reminders: Array<{
-    id: string;
-    hour: number;
-    minute: number;
-    status: "ACTIVE" | "DISABLED";
-    logs: Array<{
-      id: string;
-      scheduledAt: string;
-      actionAt?: string | null;
-      status: "TAKEN" | "SKIPPED" | "SNOOZED";
-      snoozedUntil?: string | null;
-    }>;
-  }>;
-};
-
-type RecordItem = {
-  id: string;
-  documentName: string;
-  documentType: string;
-  interpretation: string | null;
-  status: "PENDING" | "VERIFIED" | "REJECTED";
-  createdAt: string;
-  verifiedAt?: string | null;
-  medications: Array<{
-    id: string;
-    name: string;
-    dosage?: string | null;
-    frequency?: string | null;
-    duration?: string | null;
-  }>;
-};
 
 type PersonalizedInsight = {
   title: string;
@@ -267,14 +217,6 @@ export default function PersonalizedHealthPage() {
       setGenerating(false);
     }
   }
-
-  const trendMap = useMemo(() => {
-    const map = new Map<string, PersonalizedResponse["vitals"]["trends"][number]>();
-    for (const trend of data?.vitals.trends || []) {
-      map.set(trend.vitalType, trend);
-    }
-    return map;
-  }, [data]);
 
   if (loading) {
     return (

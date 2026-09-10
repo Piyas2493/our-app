@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import {
-  getCurrentUser,
-  requireRole,
-} from "@/app/lib/auth";
+import { requireRole } from "@/app/lib/auth";
 
 export const runtime = "nodejs";
 
