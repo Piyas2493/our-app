@@ -15,6 +15,7 @@ import {
   FileCheck2,
   FileText,
   HeartPulse,
+  LifeBuoy,
   Loader2,
   LockKeyhole,
   Mail,
@@ -170,12 +171,21 @@ export default function LoginPage() {
       setPassword(
         "Patient@123"
       );
-    } else {
+    } else if (
+      role === "CLINICIAN"
+    ) {
       setEmail(
         "clinician@jeevanlink.local"
       );
       setPassword(
         "Clinician@123"
+      );
+    } else {
+      setEmail(
+        "helpdesk@jeevanlink.local"
+      );
+      setPassword(
+        "Helpdesk@123"
       );
     }
   }
@@ -511,7 +521,7 @@ export default function LoginPage() {
                   ROLE
                   ================================================= */}
 
-              <div className="mt-7 grid grid-cols-2 gap-3">
+              <div className="mt-7 grid grid-cols-3 gap-3">
 
                 <RoleCard
                   active={
@@ -548,6 +558,26 @@ export default function LoginPage() {
                   onClick={() => {
                     setSelectedRole(
                       "CLINICIAN"
+                    );
+                    setError("");
+                  }}
+                />
+
+                <RoleCard
+                  active={
+                    selectedRole ===
+                    "HELPDESK"
+                  }
+                  icon={
+                    <LifeBuoy
+                      size={23}
+                    />
+                  }
+                  title="Helpdesk"
+                  description="Support ticket queue"
+                  onClick={() => {
+                    setSelectedRole(
+                      "HELPDESK"
                     );
                     setError("");
                   }}
@@ -784,7 +814,7 @@ export default function LoginPage() {
 
                 {showDemoAccounts && (
 
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
 
                     <button
                       type="button"
@@ -866,6 +896,49 @@ export default function LoginPage() {
                       </p>
 
                       <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-violet-700">
+                        Use demo
+                        <ArrowRight size={13} />
+                      </p>
+
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        fillDemoAccount(
+                          "HELPDESK"
+                        )
+                      }
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        selectedRole ===
+                        "HELPDESK"
+                          ? "border-amber-200 bg-amber-50"
+                          : "border-slate-200 bg-white"
+                      }`}
+                    >
+
+                      <div className="flex items-center gap-2">
+
+                        <LifeBuoy
+                          size={17}
+                          className="text-amber-700"
+                        />
+
+                        <span className="text-xs font-bold uppercase tracking-wide text-amber-700">
+                          Helpdesk Demo
+                        </span>
+
+                      </div>
+
+                      <p className="mt-3 break-all text-xs font-medium text-slate-700">
+                        helpdesk@jeevanlink.local
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Password: Helpdesk@123
+                      </p>
+
+                      <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-amber-700">
                         Use demo
                         <ArrowRight size={13} />
                       </p>
