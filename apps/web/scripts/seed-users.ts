@@ -19,6 +19,11 @@ async function main() {
     12
   );
 
+  const adminPassword = await bcrypt.hash(
+    "Admin@123",
+    12
+  );
+
   await prisma.user.upsert({
     where: {
       email: "patient@jeevanlink.local",
@@ -73,11 +78,30 @@ async function main() {
       email: "helpdesk@jeevanlink.local",
       password: helpdeskPassword,
       role: UserRole.HELPDESK,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: {
+      email: "admin@jeevanlink.local",
+    },
+
+    update: {
+      name: "Test Admin",
+      password: adminPassword,
+      role: UserRole.ADMIN,
+    },
+
+    create: {
+      name: "Test Admin",
+      email: "admin@jeevanlink.local",
+      password: adminPassword,
+      role: UserRole.ADMIN,
     },
   });
 
   console.log(
-    "Test patient, clinician and helpdesk accounts created successfully."
+    "Test patient, clinician, helpdesk and admin accounts created successfully."
   );
 }
 

@@ -15,6 +15,7 @@ import {
   FileCheck2,
   FileText,
   HeartPulse,
+  LayoutDashboard,
   LifeBuoy,
   Loader2,
   LockKeyhole,
@@ -29,7 +30,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type UserRole = "PATIENT" | "CLINICIAN" | "HELPDESK";
+type UserRole = "PATIENT" | "CLINICIAN" | "HELPDESK" | "ADMIN";
 
 type SessionUser = {
   id: string;
@@ -129,6 +130,12 @@ export default function LoginPage() {
         router.replace(
           "/helpdesk"
         );
+      } else if (
+        user.role === "ADMIN"
+      ) {
+        router.replace(
+          "/admin"
+        );
       } else {
         router.replace(
           "/dashboard"
@@ -180,12 +187,21 @@ export default function LoginPage() {
       setPassword(
         "Clinician@123"
       );
-    } else {
+    } else if (
+      role === "HELPDESK"
+    ) {
       setEmail(
         "helpdesk@jeevanlink.local"
       );
       setPassword(
         "Helpdesk@123"
+      );
+    } else {
+      setEmail(
+        "admin@jeevanlink.local"
+      );
+      setPassword(
+        "Admin@123"
       );
     }
   }
@@ -521,7 +537,7 @@ export default function LoginPage() {
                   ROLE
                   ================================================= */}
 
-              <div className="mt-7 grid grid-cols-3 gap-3">
+              <div className="mt-7 grid grid-cols-2 gap-3">
 
                 <RoleCard
                   active={
@@ -578,6 +594,26 @@ export default function LoginPage() {
                   onClick={() => {
                     setSelectedRole(
                       "HELPDESK"
+                    );
+                    setError("");
+                  }}
+                />
+
+                <RoleCard
+                  active={
+                    selectedRole ===
+                    "ADMIN"
+                  }
+                  icon={
+                    <LayoutDashboard
+                      size={23}
+                    />
+                  }
+                  title="Admin"
+                  description="Operational overview"
+                  onClick={() => {
+                    setSelectedRole(
+                      "ADMIN"
                     );
                     setError("");
                   }}
@@ -814,7 +850,7 @@ export default function LoginPage() {
 
                 {showDemoAccounts && (
 
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
 
                     <button
                       type="button"
@@ -939,6 +975,49 @@ export default function LoginPage() {
                       </p>
 
                       <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-amber-700">
+                        Use demo
+                        <ArrowRight size={13} />
+                      </p>
+
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        fillDemoAccount(
+                          "ADMIN"
+                        )
+                      }
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        selectedRole ===
+                        "ADMIN"
+                          ? "border-slate-300 bg-slate-100"
+                          : "border-slate-200 bg-white"
+                      }`}
+                    >
+
+                      <div className="flex items-center gap-2">
+
+                        <LayoutDashboard
+                          size={17}
+                          className="text-slate-700"
+                        />
+
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
+                          Admin Demo
+                        </span>
+
+                      </div>
+
+                      <p className="mt-3 break-all text-xs font-medium text-slate-700">
+                        admin@jeevanlink.local
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Password: Admin@123
+                      </p>
+
+                      <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-slate-700">
                         Use demo
                         <ArrowRight size={13} />
                       </p>

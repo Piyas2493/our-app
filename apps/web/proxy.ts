@@ -211,7 +211,41 @@ export async function proxy(
         new URL(
           role === "CLINICIAN"
             ? "/clinician"
-            : "/dashboard",
+            : role === "ADMIN"
+              ? "/admin"
+              : "/dashboard",
+          request.url
+        )
+      );
+    }
+
+    /*
+     * ADMIN-only pages.
+     */
+    const adminRoutes = [
+      "/admin",
+    ];
+
+    const isAdminRoute =
+      adminRoutes.some(
+        (route) =>
+          pathname === route ||
+          pathname.startsWith(
+            `${route}/`
+          )
+      );
+
+    if (
+      isAdminRoute &&
+      role !== "ADMIN"
+    ) {
+      return NextResponse.redirect(
+        new URL(
+          role === "CLINICIAN"
+            ? "/clinician"
+            : role === "HELPDESK"
+              ? "/helpdesk"
+              : "/dashboard",
           request.url
         )
       );
