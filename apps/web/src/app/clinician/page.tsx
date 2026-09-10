@@ -8,6 +8,7 @@ import Link from "next/link";
 import {
   Activity,
   ArrowLeft,
+  Bot,
   CheckCircle2,
   Clock3,
   FileCheck2,
@@ -1727,6 +1728,17 @@ export default function ClinicianPage() {
 
                 Confidential workspace
               </div>
+
+              <Link
+                href="/clinician/scribe"
+                className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-700 hover:bg-teal-100"
+              >
+                <Bot
+                  size={17}
+                />
+
+                AI Medical Scribe
+              </Link>
 
               <button
                 type="button"
