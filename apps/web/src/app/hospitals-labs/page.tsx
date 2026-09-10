@@ -293,7 +293,7 @@ const navItems = [
   { label: "Medication & Reminders", icon: Bell, href: "/medications" },
   { label: "Personalized Health", icon: BrainCircuit, href: "/personalized-health" },
   { label: "Hospitals & Labs", icon: Building2, href: "/hospitals-labs" },
-  { label: "Voice Assistant", icon: Mic },
+  { label: "Voice Assistant", icon: Mic, href: "/voice-assistant" },
   { label: "Clinician Verification", icon: UserCheck },
   { label: "FHIR / ABDM", icon: Workflow },
   { label: "Consent & Privacy", icon: ShieldCheck, href: "/consent" },

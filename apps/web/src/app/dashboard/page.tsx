@@ -288,6 +288,7 @@ const navItems = [
   {
     label: "Voice Assistant",
     icon: Mic,
+    href: "/voice-assistant",
   },
 
   {
