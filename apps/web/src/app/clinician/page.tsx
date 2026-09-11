@@ -5,9 +5,10 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Activity,
-  ArrowLeft,
+  Bell,
   Bot,
   CheckCircle2,
   Clock3,
@@ -16,6 +17,7 @@ import {
   HeartPulse,
   History,
   Languages,
+  LifeBuoy,
   LockKeyhole,
   MessageSquareWarning,
   Pill,
@@ -1037,10 +1039,40 @@ function ClinicalIntakeReview({
 }
 
 /* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+const clinicianNavItems = [
+  {
+    label: "Verification Queue",
+    icon: Stethoscope,
+    href: "/clinician",
+    active: true,
+  },
+  {
+    label: "AI Medical Scribe",
+    icon: Bot,
+    href: "/clinician/scribe",
+  },
+  {
+    label: "Help & Support",
+    icon: LifeBuoy,
+    href: "/support",
+  },
+];
+
+/* =========================================================
    PAGE
    ========================================================= */
 
 export default function ClinicianPage() {
+  const router = useRouter();
+
+  const [clinicianUser, setClinicianUser] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
+
   const [
     cases,
     setCases,
@@ -1257,6 +1289,46 @@ export default function ClinicianPage() {
   useEffect(() => {
     void loadCases();
   }, []);
+
+  /* =========================================================
+     SESSION GUARD
+     ========================================================= */
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await fetch("/api/auth/session", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.authenticated || !result?.user) {
+          router.replace("/login");
+          return;
+        }
+
+        if (result.user.role === "PATIENT") {
+          router.replace("/dashboard");
+          return;
+        }
+
+        if (result.user.role !== "CLINICIAN") {
+          router.replace("/login");
+          return;
+        }
+
+        setClinicianUser({
+          name: result.user.name,
+          email: result.user.email,
+        });
+      } catch {
+        router.replace("/login");
+      }
+    })();
+  }, [router]);
 
   /* =========================================================
      PATIENT SNAPSHOT LOAD
@@ -1855,96 +1927,133 @@ export default function ClinicianPage() {
      ========================================================= */
 
   return (
-    <main className="min-h-screen bg-[#f4f6f7] text-slate-900">
-      <div className="mx-auto max-w-[1800px] px-5 py-7 lg:px-7">
-        {/* =====================================================
-            HEADER
-            ===================================================== */}
+    <main className="app-shell">
+      {/* ===================================================
+          SIDEBAR
+          =================================================== */}
 
-        <header className="mb-7">
-          <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-start">
-            <div>
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-icon">
+            <Stethoscope size={28} />
+          </div>
+
+          <div>
+            <h1>JeevanLink</h1>
+            <p>Clinician Workspace</p>
+          </div>
+        </div>
+
+        <div className="sidebar-label">CLINICAL TOOLS</div>
+
+        <nav className="nav-menu">
+          {clinicianNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
               <Link
-                href="/"
-                className="mb-3 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
+                key={item.label}
+                href={item.href}
+                className={`nav-item ${item.active ? "active" : ""}`}
               >
-                <ArrowLeft
-                  size={16}
-                />
-
-                Back to dashboard
+                <Icon size={21} />
+                <span>{item.label}</span>
               </Link>
+            );
+          })}
+        </nav>
 
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-teal-700 p-3 text-white shadow-sm">
-                  <Stethoscope
-                    size={25}
-                  />
-                </div>
+        <div className="sidebar-bottom">
+          <div className="workspace-card">
+            <LockKeyhole size={28} />
 
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-                    Clinician Workspace
-                  </p>
-
-                  <h1 className="mt-1 text-3xl font-semibold tracking-tight lg:text-4xl">
-                    Clinical verification dashboard
-                  </h1>
-                </div>
-              </div>
-
-              <p className="mt-3 max-w-3xl text-slate-500">
-                Review the source document,
-                validate the AI draft, inspect
-                the patient&apos;s longitudinal
-                health information, and record
-                the final clinical decision.
+            <div>
+              <strong>Confidential workspace</strong>
+              <p>
+                Every verification action is logged and attributed to
+                your account.
               </p>
             </div>
+          </div>
+        </div>
+      </aside>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-600 shadow-sm">
-                <LockKeyhole
-                  size={16}
-                />
+      {/* ===================================================
+          MAIN
+          =================================================== */}
 
-                Confidential workspace
+      <section className="main-content">
+        {/* =================================================
+            TOP BAR
+            ================================================= */}
+
+        <header className="topbar">
+          <div className="breadcrumb">
+            <span className="menu-lines">☰</span>
+            <span>JeevanLink</span>
+            <span className="chevron">›</span>
+            <strong>Verification Queue</strong>
+          </div>
+
+          <div className="top-actions">
+            <button
+              type="button"
+              onClick={() => void loadCases()}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+
+            <button
+              type="button"
+              className="notification-button"
+              onClick={() => router.push("/clinician")}
+            >
+              <Bell size={20} />
+
+              {pendingCases.length > 0 && (
+                <span>{pendingCases.length}</span>
+              )}
+            </button>
+
+            <div className="profile">
+              <div className="avatar">
+                {clinicianUser?.name
+                  ? clinicianUser.name.charAt(0).toUpperCase()
+                  : "C"}
               </div>
 
-              <Link
-                href="/clinician/scribe"
-                className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-700 hover:bg-teal-100"
-              >
-                <Bot
-                  size={17}
-                />
-
-                AI Medical Scribe
-              </Link>
-
-              <button
-                type="button"
-                onClick={() =>
-                  void loadCases()
-                }
-                disabled={saving}
-                className="flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
-              >
-                <RefreshCw
-                  size={17}
-                />
-
-                Refresh
-              </button>
-
-              <LogoutButton />
+              <span>{clinicianUser?.name || "Clinician"}</span>
             </div>
+
+            <LogoutButton />
           </div>
         </header>
 
-        {/* =====================================================
-            ERROR
-            ===================================================== */}
+        {/* =================================================
+            DASHBOARD
+            ================================================= */}
+
+        <div className="dashboard">
+          <div className="mb-2">
+            <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
+              Clinical verification dashboard
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-slate-500">
+              Review the source document,
+              validate the AI draft, inspect
+              the patient&apos;s longitudinal
+              health information, and record
+              the final clinical decision.
+            </p>
+          </div>
+
+          {/* =====================================================
+              ERROR
+              ===================================================== */}
 
         {error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
@@ -3328,7 +3437,8 @@ export default function ClinicianPage() {
             )}
           </section>
         </div>
-      </div>
+        </div>
+      </section>
     </main>
   );
 }

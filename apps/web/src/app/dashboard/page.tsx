@@ -257,11 +257,6 @@ const navItems = [
   },
 
   {
-    label: "AI Medical Scribe",
-    icon: Bot,
-  },
-
-  {
     label: "Vitals",
     icon: HeartPulse,
      href: "/vitals",
@@ -292,11 +287,6 @@ const navItems = [
   },
 
   {
-    label: "Clinician Verification",
-    icon: UserCheck,
-  },
-
-  {
     label: "FHIR / ABDM",
     icon: Workflow,
   },
@@ -323,13 +313,11 @@ function getNavLabel(
     "Health Records": t("nav.records"),
     "Health Timeline": t("nav.timeline"),
     "Prescriptions": t("nav.prescriptions"),
-    "AI Medical Scribe": t("nav.aiScribe"),
     "Vitals": t("nav.vitals"),
     "Medication & Reminders": t("nav.medications"),
     "Personalized Health": t("nav.personalizedHealth"),
     "Hospitals & Labs": t("nav.hospitalsLabs"),
     "Voice Assistant": t("nav.voiceAssistant"),
-    "Clinician Verification": t("nav.clinician"),
     "FHIR / ABDM": t("nav.fhir"),
     "Consent & Privacy": t("nav.consent"),
     "Help & Support": t("nav.support"),

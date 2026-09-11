@@ -155,6 +155,7 @@ html.a11y-high-contrast body {
   gap: 15px;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
   transition: 0.2s ease;
 }
 
