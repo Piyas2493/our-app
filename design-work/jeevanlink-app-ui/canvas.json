@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Home" },
+    { "file": "Directory.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Hospitals & Labs" },
+    { "file": "Detail.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Case Details" }
+  ],
+  "annotations": [
+    { "id": "design-direction", "x": 0, "y": -150, "w": 620, "text": "Direction: tallying WHOOP's confident type + single-accent flat-pill system with GreenLife's warm, card-based patient-app layout — built around JeevanLink's real features (adaptive intake, red-flag detection, bilingual case summaries, AYUSH facility directory) rather than a generic doctor-booking flow." }
+  ],
+  "launch": { "view": "canvas" }
+}

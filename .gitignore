@@ -16,3 +16,8 @@ Thumbs.db
 # editors
 .vscode/
 .idea/
+
+# design canvas: keep the .dc.html/canvas.json source, drop the
+# precompiled seeded output (regenerated on demand, ~2.5MB each)
+design-work/**/*.html
+!design-work/**/*.dc.html
