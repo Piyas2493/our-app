@@ -28,6 +28,8 @@ import {
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type UserRole = "PATIENT" | "CLINICIAN" | "HELPDESK" | "ADMIN";
 
@@ -40,6 +42,7 @@ type SessionUser = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -100,7 +103,7 @@ export default function LoginPage() {
           await response.json();
       } catch {
         throw new Error(
-          "The server returned an invalid response."
+          t("login.errors.invalidResponse")
         );
       }
 
@@ -110,7 +113,7 @@ export default function LoginPage() {
       ) {
         throw new Error(
           result?.error ||
-            "Invalid email or password."
+            t("login.errors.invalidCredentials")
         );
       }
 
@@ -151,7 +154,7 @@ export default function LoginPage() {
       setError(
         loginError instanceof Error
           ? loginError.message
-          : "Unable to sign in."
+          : t("login.errors.unableToSignIn")
       );
     } finally {
       setLoading(false);
@@ -253,21 +256,27 @@ export default function LoginPage() {
             </div>
 
             <div className="text-[10px] font-semibold uppercase tracking-[0.20em] text-slate-500">
-              Connected Healthcare
+              {t("login.tagline")}
             </div>
 
           </div>
 
         </Link>
 
-        <div className="hidden items-center gap-2 rounded-full border border-white/90 bg-white/85 px-4 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur md:flex">
+        <div className="flex items-center gap-3">
 
-          <ShieldCheck
-            size={15}
-            className="text-emerald-600"
-          />
+          <div className="hidden items-center gap-2 rounded-full border border-white/90 bg-white/85 px-4 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur md:flex">
 
-          Secure session
+            <ShieldCheck
+              size={15}
+              className="text-emerald-600"
+            />
+
+            {t("login.secureSession")}
+
+          </div>
+
+          <LanguageSwitcher />
 
         </div>
 
@@ -326,27 +335,25 @@ export default function LoginPage() {
                   size={14}
                 />
 
-                AI-powered healthcare
+                {t("login.hero.badge")}
 
               </div>
 
               <h1 className="mt-7 max-w-[560px] text-[54px] font-semibold leading-[0.98] tracking-tight text-slate-900 xl:text-[64px]">
 
-                Your health.
+                {t("login.hero.titleLine1")}
 
                 <br />
 
                 <span className="text-teal-700">
-                  Our priority.
+                  {t("login.hero.titleLine2")}
                 </span>
 
               </h1>
 
               <p className="mt-6 max-w-[520px] text-[17px] leading-7 text-slate-600">
 
-                AI-assisted platform that transforms
-                medical documents into verified,
-                trusted health records.
+                {t("login.hero.subtitle")}
 
               </p>
 
@@ -365,8 +372,8 @@ export default function LoginPage() {
                   />
                 }
                 iconClass="bg-violet-50 text-violet-600"
-                title="AI Extraction"
-                text="Smart document analysis"
+                title={t("login.hero.feature1.title")}
+                text={t("login.hero.feature1.text")}
               />
 
               <HeroFeatureCard
@@ -376,8 +383,8 @@ export default function LoginPage() {
                   />
                 }
                 iconClass="bg-blue-50 text-blue-600"
-                title="Human Verification"
-                text="Clinician review before approval"
+                title={t("login.hero.feature2.title")}
+                text={t("login.hero.feature2.text")}
               />
 
               <HeroFeatureCard
@@ -387,8 +394,8 @@ export default function LoginPage() {
                   />
                 }
                 iconClass="bg-emerald-50 text-emerald-700"
-                title="Trusted Records"
-                text="Secure, accurate and accessible"
+                title={t("login.hero.feature3.title")}
+                text={t("login.hero.feature3.text")}
               />
 
             </div>
@@ -401,7 +408,7 @@ export default function LoginPage() {
 
               <img
                 src="/login-doctor.png"
-                alt="Healthcare professional"
+                alt={t("login.hero.imageAlt")}
                 className="h-full w-full object-cover object-center"
               />
 
@@ -423,8 +430,8 @@ export default function LoginPage() {
                     size={20}
                   />
                 }
-                title="Secure"
-                subtitle="Protected"
+                title={t("login.hero.trust.secure.title")}
+                subtitle={t("login.hero.trust.secure.subtitle")}
               />
 
               <HeroTrust
@@ -433,8 +440,8 @@ export default function LoginPage() {
                     size={20}
                   />
                 }
-                title="Verified"
-                subtitle="Clinician"
+                title={t("login.hero.trust.verified.title")}
+                subtitle={t("login.hero.trust.verified.subtitle")}
               />
 
               <HeroTrust
@@ -443,8 +450,8 @@ export default function LoginPage() {
                     size={20}
                   />
                 }
-                title="AI Powered"
-                subtitle="Smart"
+                title={t("login.hero.trust.aiPowered.title")}
+                subtitle={t("login.hero.trust.aiPowered.subtitle")}
               />
 
               <HeroTrust
@@ -453,8 +460,8 @@ export default function LoginPage() {
                     size={20}
                   />
                 }
-                title="Connected"
-                subtitle="Complete"
+                title={t("login.hero.trust.connected.title")}
+                subtitle={t("login.hero.trust.connected.subtitle")}
               />
 
             </div>
@@ -493,7 +500,7 @@ export default function LoginPage() {
                 </Link>
 
                 <span className="rounded-full bg-teal-50 px-3 py-1.5 text-[10px] font-semibold text-teal-700">
-                  Secure
+                  {t("login.hero.trust.secure.title")}
                 </span>
 
               </div>
@@ -513,12 +520,12 @@ export default function LoginPage() {
                 </div>
 
                 <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-                  Secure sign in
+                  {t("login.eyebrow")}
                 </p>
 
                 <h2 className="mt-3 text-[34px] font-semibold tracking-tight text-slate-900">
 
-                  Welcome back
+                  {t("login.welcomeBack")}
 
                   <span className="ml-1">
                     👋
@@ -527,7 +534,7 @@ export default function LoginPage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Sign in to continue to your JeevanLink workspace.
+                  {t("login.subtitle")}
                 </p>
 
               </div>
@@ -548,8 +555,8 @@ export default function LoginPage() {
                       size={23}
                     />
                   }
-                  title="Patient"
-                  description="Access your health records"
+                  title={t("login.role.patient.title")}
+                  description={t("login.role.patient.description")}
                   onClick={() => {
                     setSelectedRole(
                       "PATIENT"
@@ -568,8 +575,8 @@ export default function LoginPage() {
                       size={23}
                     />
                   }
-                  title="Clinician"
-                  description="Verify patient records"
+                  title={t("login.role.clinician.title")}
+                  description={t("login.role.clinician.description")}
                   onClick={() => {
                     setSelectedRole(
                       "CLINICIAN"
@@ -588,8 +595,8 @@ export default function LoginPage() {
                       size={23}
                     />
                   }
-                  title="Helpdesk"
-                  description="Support ticket queue"
+                  title={t("login.role.helpdesk.title")}
+                  description={t("login.role.helpdesk.description")}
                   onClick={() => {
                     setSelectedRole(
                       "HELPDESK"
@@ -608,8 +615,8 @@ export default function LoginPage() {
                       size={23}
                     />
                   }
-                  title="Admin"
-                  description="Operational overview"
+                  title={t("login.role.admin.title")}
+                  description={t("login.role.admin.description")}
                   onClick={() => {
                     setSelectedRole(
                       "ADMIN"
@@ -653,7 +660,7 @@ export default function LoginPage() {
                     htmlFor="email"
                     className="mb-2 block text-sm font-semibold text-slate-700"
                   >
-                    Email address
+                    {t("login.form.emailLabel")}
                   </label>
 
                   <div className="relative">
@@ -674,7 +681,7 @@ export default function LoginPage() {
                         );
                         setError("");
                       }}
-                      placeholder="you@example.com"
+                      placeholder={t("login.form.emailPlaceholder")}
                       disabled={loading}
                       required
                       className="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 px-11 text-sm outline-none transition duration-200 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-50 disabled:opacity-60"
@@ -690,7 +697,7 @@ export default function LoginPage() {
                     htmlFor="password"
                     className="mb-2 block text-sm font-semibold text-slate-700"
                   >
-                    Password
+                    {t("login.form.passwordLabel")}
                   </label>
 
                   <div className="relative">
@@ -715,7 +722,7 @@ export default function LoginPage() {
                         );
                         setError("");
                       }}
-                      placeholder="Enter your password"
+                      placeholder={t("login.form.passwordPlaceholder")}
                       disabled={loading}
                       required
                       className="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-12 text-sm outline-none transition duration-200 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-50 disabled:opacity-60"
@@ -733,8 +740,8 @@ export default function LoginPage() {
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                       aria-label={
                         showPassword
-                          ? "Hide password"
-                          : "Show password"
+                          ? t("login.form.hidePassword")
+                          : t("login.form.showPassword")
                       }
                     >
 
@@ -761,7 +768,7 @@ export default function LoginPage() {
                     className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
                   />
 
-                  Remember me
+                  {t("login.form.rememberMe")}
 
                 </label>
 
@@ -778,11 +785,11 @@ export default function LoginPage() {
                         className="animate-spin"
                       />
 
-                      Signing in...
+                      {t("login.form.signingIn")}
                     </>
                   ) : (
                     <>
-                      Sign in securely
+                      {t("login.form.submit")}
 
                       <ArrowRight
                         size={19}
@@ -825,11 +832,11 @@ export default function LoginPage() {
                     <div>
 
                       <p className="text-sm font-semibold text-slate-700">
-                        Try demo accounts
+                        {t("login.demo.toggleTitle")}
                       </p>
 
                       <p className="text-xs text-slate-500">
-                        Fill local test credentials automatically
+                        {t("login.demo.toggleSubtitle")}
                       </p>
 
                     </div>
@@ -874,7 +881,7 @@ export default function LoginPage() {
                         />
 
                         <span className="text-xs font-bold uppercase tracking-wide text-teal-700">
-                          Patient Demo
+                          {t("login.demo.patientLabel")}
                         </span>
 
                       </div>
@@ -884,11 +891,11 @@ export default function LoginPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Password: Patient@123
+                        {t("login.demo.passwordPrefix")} Patient@123
                       </p>
 
                       <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-teal-700">
-                        Use demo
+                        {t("login.demo.useDemo")}
                         <ArrowRight size={13} />
                       </p>
 
@@ -917,7 +924,7 @@ export default function LoginPage() {
                         />
 
                         <span className="text-xs font-bold uppercase tracking-wide text-violet-700">
-                          Clinician Demo
+                          {t("login.demo.clinicianLabel")}
                         </span>
 
                       </div>
@@ -927,11 +934,11 @@ export default function LoginPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Password: Clinician@123
+                        {t("login.demo.passwordPrefix")} Clinician@123
                       </p>
 
                       <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-violet-700">
-                        Use demo
+                        {t("login.demo.useDemo")}
                         <ArrowRight size={13} />
                       </p>
 
@@ -960,7 +967,7 @@ export default function LoginPage() {
                         />
 
                         <span className="text-xs font-bold uppercase tracking-wide text-amber-700">
-                          Helpdesk Demo
+                          {t("login.demo.helpdeskLabel")}
                         </span>
 
                       </div>
@@ -970,11 +977,11 @@ export default function LoginPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Password: Helpdesk@123
+                        {t("login.demo.passwordPrefix")} Helpdesk@123
                       </p>
 
                       <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-amber-700">
-                        Use demo
+                        {t("login.demo.useDemo")}
                         <ArrowRight size={13} />
                       </p>
 
@@ -1003,7 +1010,7 @@ export default function LoginPage() {
                         />
 
                         <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
-                          Admin Demo
+                          {t("login.demo.adminLabel")}
                         </span>
 
                       </div>
@@ -1013,11 +1020,11 @@ export default function LoginPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Password: Admin@123
+                        {t("login.demo.passwordPrefix")} Admin@123
                       </p>
 
                       <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-slate-700">
-                        Use demo
+                        {t("login.demo.useDemo")}
                         <ArrowRight size={13} />
                       </p>
 
@@ -1041,8 +1048,8 @@ export default function LoginPage() {
                       size={17}
                     />
                   }
-                  title="Protected"
-                  text="Secure sessions"
+                  title={t("login.trust.protected.title")}
+                  text={t("login.trust.protected.text")}
                 />
 
                 <TrustItem
@@ -1051,8 +1058,8 @@ export default function LoginPage() {
                       size={17}
                     />
                   }
-                  title="Connected"
-                  text="Health workflow"
+                  title={t("login.trust.connected.title")}
+                  text={t("login.trust.connected.text")}
                 />
 
                 <TrustItem
@@ -1061,19 +1068,19 @@ export default function LoginPage() {
                       size={17}
                     />
                   }
-                  title="Verified"
-                  text="Human review"
+                  title={t("login.trust.verified.title")}
+                  text={t("login.trust.verified.text")}
                 />
 
               </div>
 
               <p className="mt-6 text-center text-[11px] leading-5 text-slate-400">
 
-                Development environment only.
+                {t("login.footer.devOnly")}
 
                 <br />
 
-                Demo credentials should never be used in production.
+                {t("login.footer.demoWarning")}
 
               </p>
 

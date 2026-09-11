@@ -30,6 +30,9 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
+import type { TranslationKey } from "@/app/lib/i18n";
 
 type Medication = {
   name?: string | null;
@@ -135,8 +138,8 @@ function getDateValue(record: MedicalRecord) {
   );
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return "Date unavailable";
+function formatDate(value: string | null | undefined, t: (key: TranslationKey | string) => string) {
+  if (!value) return t("timeline.dateUnavailable");
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -147,8 +150,8 @@ function formatDate(value?: string | null) {
   });
 }
 
-function formatDay(value?: string | null) {
-  if (!value) return "Date unavailable";
+function formatDay(value: string | null | undefined, t: (key: TranslationKey | string) => string) {
+  if (!value) return t("timeline.dateUnavailable");
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -286,21 +289,24 @@ function isAbnormalStatus(status?: string | null) {
   return /high|low|abnormal/i.test(String(status || ""));
 }
 
-function auditLabel(action?: string) {
-  return String(action || "Record update")
+function auditLabel(action: string | undefined, t: (key: TranslationKey | string) => string) {
+  if (!action) return t("timeline.recordUpdateDefault");
+
+  return String(action)
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function StatusBadge({ record }: { record: MedicalRecord }) {
+  const { t } = useLanguage();
   const status = getRecordStatus(record);
 
   if (status === "verified") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
         <CheckCircle2 size={14} />
-        Clinician Verified
+        {t("timeline.status.verified")}
       </span>
     );
   }
@@ -309,7 +315,7 @@ function StatusBadge({ record }: { record: MedicalRecord }) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">
         <XCircle size={14} />
-        Needs Attention
+        {t("timeline.status.attention")}
       </span>
     );
   }
@@ -317,24 +323,26 @@ function StatusBadge({ record }: { record: MedicalRecord }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
       <Clock size={14} />
-      Pending Verification
+      {t("timeline.status.pending")}
     </span>
   );
 }
 
 function KindBadge({ record }: { record: MedicalRecord }) {
+  const { t } = useLanguage();
   const kind = getDocumentKind(record);
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
       {kind === "labs" ? <FileSearch size={13} /> : <Pill size={13} />}
-      {kind === "labs" ? "Lab report" : "Prescription"}
+      {kind === "labs" ? t("timeline.kind.lab") : t("timeline.kind.prescription")}
     </span>
   );
 }
 
 export default function HealthTimelinePage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [user, setUser] = useState<SessionUser | null>(null);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
@@ -389,7 +397,7 @@ export default function HealthTimelinePage() {
 
       if (!response.ok || !result?.success) {
         throw new Error(
-          result?.error || "Unable to load your health timeline."
+          result?.error || t("timeline.errors.loadFailed")
         );
       }
 
@@ -397,8 +405,8 @@ export default function HealthTimelinePage() {
 
       const normalized = incoming.map((record: any) => ({
         id: String(record.id),
-        documentName: record.documentName || "Medical Document",
-        documentType: record.documentType || "Medical Record",
+        documentName: record.documentName || t("timeline.defaultDocumentName"),
+        documentType: record.documentType || t("timeline.defaultDocumentType"),
         interpretation: record.interpretation ?? record.summary ?? "",
         summary: record.summary ?? record.interpretation ?? "",
         medications: Array.isArray(record.medications)
@@ -439,14 +447,14 @@ export default function HealthTimelinePage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to load your health timeline."
+          : t("timeline.errors.loadFailed")
       );
       setRecords([]);
       setSelectedRecordId(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void checkAccess();
@@ -499,9 +507,9 @@ export default function HealthTimelinePage() {
 
         findings.push({
           recordId: record.id,
-          documentName: record.documentName || "Medical Document",
+          documentName: record.documentName || t("timeline.defaultDocumentName"),
           date: getDateValue(record),
-          testName: result.testName || "Unnamed test",
+          testName: result.testName || t("timeline.unnamedTest"),
           value: result.value || "—",
           unit: result.unit || "",
           referenceRange: result.referenceRange || "",
@@ -513,7 +521,7 @@ export default function HealthTimelinePage() {
     return findings.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [records]);
+  }, [records, t]);
 
   const interactionFlags = useMemo(() => {
     const activeMedicationNames = records
@@ -528,10 +536,12 @@ export default function HealthTimelinePage() {
   const groupedTimeline = useMemo(() => {
     const groups = new Map<string, MedicalRecord[]>();
 
+    const dateUnavailableKey = t("timeline.dateUnavailable");
+
     for (const record of filteredRecords) {
       const date = new Date(getDateValue(record));
       const key = Number.isNaN(date.getTime())
-        ? "Date unavailable"
+        ? dateUnavailableKey
         : date.toISOString().slice(0, 10);
 
       const existing = groups.get(key) || [];
@@ -542,12 +552,12 @@ export default function HealthTimelinePage() {
     return Array.from(groups.entries()).map(([key, group]) => ({
       key,
       label:
-        key === "Date unavailable"
+        key === dateUnavailableKey
           ? key
-          : formatDay(group[0] ? getDateValue(group[0]) : null),
+          : formatDay(group[0] ? getDateValue(group[0]) : null, t),
       records: group,
     }));
-  }, [filteredRecords]);
+  }, [filteredRecords, t]);
 
   const counts = useMemo(
     () => ({
@@ -571,7 +581,7 @@ export default function HealthTimelinePage() {
       <main className="flex min-h-screen items-center justify-center bg-[#f5f7f7] text-slate-700">
         <div className="flex items-center gap-3">
           <Loader2 size={20} className="animate-spin" />
-          Checking access...
+          {t("timeline.checkingAccess")}
         </div>
       </main>
     );
@@ -587,21 +597,20 @@ export default function HealthTimelinePage() {
               className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
             >
               <ArrowLeft size={16} />
-              Back to dashboard
+              {t("timeline.backDashboard")}
             </Link>
 
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
               <History size={15} />
-              Longitudinal health timeline
+              {t("timeline.eyebrow")}
             </div>
 
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-              Your health journey, in order.
+              {t("timeline.title")}
             </h1>
 
             <p className="mt-2 max-w-3xl text-slate-500">
-              A chronological view of your stored medical documents, AI-assisted
-              interpretations, clinician verification, and correction history.
+              {t("timeline.subtitle")}
             </p>
           </div>
 
@@ -609,9 +618,11 @@ export default function HealthTimelinePage() {
             {user && (
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <p className="text-sm font-semibold">{user.name}</p>
-                <p className="text-xs text-slate-500">Patient</p>
+                <p className="text-xs text-slate-500">{t("timeline.patientLabel")}</p>
               </div>
             )}
+
+            <LanguageSwitcher />
 
             <button
               type="button"
@@ -620,7 +631,7 @@ export default function HealthTimelinePage() {
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium shadow-sm hover:bg-slate-50 disabled:opacity-60"
             >
               <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
-              Refresh
+              {t("timeline.refresh")}
             </button>
 
             <LogoutButton />
@@ -641,12 +652,10 @@ export default function HealthTimelinePage() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-amber-900">
-                  Cross-document safety signals
+                  {t("timeline.safety.title")}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-amber-800">
-                  Patterns found across your stored documents, not just within one.
-                  AI-assisted and not a diagnosis — always discuss these with your
-                  clinician.
+                  {t("timeline.safety.subtitle")}
                 </p>
               </div>
             </div>
@@ -657,7 +666,7 @@ export default function HealthTimelinePage() {
                   <div className="mb-3 flex items-center gap-2">
                     <FlaskConical size={16} className="text-amber-700" />
                     <h3 className="text-sm font-semibold text-slate-800">
-                      Abnormal lab values ({abnormalFindings.length})
+                      {t("timeline.safety.abnormalTitle")} ({abnormalFindings.length})
                     </h3>
                   </div>
                   <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -679,10 +688,10 @@ export default function HealthTimelinePage() {
                         <p className="mt-1 text-xs text-slate-500">
                           {finding.value} {finding.unit}
                           {finding.referenceRange
-                            ? ` · Reference: ${finding.referenceRange}`
+                            ? ` · ${t("timeline.safety.referencePrefix")} ${finding.referenceRange}`
                             : ""}
                           {" · "}
-                          {formatDate(finding.date)}
+                          {formatDate(finding.date, t)}
                         </p>
                         <p className="mt-1 truncate text-xs text-slate-400">
                           {finding.documentName}
@@ -698,7 +707,7 @@ export default function HealthTimelinePage() {
                   <div className="mb-3 flex items-center gap-2">
                     <Pill size={16} className="text-amber-700" />
                     <h3 className="text-sm font-semibold text-slate-800">
-                      Potential medication interactions ({interactionFlags.length})
+                      {t("timeline.safety.interactionsTitle")} ({interactionFlags.length})
                     </h3>
                   </div>
                   <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -717,9 +726,7 @@ export default function HealthTimelinePage() {
                     ))}
                   </div>
                   <p className="mt-3 text-[11px] leading-5 text-slate-400">
-                    Based on a small curated list of well-known interactions
-                    matched by medication name. Not exhaustive — always confirm
-                    with your clinician or pharmacist.
+                    {t("timeline.safety.interactionsDisclaimer")}
                   </p>
                 </div>
               )}
@@ -730,12 +737,12 @@ export default function HealthTimelinePage() {
         <section className="mb-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
           {(
             [
-              ["all", "All records", counts.all],
-              ["prescriptions", "Prescriptions", counts.prescriptions],
-              ["labs", "Lab reports", counts.labs],
-              ["verified", "Verified", counts.verified],
-              ["pending", "Pending", counts.pending],
-              ["attention", "Needs attention", counts.attention],
+              ["all", t("timeline.filter.all"), counts.all],
+              ["prescriptions", t("timeline.filter.prescriptions"), counts.prescriptions],
+              ["labs", t("timeline.filter.labs"), counts.labs],
+              ["verified", t("timeline.filter.verified"), counts.verified],
+              ["pending", t("timeline.filter.pending"), counts.pending],
+              ["attention", t("timeline.filter.attention"), counts.attention],
             ] as const
           ).map(([value, label, count]) => (
             <button
@@ -764,32 +771,32 @@ export default function HealthTimelinePage() {
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
             <div className="mb-6 flex flex-col gap-2 border-b border-slate-100 pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Timeline</h2>
+                <h2 className="text-xl font-semibold">{t("timeline.timelineHeading")}</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  {filteredRecords.length} record{filteredRecords.length === 1 ? "" : "s"} in this view
+                  {filteredRecords.length} {t("timeline.recordsInView")}
                 </p>
               </div>
               <Link
                 href="/records"
                 className="text-sm font-semibold text-teal-700 hover:text-teal-800"
               >
-                Open detailed records →
+                {t("timeline.openDetailedRecords")} →
               </Link>
             </div>
 
             {loading ? (
               <div className="rounded-2xl border border-dashed p-12 text-center">
                 <Loader2 size={32} className="mx-auto mb-3 animate-spin text-slate-400" />
-                <p className="font-medium">Loading your timeline...</p>
+                <p className="font-medium">{t("timeline.loading")}</p>
               </div>
             ) : groupedTimeline.length === 0 ? (
               <div className="rounded-2xl border border-dashed p-12 text-center">
                 <FileText size={38} className="mx-auto mb-3 text-slate-300" />
-                <h3 className="font-semibold text-slate-700">No timeline events found</h3>
+                <h3 className="font-semibold text-slate-700">{t("timeline.empty.title")}</h3>
                 <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
                   {records.length === 0
-                    ? "Upload a prescription or medical document to start your longitudinal health record."
-                    : "Try another timeline filter to see more of your health history."}
+                    ? t("timeline.empty.noneYet")
+                    : t("timeline.empty.tryFilter")}
                 </p>
                 {records.length === 0 && (
                   <Link
@@ -797,7 +804,7 @@ export default function HealthTimelinePage() {
                     className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800"
                   >
                     <Upload size={16} />
-                    Upload medical document
+                    {t("timeline.uploadDocument")}
                   </Link>
                 )}
               </div>
@@ -848,22 +855,22 @@ export default function HealthTimelinePage() {
                                 </div>
 
                                 <h3 className="text-lg font-semibold text-slate-800">
-                                  {record.documentName || "Medical Document"}
+                                  {record.documentName || t("timeline.defaultDocumentName")}
                                 </h3>
 
                                 <p className="mt-1 text-sm text-slate-500">
-                                  {record.documentType || (kind === "labs" ? "Lab Report" : "Prescription")}
+                                  {record.documentType || (kind === "labs" ? t("timeline.kind.lab") : t("timeline.kind.prescription"))}
                                 </p>
 
                                 <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">
-                                  {record.interpretation || record.summary || "No interpretation recorded."}
+                                  {record.interpretation || record.summary || t("timeline.detail.noInterpretation")}
                                 </p>
                               </div>
 
                               <div className="shrink-0 text-xs text-slate-400 md:text-right">
-                                {formatDate(getDateValue(record))}
+                                {formatDate(getDateValue(record), t)}
                                 <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-300">
-                                  Open event
+                                  {t("timeline.openEvent")}
                                 </p>
                               </div>
                             </div>
@@ -876,7 +883,7 @@ export default function HealthTimelinePage() {
                                     className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600"
                                   >
                                     <Pill size={12} />
-                                    {medication.name || "Medication"}
+                                    {medication.name || t("timeline.medicationDefault")}
                                   </span>
                                 ))}
                               </div>
@@ -896,10 +903,9 @@ export default function HealthTimelinePage() {
               {!selectedRecord ? (
                 <div className="flex min-h-[500px] flex-col items-center justify-center text-center">
                   <History size={48} className="mb-4 text-slate-300" />
-                  <h2 className="text-lg font-semibold">Select a health event</h2>
+                  <h2 className="text-lg font-semibold">{t("timeline.detail.selectEvent")}</h2>
                   <p className="mt-2 max-w-xs text-sm leading-6 text-slate-500">
-                    Choose an event from the timeline to inspect its interpretation,
-                    medications, verification trail, and original document.
+                    {t("timeline.detail.selectEventHint")}
                   </p>
                 </div>
               ) : (
@@ -907,13 +913,13 @@ export default function HealthTimelinePage() {
                   <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700">
-                        Health event
+                        {t("timeline.detail.healthEvent")}
                       </p>
                       <h2 className="mt-2 text-xl font-semibold">
-                        {selectedRecord.documentName || "Medical Document"}
+                        {selectedRecord.documentName || t("timeline.defaultDocumentName")}
                       </h2>
                       <p className="mt-1 text-sm text-slate-500">
-                        {formatDate(getDateValue(selectedRecord))}
+                        {formatDate(getDateValue(selectedRecord), t)}
                       </p>
                     </div>
                     <StatusBadge record={selectedRecord} />
@@ -925,13 +931,13 @@ export default function HealthTimelinePage() {
 
                   <div className="mt-6">
                     <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
-                      Interpretation
+                      {t("timeline.detail.interpretation")}
                     </h3>
                     <div className="mt-3 rounded-2xl bg-slate-50 p-4">
                       <p className="text-sm leading-6 text-slate-700">
                         {selectedRecord.interpretation ||
                           selectedRecord.summary ||
-                          "No interpretation available."}
+                          t("timeline.detail.noInterpretation")}
                       </p>
                     </div>
                   </div>
@@ -939,7 +945,7 @@ export default function HealthTimelinePage() {
                   <div className="mt-6">
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
-                        Medications
+                        {t("timeline.detail.medications")}
                       </h3>
                       <Pill size={16} className="text-slate-300" />
                     </div>
@@ -952,19 +958,19 @@ export default function HealthTimelinePage() {
                             className="rounded-2xl border border-slate-200 p-3"
                           >
                             <p className="text-sm font-semibold text-slate-800">
-                              {medication.name || "Medication"}
+                              {medication.name || t("timeline.medicationDefault")}
                             </p>
                             <p className="mt-1 text-xs leading-5 text-slate-500">
                               {[medication.dosage, medication.frequency, medication.duration]
                                 .filter(Boolean)
-                                .join(" · ") || "Details not recorded"}
+                                .join(" · ") || t("timeline.detail.detailsNotRecorded")}
                             </p>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="mt-3 rounded-2xl border border-dashed p-4 text-sm text-slate-500">
-                        No medications recorded for this event.
+                        {t("timeline.detail.noMedications")}
                       </div>
                     )}
                   </div>
@@ -975,11 +981,11 @@ export default function HealthTimelinePage() {
                         <XCircle size={18} className="mt-0.5 text-amber-700" />
                         <div>
                           <h3 className="text-sm font-semibold text-amber-900">
-                            Correction requested
+                            {t("timeline.detail.correctionRequested")}
                           </h3>
                           <p className="mt-1 text-sm leading-6 text-amber-800">
                             {selectedRecord.rejectionReason ||
-                              "Your clinician requested a correction to this record."}
+                              t("timeline.detail.correctionDefault")}
                           </p>
                           <Link
                             href={`/prescriptions?correctionRecordId=${encodeURIComponent(
@@ -988,7 +994,7 @@ export default function HealthTimelinePage() {
                             className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-800"
                           >
                             <Upload size={15} />
-                            Upload corrected document
+                            {t("timeline.detail.uploadCorrected")}
                           </Link>
                         </div>
                       </div>
@@ -999,7 +1005,7 @@ export default function HealthTimelinePage() {
                     <div className="flex items-center gap-2">
                       <ShieldCheck size={17} className="text-teal-700" />
                       <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
-                        Verification history
+                        {t("timeline.detail.verificationHistory")}
                       </h3>
                     </div>
 
@@ -1013,10 +1019,10 @@ export default function HealthTimelinePage() {
                           >
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <p className="text-sm font-semibold text-slate-700">
-                                {auditLabel(audit.action)}
+                                {auditLabel(audit.action, t)}
                               </p>
                               <span className="text-xs text-slate-400">
-                                {formatDate(audit.createdAt)}
+                                {formatDate(audit.createdAt, t)}
                               </span>
                             </div>
                             {audit.note && (
@@ -1029,14 +1035,14 @@ export default function HealthTimelinePage() {
                       </div>
                     ) : (
                       <div className="mt-3 rounded-2xl border border-dashed p-4 text-sm text-slate-500">
-                        No verification events recorded yet.
+                        {t("timeline.detail.noVerification")}
                       </div>
                     )}
                   </div>
 
                   <div className="mt-6 border-t border-slate-100 pt-6">
                     <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
-                      Original source
+                      {t("timeline.detail.originalSource")}
                     </h3>
 
                     {selectedRecord.originalFileUrl ? (
@@ -1047,7 +1053,7 @@ export default function HealthTimelinePage() {
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800"
                         >
                           <FileSearch size={16} />
-                          View original document
+                          {t("timeline.detail.viewOriginal")}
                         </button>
 
                         <a
@@ -1057,12 +1063,12 @@ export default function HealthTimelinePage() {
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                         >
                           <ExternalLink size={16} />
-                          Open original
+                          {t("timeline.detail.openOriginal")}
                         </a>
                       </div>
                     ) : (
                       <div className="mt-3 rounded-2xl border border-dashed p-4 text-sm text-slate-500">
-                        Original document unavailable.
+                        {t("timeline.detail.originalUnavailable")}
                       </div>
                     )}
                   </div>
@@ -1078,15 +1084,15 @@ export default function HealthTimelinePage() {
           <div className="flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <div>
-                <p className="font-semibold text-slate-900">Original medical document</p>
-                <p className="mt-0.5 text-xs text-slate-500">Patient view</p>
+                <p className="font-semibold text-slate-900">{t("timeline.modal.title")}</p>
+                <p className="mt-0.5 text-xs text-slate-500">{t("timeline.modal.patientView")}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowOriginal(false)}
                 className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
               >
-                Close
+                {t("timeline.modal.close")}
               </button>
             </div>
 
@@ -1095,14 +1101,14 @@ export default function HealthTimelinePage() {
               selectedRecord.originalFileUrl.toLowerCase().includes(".pdf") ? (
                 <iframe
                   src={`/api/medical-records/${selectedRecord.id}/document#toolbar=0&navpanes=0&scrollbar=1`}
-                  title="Original medical document"
+                  title={t("timeline.modal.title")}
                   className="h-full w-full rounded-2xl border border-slate-200 bg-white"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center overflow-auto rounded-2xl border border-slate-200 bg-white p-4">
                   <img
                     src={`/api/medical-records/${selectedRecord.id}/document`}
-                    alt="Original medical document"
+                    alt={t("timeline.modal.title")}
                     className="max-h-full max-w-full object-contain"
                     draggable={false}
                   />
