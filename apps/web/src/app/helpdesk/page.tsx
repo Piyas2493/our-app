@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /* =========================================================
    TYPES
@@ -90,6 +92,7 @@ const PRIORITY_STYLES: Record<TicketPriority, string> = {
 
 export default function HelpdeskPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -139,12 +142,12 @@ export default function HelpdeskPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to load tickets.");
+        throw new Error(result?.error || t("helpdesk.errors.loadTicketsFailed"));
       }
 
       setTickets(result.tickets || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load tickets.");
+      setError(err instanceof Error ? err.message : t("helpdesk.errors.loadTicketsFailed"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -168,12 +171,12 @@ export default function HelpdeskPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to load ticket.");
+        throw new Error(result?.error || t("helpdesk.errors.loadTicketFailed"));
       }
 
       setSelectedTicket(result.ticket);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load ticket.");
+      setError(err instanceof Error ? err.message : t("helpdesk.errors.loadTicketFailed"));
     }
   }
 
@@ -194,13 +197,13 @@ export default function HelpdeskPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to update ticket.");
+        throw new Error(result?.error || t("helpdesk.errors.updateFailed"));
       }
 
       await openTicket(selectedTicket.id);
       await loadTickets(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update ticket.");
+      setError(err instanceof Error ? err.message : t("helpdesk.errors.updateFailed"));
     } finally {
       setUpdating(false);
     }
@@ -223,7 +226,7 @@ export default function HelpdeskPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to send message.");
+        throw new Error(result?.error || t("helpdesk.errors.sendFailed"));
       }
 
       setReplyText("");
@@ -231,7 +234,7 @@ export default function HelpdeskPage() {
       await openTicket(selectedTicket.id);
       await loadTickets(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send message.");
+      setError(err instanceof Error ? err.message : t("helpdesk.errors.sendFailed"));
     } finally {
       setReplying(false);
     }
@@ -274,7 +277,7 @@ export default function HelpdeskPage() {
       <main className="flex min-h-screen items-center justify-center bg-[#f4f6f7]">
         <div className="flex items-center gap-3 text-slate-500">
           <RefreshCw size={20} className="animate-spin" />
-          Loading the support queue…
+          {t("helpdesk.loading")}
         </div>
       </main>
     );
@@ -291,15 +294,17 @@ export default function HelpdeskPage() {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-                  Helpdesk Workspace
+                  {t("helpdesk.eyebrow")}
                 </p>
                 <h1 className="mt-1 text-3xl font-semibold tracking-tight lg:text-4xl">
-                  Support ticket queue
+                  {t("helpdesk.title")}
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <LanguageSwitcher />
+
               <button
                 type="button"
                 onClick={() => void loadTickets(true)}
@@ -307,7 +312,7 @@ export default function HelpdeskPage() {
                 className="flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
               >
                 <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
-                Refresh
+                {t("helpdesk.refresh")}
               </button>
 
               <LogoutButton />
@@ -328,11 +333,11 @@ export default function HelpdeskPage() {
                 <Inbox size={21} />
               </div>
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Open
+                {t("helpdesk.stat.open")}
               </span>
             </div>
             <p className="mt-5 text-3xl font-semibold">{counts.open}</p>
-            <p className="mt-1 text-sm text-slate-500">Not yet triaged</p>
+            <p className="mt-1 text-sm text-slate-500">{t("helpdesk.stat.openSub")}</p>
           </div>
 
           <div className="rounded-3xl border bg-white p-5 shadow-sm">
@@ -341,11 +346,11 @@ export default function HelpdeskPage() {
                 <Clock3 size={21} />
               </div>
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Active
+                {t("helpdesk.stat.active")}
               </span>
             </div>
             <p className="mt-5 text-3xl font-semibold">{counts.active}</p>
-            <p className="mt-1 text-sm text-slate-500">Assigned or in progress</p>
+            <p className="mt-1 text-sm text-slate-500">{t("helpdesk.stat.activeSub")}</p>
           </div>
 
           <div className="rounded-3xl border bg-white p-5 shadow-sm">
@@ -354,11 +359,11 @@ export default function HelpdeskPage() {
                 <UsersRound size={21} />
               </div>
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Waiting
+                {t("helpdesk.stat.waiting")}
               </span>
             </div>
             <p className="mt-5 text-3xl font-semibold">{counts.waiting}</p>
-            <p className="mt-1 text-sm text-slate-500">Waiting on requester</p>
+            <p className="mt-1 text-sm text-slate-500">{t("helpdesk.stat.waitingSub")}</p>
           </div>
 
           <div className="rounded-3xl border bg-white p-5 shadow-sm">
@@ -367,11 +372,11 @@ export default function HelpdeskPage() {
                 <CheckCircle2 size={21} />
               </div>
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Resolved
+                {t("helpdesk.stat.resolved")}
               </span>
             </div>
             <p className="mt-5 text-3xl font-semibold">{counts.resolved}</p>
-            <p className="mt-1 text-sm text-slate-500">Resolved or closed</p>
+            <p className="mt-1 text-sm text-slate-500">{t("helpdesk.stat.resolvedSub")}</p>
           </div>
         </section>
 
@@ -387,7 +392,7 @@ export default function HelpdeskPage() {
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
               }`}
             >
-              {status === "ALL" ? "All" : status.replace("_", " ")}
+              {status === "ALL" ? t("helpdesk.filterAll") : status.replace("_", " ")}
             </button>
           ))}
         </div>
@@ -396,7 +401,7 @@ export default function HelpdeskPage() {
           <div className="space-y-2">
             {filteredTickets.length === 0 ? (
               <p className="rounded-2xl border border-dashed bg-white p-6 text-center text-sm text-slate-400">
-                No tickets in this view.
+                {t("helpdesk.noTicketsInView")}
               </p>
             ) : (
               filteredTickets.map((ticket) => (
@@ -433,7 +438,7 @@ export default function HelpdeskPage() {
                   </p>
                   {ticket.assignedTo && (
                     <p className="mt-1 text-[11px] text-teal-700">
-                      Assigned to {ticket.assignedTo.name}
+                      {t("helpdesk.assignedToPrefix")} {ticket.assignedTo.name}
                     </p>
                   )}
                   {ticket.callbackRequested && (
@@ -446,8 +451,8 @@ export default function HelpdeskPage() {
                     >
                       <PhoneCall size={11} />
                       {ticket.callbackCompletedAt
-                        ? "Callback done"
-                        : `Call requested · ${ticket.callbackPhone}`}
+                        ? t("helpdesk.callbackDone")
+                        : `${t("helpdesk.callRequested")} · ${ticket.callbackPhone}`}
                     </p>
                   )}
                 </button>
@@ -458,7 +463,7 @@ export default function HelpdeskPage() {
           <div>
             {!selectedTicket ? (
               <div className="flex h-full min-h-[300px] items-center justify-center rounded-2xl border border-dashed bg-white text-sm text-slate-400">
-                Select a ticket to view the conversation.
+                {t("helpdesk.selectTicketHint")}
               </div>
             ) : (
               <div className="rounded-2xl border bg-white p-5">
@@ -480,8 +485,8 @@ export default function HelpdeskPage() {
                         }`}
                       >
                         <PhoneCall size={13} />
-                        Call {selectedTicket.callbackPhone}
-                        {selectedTicket.callbackCompletedAt ? " · done" : " · pending"}
+                        {t("helpdesk.callPrefix")} {selectedTicket.callbackPhone}
+                        {selectedTicket.callbackCompletedAt ? ` · ${t("helpdesk.done")}` : ` · ${t("helpdesk.pending")}`}
                       </p>
                     )}
                   </div>
@@ -495,7 +500,7 @@ export default function HelpdeskPage() {
                         className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                       >
                         <PhoneCall size={13} />
-                        Mark as called
+                        {t("helpdesk.markAsCalled")}
                       </button>
                     )}
 
@@ -507,15 +512,15 @@ export default function HelpdeskPage() {
                     >
                       <UserPlus size={13} />
                       {selectedTicket.assignedTo
-                        ? `Assigned to ${selectedTicket.assignedTo.name}`
-                        : "Assign to me"}
+                        ? `${t("helpdesk.assignedToPrefix")} ${selectedTicket.assignedTo.name}`
+                        : t("helpdesk.assignToMe")}
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-3">
                   <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                    Status
+                    {t("helpdesk.statusLabel")}
                     <select
                       value={selectedTicket.status}
                       disabled={updating}
@@ -533,7 +538,7 @@ export default function HelpdeskPage() {
                   </label>
 
                   <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                    Priority
+                    {t("helpdesk.priorityLabel")}
                     <select
                       value={selectedTicket.priority}
                       disabled={updating}
@@ -568,8 +573,8 @@ export default function HelpdeskPage() {
                           <span className="flex items-center gap-1">
                             {message.isInternalNote && <Lock size={11} />}
                             {message.author.name}
-                            {isHelpdeskReply ? " · Helpdesk" : ""}
-                            {message.isInternalNote ? " · Internal note" : ""}
+                            {isHelpdeskReply ? ` · ${t("helpdesk.helpdeskSuffix")}` : ""}
+                            {message.isInternalNote ? ` · ${t("helpdesk.internalNoteSuffix")}` : ""}
                           </span>
                           <span>{formatDate(message.createdAt)}</span>
                         </div>
@@ -584,7 +589,7 @@ export default function HelpdeskPage() {
                     value={replyText}
                     onChange={(event) => setReplyText(event.target.value)}
                     rows={2}
-                    placeholder="Write a reply…"
+                    placeholder={t("helpdesk.replyPlaceholder")}
                     className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                   />
 
@@ -595,7 +600,7 @@ export default function HelpdeskPage() {
                         checked={isInternalNote}
                         onChange={(event) => setIsInternalNote(event.target.checked)}
                       />
-                      Internal note (not visible to requester)
+                      {t("helpdesk.internalNoteCheckbox")}
                     </label>
 
                     <button
@@ -605,7 +610,7 @@ export default function HelpdeskPage() {
                       className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
                     >
                       {replying ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
-                      Send
+                      {t("helpdesk.send")}
                     </button>
                   </div>
                 </div>
