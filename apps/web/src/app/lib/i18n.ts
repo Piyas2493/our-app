@@ -824,6 +824,7 @@ const en = {
   "helpdesk.replyPlaceholder": "Write a reply…",
   "helpdesk.internalNoteCheckbox": "Internal note (not visible to requester)",
   "helpdesk.send": "Send",
+  "nav.clinicalIntake": "Clinical Intake",
 } as const;
 
 const hi: Partial<Record<keyof typeof en, string>> = {
@@ -1616,6 +1617,7 @@ const hi: Partial<Record<keyof typeof en, string>> = {
   "helpdesk.replyPlaceholder": "एक उत्तर लिखें…",
   "helpdesk.internalNoteCheckbox": "आंतरिक टिप्पणी (अनुरोधकर्ता को दिखाई नहीं देती)",
   "helpdesk.send": "भेजें",
+  "nav.clinicalIntake": "क्लिनिकल इनटेक",
 };
 
 const bn: Partial<Record<keyof typeof en, string>> = {
@@ -2408,6 +2410,7 @@ const bn: Partial<Record<keyof typeof en, string>> = {
   "vitals.errors.invalidMeasurement": "একটি বৈধ পরিমাপ লিখুন।",
   "vitals.errors.invalidDiastolic": "একটি বৈধ ডায়াস্টোলিক মান লিখুন।",
   "vitals.type.measurement": "পরিমাপ",
+  "nav.clinicalIntake": "ক্লিনিক্যাল ইনটেক",
 };
 
 const ta: Partial<Record<keyof typeof en, string>> = {
@@ -3200,6 +3203,7 @@ const ta: Partial<Record<keyof typeof en, string>> = {
   "vitals.errors.invalidMeasurement": "சரியான அளவீட்டை உள்ளிடவும்.",
   "vitals.errors.invalidDiastolic": "சரியான டயஸ்டாலிக் மதிப்பை உள்ளிடவும்.",
   "vitals.type.measurement": "அளவீடு",
+  "nav.clinicalIntake": "கிளினிக்கல் இன்டேக்",
 };
 
 export type TranslationKey = keyof typeof en | keyof typeof medicationTranslationMap | "common.cancel";
@@ -3991,6 +3995,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "సరైన కొలతను నమోదు చేయండి.",
     "vitals.errors.invalidDiastolic": "సరైన డయాస్టోలిక్ విలువను నమోదు చేయండి.",
     "vitals.type.measurement": "కొలత",
+    "nav.clinicalIntake": "క్లినికల్ ఇన్‌టేక్",
   },
   mr: {
     "vitals.loading": "तुमचे व्हायटल्स लोड होत आहेत...",
@@ -4771,6 +4776,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "वैध मोजमाप प्रविष्ट करा.",
     "vitals.errors.invalidDiastolic": "वैध डायस्टोलिक मूल्य प्रविष्ट करा.",
     "vitals.type.measurement": "मोजमाप",
+    "nav.clinicalIntake": "क्लिनिकल इनटेक",
   },
   gu: {
     "vitals.loading": "તમારા વાઇટલ્સ લોડ થઈ રહ્યા છે...",
@@ -5551,6 +5557,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "માન્ય માપ દાખલ કરો.",
     "vitals.errors.invalidDiastolic": "માન્ય ડાયાસ્ટોલિક મૂલ્ય દાખલ કરો.",
     "vitals.type.measurement": "માપ",
+    "nav.clinicalIntake": "ક્લિનિકલ ઇનટેક",
   },
   kn: {
     "vitals.loading": "ನಿಮ್ಮ ವೈಟಲ್ಸ್ ಲೋಡ್ ಆಗುತ್ತಿವೆ...",
@@ -6331,6 +6338,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "ಮಾನ್ಯ ಮಾಪನವನ್ನು ನಮೂದಿಸಿ.",
     "vitals.errors.invalidDiastolic": "ಮಾನ್ಯ ಡಯಾಸ್ಟೋಲಿಕ್ ಮೌಲ್ಯವನ್ನು ನಮೂದಿಸಿ.",
     "vitals.type.measurement": "ಮಾಪನ",
+    "nav.clinicalIntake": "ಕ್ಲಿನಿಕಲ್ ಇನ್‌ಟೇಕ್",
   },
   ml: {
     "vitals.loading": "നിങ്ങളുടെ വൈറ്റൽസ് ലോഡ് ചെയ്യുന്നു...",
@@ -7111,6 +7119,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "സാധുവായ അളവ് നൽകുക.",
     "vitals.errors.invalidDiastolic": "സാധുവായ ഡയസ്റ്റോളിക് മൂല്യം നൽകുക.",
     "vitals.type.measurement": "അളവ്",
+    "nav.clinicalIntake": "ക്ലിനിക്കൽ ഇൻടേക്ക്",
   },
   pa: {
     "vitals.loading": "ਤੁਹਾਡੇ ਵਾਈਟਲ ਲੋਡ ਹੋ ਰਹੇ ਹਨ...",
@@ -7891,6 +7900,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "ਇੱਕ ਵੈਧ ਮਾਪ ਦਰਜ ਕਰੋ।",
     "vitals.errors.invalidDiastolic": "ਇੱਕ ਵੈਧ ਡਾਇਸਟੋਲਿਕ ਮੁੱਲ ਦਰਜ ਕਰੋ।",
     "vitals.type.measurement": "ਮਾਪ",
+    "nav.clinicalIntake": "ਕਲੀਨਿਕਲ ਇਨਟੇਕ",
   },
   or: {
     "vitals.loading": "ଆପଣଙ୍କ ଭାଇଟାଲ୍ସ ଲୋଡ୍ ହେଉଛି...",
@@ -8671,6 +8681,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "ଏକ ବୈଧ ମାପ ପ୍ରବେଶ କରନ୍ତୁ।",
     "vitals.errors.invalidDiastolic": "ଏକ ବୈଧ ଡାଏଷ୍ଟୋଲିକ୍ ମୂଲ୍ୟ ପ୍ରବେଶ କରନ୍ତୁ।",
     "vitals.type.measurement": "ମାପ",
+    "nav.clinicalIntake": "କ୍ଲିନିକାଲ୍ ଇନଟେକ୍",
   },
   as: {
     "vitals.loading": "আপোনাৰ ভাইটেলসমূহ লোড হৈ আছে...",
@@ -9451,6 +9462,7 @@ const dictionaries: Record<
     "vitals.errors.invalidMeasurement": "এটা বৈধ জোখ-মাখ প্ৰৱিষ্ট কৰক।",
     "vitals.errors.invalidDiastolic": "এটা বৈধ ডায়াষ্টলিক মূল্য প্ৰৱিষ্ট কৰক।",
     "vitals.type.measurement": "জোখ-মাখ",
+    "nav.clinicalIntake": "ক্লিনিকেল ইনটেক",
   },
 };
 

@@ -310,6 +310,7 @@ function getNavLabel(
 ) {
   const labels: Record<string, string> = {
     "Dashboard": t("nav.dashboard"),
+    "Clinical Intake": t("nav.clinicalIntake"),
     "Health Records": t("nav.records"),
     "Health Timeline": t("nav.timeline"),
     "Prescriptions": t("nav.prescriptions"),
