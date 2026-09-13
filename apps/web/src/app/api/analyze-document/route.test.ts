@@ -24,12 +24,18 @@ vi.mock("@/app/lib/ocr", () => ({
   extractOcrText: vi.fn(),
 }));
 
+vi.mock("@/app/lib/handwritingOcr", () => ({
+  extractHandwritingText: vi.fn(),
+}));
+
 import { requireRole } from "@/app/lib/auth";
 import { extractOcrText } from "@/app/lib/ocr";
+import { extractHandwritingText } from "@/app/lib/handwritingOcr";
 import { POST } from "./route";
 
 const mockedRequireRole = vi.mocked(requireRole);
 const mockedExtractOcrText = vi.mocked(extractOcrText);
+const mockedExtractHandwritingText = vi.mocked(extractHandwritingText);
 
 const patient = {
   id: "patient-1",
@@ -90,6 +96,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockedRequireRole.mockResolvedValue(patient);
   mockedExtractOcrText.mockResolvedValue(null);
+  mockedExtractHandwritingText.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -189,7 +196,7 @@ describe("POST /api/analyze-document -- OCR grounding", () => {
     expect(body.ocrUsed).toBe(false);
 
     const promptText = mockGenerateContent.mock.calls[0][0].contents[0].parts[1].text;
-    expect(promptText).not.toMatch(/OCR TEXT/);
+    expect(promptText).not.toMatch(/PRINTED-TEXT OCR/);
   });
 
   it("folds recognized OCR text into the Gemini prompt as grounding and reports ocrUsed: true", async () => {
@@ -205,7 +212,7 @@ describe("POST /api/analyze-document -- OCR grounding", () => {
     expect(body.ocrUsed).toBe(true);
 
     const promptText = mockGenerateContent.mock.calls[0][0].contents[0].parts[1].text;
-    expect(promptText).toMatch(/OCR TEXT/);
+    expect(promptText).toMatch(/PRINTED-TEXT OCR/);
     expect(promptText).toMatch(/Paracetamol 500mg twice daily/);
     expect(promptText).toMatch(/UNVERIFIED/);
   });
@@ -219,6 +226,57 @@ describe("POST /api/analyze-document -- OCR grounding", () => {
     const response = await POST(requestWithFile(validImageFile()));
 
     expect(response.status).toBe(500);
+  });
+
+  it("folds recognized handwriting text into the prompt and reports handwritingOcrUsed: true", async () => {
+    mockedExtractHandwritingText.mockResolvedValue("Amoxicillin 250mg TDS");
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify(validExtraction),
+    });
+
+    const response = await POST(requestWithFile(validImageFile()));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.handwritingOcrUsed).toBe(true);
+    expect(body.ocrUsed).toBe(false);
+
+    const promptText = mockGenerateContent.mock.calls[0][0].contents[0].parts[1].text;
+    expect(promptText).toMatch(/HANDWRITING OCR/);
+    expect(promptText).toMatch(/Amoxicillin 250mg TDS/);
+  });
+
+  it("includes both OCR passes independently when both recognize text", async () => {
+    mockedExtractOcrText.mockResolvedValue("Dr. A. Sharma, MBBS");
+    mockedExtractHandwritingText.mockResolvedValue("Amoxicillin 250mg TDS");
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify(validExtraction),
+    });
+
+    const response = await POST(requestWithFile(validImageFile()));
+    const body = await response.json();
+
+    expect(body.ocrUsed).toBe(true);
+    expect(body.handwritingOcrUsed).toBe(true);
+
+    const promptText = mockGenerateContent.mock.calls[0][0].contents[0].parts[1].text;
+    expect(promptText).toMatch(/PRINTED-TEXT OCR/);
+    expect(promptText).toMatch(/Dr\. A\. Sharma, MBBS/);
+    expect(promptText).toMatch(/HANDWRITING OCR/);
+    expect(promptText).toMatch(/Amoxicillin 250mg TDS/);
+  });
+
+  it("degrades to Gemini-only when the handwriting-OCR service is unreachable", async () => {
+    mockedExtractHandwritingText.mockResolvedValue(null);
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify(validExtraction),
+    });
+
+    const response = await POST(requestWithFile(validImageFile()));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.handwritingOcrUsed).toBe(false);
   });
 });
 

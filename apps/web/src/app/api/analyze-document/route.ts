@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/app/lib/auth";
 import { extractOcrText } from "@/app/lib/ocr";
+import { extractHandwritingText } from "@/app/lib/handwritingOcr";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -310,27 +311,49 @@ export async function POST(
       );
 
     /* -------------------------------------------------------
-       OCR (Tesseract) -- best-effort grounding text for Gemini,
-       never a replacement for it. Skipped for PDFs; see ocr.ts.
+       OCR -- two independent, best-effort grounding passes for
+       Gemini, never a replacement for it. Both skipped for PDFs.
+       Run in parallel; neither blocks on the other, and either
+       failing/being unreachable just means less grounding text,
+       not a failed request. See ocr.ts and handwritingOcr.ts.
        ------------------------------------------------------- */
 
-    const ocrText = await extractOcrText(
-      Buffer.from(bytes),
-      file.type
-    );
+    const [ocrText, handwritingText] = await Promise.all([
+      extractOcrText(Buffer.from(bytes), file.type),
+      extractHandwritingText(Buffer.from(bytes), file.type),
+    ]);
 
     const ocrSection = ocrText
       ? `
 
-An automated OCR pass over this image produced the following raw text.
-It is UNVERIFIED and may contain recognition errors -- use it only to
-help read unclear handwriting or faint print in the image itself. The
-image remains the source of truth: never extract a value that appears
-only in this OCR text and is not actually visible in the image.
+An automated OCR pass (Tesseract, tuned for printed text) over this
+image produced the following raw text. It is UNVERIFIED and may contain
+recognition errors -- use it only to help read faint or unclear print in
+the image itself. The image remains the source of truth: never extract
+a value that appears only in this OCR text and is not actually visible
+in the image.
 
-OCR TEXT:
+PRINTED-TEXT OCR:
 """
 ${ocrText}
+"""
+`
+      : "";
+
+    const handwritingSection = handwritingText
+      ? `
+
+A second, independent OCR pass (a handwriting-recognition model, not
+fine-tuned on clinical handwriting) over this image produced the
+following raw text. It is UNVERIFIED and likely LESS RELIABLE than the
+printed-text pass above -- use it only as a weak hint for handwritten
+portions of the document. The image remains the source of truth: never
+extract a value that appears only in this text and is not actually
+visible in the image.
+
+HANDWRITING OCR (low confidence):
+"""
+${handwritingText}
 """
 `
       : "";
@@ -381,7 +404,7 @@ Extract study/examination name, body region, clinical history,
 technique, findings and impression.
 
 Return ONLY structured JSON matching the requested schema.
-${ocrSection}`;
+${ocrSection}${handwritingSection}`;
 
     /* -------------------------------------------------------
        GEMINI REQUEST
@@ -893,6 +916,7 @@ ${ocrSection}`;
         extractedData,
 
       ocrUsed: Boolean(ocrText),
+      handwritingOcrUsed: Boolean(handwritingText),
     });
   } catch (
     error: unknown
