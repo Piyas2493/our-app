@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/app/lib/auth";
+import { extractOcrText } from "@/app/lib/ocr";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -309,6 +310,32 @@ export async function POST(
       );
 
     /* -------------------------------------------------------
+       OCR (Tesseract) -- best-effort grounding text for Gemini,
+       never a replacement for it. Skipped for PDFs; see ocr.ts.
+       ------------------------------------------------------- */
+
+    const ocrText = await extractOcrText(
+      Buffer.from(bytes),
+      file.type
+    );
+
+    const ocrSection = ocrText
+      ? `
+
+An automated OCR pass over this image produced the following raw text.
+It is UNVERIFIED and may contain recognition errors -- use it only to
+help read unclear handwriting or faint print in the image itself. The
+image remains the source of truth: never extract a value that appears
+only in this OCR text and is not actually visible in the image.
+
+OCR TEXT:
+"""
+${ocrText}
+"""
+`
+      : "";
+
+    /* -------------------------------------------------------
        PROMPT
        ------------------------------------------------------- */
 
@@ -354,7 +381,7 @@ Extract study/examination name, body region, clinical history,
 technique, findings and impression.
 
 Return ONLY structured JSON matching the requested schema.
-`;
+${ocrSection}`;
 
     /* -------------------------------------------------------
        GEMINI REQUEST
@@ -864,6 +891,8 @@ Return ONLY structured JSON matching the requested schema.
 
       data:
         extractedData,
+
+      ocrUsed: Boolean(ocrText),
     });
   } catch (
     error: unknown

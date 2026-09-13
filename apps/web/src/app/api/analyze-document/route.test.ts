@@ -20,10 +20,16 @@ vi.mock("@/app/lib/auth", () => ({
   requireRole: vi.fn(),
 }));
 
+vi.mock("@/app/lib/ocr", () => ({
+  extractOcrText: vi.fn(),
+}));
+
 import { requireRole } from "@/app/lib/auth";
+import { extractOcrText } from "@/app/lib/ocr";
 import { POST } from "./route";
 
 const mockedRequireRole = vi.mocked(requireRole);
+const mockedExtractOcrText = vi.mocked(extractOcrText);
 
 const patient = {
   id: "patient-1",
@@ -55,6 +61,12 @@ function validPdfFile(sizeBytes = 1024) {
   });
 }
 
+function validImageFile(sizeBytes = 1024) {
+  return new File([new Uint8Array(sizeBytes)], "report.jpg", {
+    type: "image/jpeg",
+  });
+}
+
 const validExtraction = {
   documentType: "Lab Report",
   summary: "Routine blood panel.",
@@ -77,6 +89,7 @@ const validExtraction = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockedRequireRole.mockResolvedValue(patient);
+  mockedExtractOcrText.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -160,6 +173,52 @@ describe("POST /api/analyze-document -- successful extraction", () => {
     expect(body.success).toBe(true);
     expect(body.data.documentType).toBe("Lab Report");
     expect(body.data.labResults[0].status).toBe("High");
+  });
+});
+
+describe("POST /api/analyze-document -- OCR grounding", () => {
+  it("reports ocrUsed: false and doesn't touch the prompt when OCR finds nothing", async () => {
+    mockedExtractOcrText.mockResolvedValue(null);
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify(validExtraction),
+    });
+
+    const response = await POST(requestWithFile(validImageFile()));
+    const body = await response.json();
+
+    expect(body.ocrUsed).toBe(false);
+
+    const promptText = mockGenerateContent.mock.calls[0][0].contents[0].parts[1].text;
+    expect(promptText).not.toMatch(/OCR TEXT/);
+  });
+
+  it("folds recognized OCR text into the Gemini prompt as grounding and reports ocrUsed: true", async () => {
+    mockedExtractOcrText.mockResolvedValue("Paracetamol 500mg twice daily");
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify(validExtraction),
+    });
+
+    const response = await POST(requestWithFile(validImageFile()));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ocrUsed).toBe(true);
+
+    const promptText = mockGenerateContent.mock.calls[0][0].contents[0].parts[1].text;
+    expect(promptText).toMatch(/OCR TEXT/);
+    expect(promptText).toMatch(/Paracetamol 500mg twice daily/);
+    expect(promptText).toMatch(/UNVERIFIED/);
+  });
+
+  it("still succeeds when the OCR pass itself rejects", async () => {
+    mockedExtractOcrText.mockRejectedValue(new Error("worker crashed"));
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify(validExtraction),
+    });
+
+    const response = await POST(requestWithFile(validImageFile()));
+
+    expect(response.status).toBe(500);
   });
 });
 
