@@ -17,7 +17,6 @@ import {
   HeartPulse,
   History,
   Languages,
-  LifeBuoy,
   LockKeyhole,
   MessageSquareWarning,
   Pill,
@@ -1055,12 +1054,6 @@ const clinicianNavItems = [
     labelKey: "clinician.nav.aiScribe",
     icon: Bot,
     href: "/clinician/scribe",
-  },
-  {
-    label: "Help & Support",
-    labelKey: "clinician.nav.support",
-    icon: LifeBuoy,
-    href: "/support",
   },
 ];
 
