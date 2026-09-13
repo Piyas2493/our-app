@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
 import VitalTrendPanel from "@/components/clinician/VitalTrendPanel";
 import ClinicalHistoryPanel from "@/components/clinician/ClinicalHistoryPanel";
 
@@ -510,10 +512,11 @@ function getCaseRedFlags(item: VerificationCase): string[] {
    ========================================================= */
 
 function formatDate(
-  value?: string | null
+  value: string | null | undefined,
+  t: (key: string) => string
 ) {
   if (!value) {
-    return "Date unavailable";
+    return t("clinician.dateUnavailable");
   }
 
   const date = new Date(
@@ -536,24 +539,21 @@ function formatDate(
    ========================================================= */
 
 function getVitalLabel(
-  vitalType: string
+  vitalType: string,
+  t: (key: string) => string
 ) {
   const labels: Record<
     string,
     string
   > = {
-    HEART_RATE: "Heart Rate",
-    BLOOD_PRESSURE:
-      "Blood Pressure",
-    OXYGEN_SATURATION:
-      "Oxygen Saturation",
-    TEMPERATURE: "Temperature",
-    WEIGHT: "Weight",
-    BLOOD_GLUCOSE:
-      "Blood Glucose",
-    STEPS: "Steps",
-    SLEEP_DURATION:
-      "Sleep Duration",
+    HEART_RATE: t("vitals.type.heartRate"),
+    BLOOD_PRESSURE: t("vitals.type.bloodPressure"),
+    OXYGEN_SATURATION: t("vitals.type.oxygenSaturation"),
+    TEMPERATURE: t("vitals.type.temperature"),
+    WEIGHT: t("vitals.type.weight"),
+    BLOOD_GLUCOSE: t("vitals.type.bloodGlucose"),
+    STEPS: t("vitals.type.steps"),
+    SLEEP_DURATION: t("vitals.type.sleepDuration"),
   };
 
   return (
@@ -1045,17 +1045,20 @@ function ClinicalIntakeReview({
 const clinicianNavItems = [
   {
     label: "Verification Queue",
+    labelKey: "clinician.nav.verificationQueue",
     icon: Stethoscope,
     href: "/clinician",
     active: true,
   },
   {
     label: "AI Medical Scribe",
+    labelKey: "clinician.nav.aiScribe",
     icon: Bot,
     href: "/clinician/scribe",
   },
   {
     label: "Help & Support",
+    labelKey: "clinician.nav.support",
     icon: LifeBuoy,
     href: "/support",
   },
@@ -1067,6 +1070,7 @@ const clinicianNavItems = [
 
 export default function ClinicianPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [clinicianUser, setClinicianUser] = useState<{
     name: string;
@@ -1779,13 +1783,11 @@ export default function ClinicianPage() {
             />
 
             <h3 className="font-semibold text-slate-700">
-              Original document unavailable
+              {t("clinician.doc.unavailableTitle")}
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              This record does not
-              have an original document
-              attached.
+              {t("clinician.doc.unavailableText")}
             </p>
           </div>
         </div>
@@ -1827,7 +1829,7 @@ export default function ClinicianPage() {
         >
           <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm">
             <LockKeyhole size={14} />
-            CONFIDENTIAL · VIEW ONLY
+            {t("clinician.doc.confidentialViewOnly")}
           </div>
 
           <iframe
@@ -1857,7 +1859,7 @@ export default function ClinicianPage() {
         >
           <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm">
             <LockKeyhole size={14} />
-            CONFIDENTIAL · VIEW ONLY
+            {t("clinician.doc.confidentialViewOnly")}
           </div>
 
           <img
@@ -1940,11 +1942,11 @@ export default function ClinicianPage() {
 
           <div>
             <h1>JeevanLink</h1>
-            <p>Clinician Workspace</p>
+            <p>{t("clinician.brand.tagline")}</p>
           </div>
         </div>
 
-        <div className="sidebar-label">CLINICAL TOOLS</div>
+        <div className="sidebar-label">{t("clinician.sidebar.clinicalTools")}</div>
 
         <nav className="nav-menu">
           {clinicianNavItems.map((item) => {
@@ -1957,7 +1959,7 @@ export default function ClinicianPage() {
                 className={`nav-item ${item.active ? "active" : ""}`}
               >
                 <Icon size={21} />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
               </Link>
             );
           })}
@@ -1968,10 +1970,9 @@ export default function ClinicianPage() {
             <LockKeyhole size={28} />
 
             <div>
-              <strong>Confidential workspace</strong>
+              <strong>{t("clinician.sidebar.confidentialTitle")}</strong>
               <p>
-                Every verification action is logged and attributed to
-                your account.
+                {t("clinician.sidebar.confidentialText")}
               </p>
             </div>
           </div>
@@ -1992,10 +1993,12 @@ export default function ClinicianPage() {
             <span className="menu-lines">☰</span>
             <span>JeevanLink</span>
             <span className="chevron">›</span>
-            <strong>Verification Queue</strong>
+            <strong>{t("clinician.nav.verificationQueue")}</strong>
           </div>
 
           <div className="top-actions">
+            <LanguageSwitcher />
+
             <button
               type="button"
               onClick={() => void loadCases()}
@@ -2003,7 +2006,7 @@ export default function ClinicianPage() {
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
             >
               <RefreshCw size={16} />
-              Refresh
+              {t("clinician.refresh")}
             </button>
 
             <button
@@ -2025,7 +2028,7 @@ export default function ClinicianPage() {
                   : "C"}
               </div>
 
-              <span>{clinicianUser?.name || "Clinician"}</span>
+              <span>{clinicianUser?.name || t("clinician.topbar.defaultName")}</span>
             </div>
 
             <LogoutButton />
@@ -2039,15 +2042,11 @@ export default function ClinicianPage() {
         <div className="dashboard">
           <div className="mb-2">
             <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
-              Clinical verification dashboard
+              {t("clinician.title")}
             </h1>
 
             <p className="mt-3 max-w-3xl text-slate-500">
-              Review the source document,
-              validate the AI draft, inspect
-              the patient&apos;s longitudinal
-              health information, and record
-              the final clinical decision.
+              {t("clinician.subtitle")}
             </p>
           </div>
 
@@ -2075,7 +2074,7 @@ export default function ClinicianPage() {
               </div>
 
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Queue
+                {t("clinician.kpi.queue")}
               </span>
             </div>
 
@@ -2086,7 +2085,7 @@ export default function ClinicianPage() {
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Pending verification
+              {t("clinician.kpi.pendingVerification")}
             </p>
           </div>
 
@@ -2099,7 +2098,7 @@ export default function ClinicianPage() {
               </div>
 
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Complete
+                {t("clinician.kpi.complete")}
               </span>
             </div>
 
@@ -2108,7 +2107,7 @@ export default function ClinicianPage() {
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Verified records
+              {t("clinician.kpi.verifiedRecords")}
             </p>
           </div>
 
@@ -2121,7 +2120,7 @@ export default function ClinicianPage() {
               </div>
 
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Attention
+                {t("clinician.kpi.attention")}
               </span>
             </div>
 
@@ -2130,7 +2129,7 @@ export default function ClinicianPage() {
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Sent back for correction
+              {t("clinician.kpi.sentBackForCorrection")}
             </p>
           </div>
 
@@ -2143,7 +2142,7 @@ export default function ClinicianPage() {
               </div>
 
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Records
+                {t("clinician.kpi.records")}
               </span>
             </div>
 
@@ -2152,7 +2151,7 @@ export default function ClinicianPage() {
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Records in workspace
+              {t("clinician.kpi.recordsInWorkspace")}
             </p>
           </div>
         </section>
@@ -2170,12 +2169,11 @@ export default function ClinicianPage() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold">
-                  Verification queue
+                  {t("clinician.queue.title")}
                 </h2>
 
                 <p className="text-sm text-slate-500">
-                  Documents awaiting clinical
-                  review
+                  {t("clinician.queue.subtitle")}
                 </p>
               </div>
 
@@ -2195,12 +2193,11 @@ export default function ClinicianPage() {
                 />
 
                 <p className="font-medium">
-                  No pending reviews
+                  {t("clinician.queue.emptyTitle")}
                 </p>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  New submitted documents
-                  will appear here.
+                  {t("clinician.queue.emptyText")}
                 </p>
               </div>
             ) : (
@@ -2245,11 +2242,11 @@ export default function ClinicianPage() {
                         {flagCount > 0 ? (
                           <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
                             <MessageSquareWarning size={12} />
-                            Urgent
+                            {t("clinician.queue.urgent")}
                           </span>
                         ) : (
                           <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-                            Pending
+                            {t("clinician.queue.pending")}
                           </span>
                         )}
                       </div>
@@ -2261,9 +2258,10 @@ export default function ClinicianPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
-                        Submitted{" "}
+                        {t("clinician.queue.submittedPrefix")}{" "}
                         {formatDate(
-                          item.submittedAt
+                          item.submittedAt,
+                          t
                         )}
                       </p>
                     </button>
@@ -2280,7 +2278,7 @@ export default function ClinicianPage() {
             ).length > 0 && (
               <div className="mt-7 border-t pt-5">
                 <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Recent decisions
+                  {t("clinician.queue.recentDecisions")}
                 </p>
 
                 <div className="space-y-2">
@@ -2320,9 +2318,9 @@ export default function ClinicianPage() {
                                   : "bg-rose-50 text-rose-700"
                               }`}
                             >
-                              {
-                                item.status
-                              }
+                              {item.status === "Verified"
+                                ? t("clinician.status.verified")
+                                : t("clinician.status.needsCorrection")}
                             </span>
                           </div>
 
@@ -2353,13 +2351,11 @@ export default function ClinicianPage() {
                   />
 
                   <h2 className="text-xl font-semibold">
-                    No record selected
+                    {t("clinician.noRecordSelected")}
                   </h2>
 
                   <p className="mt-2 max-w-md text-slate-500">
-                    Submitted documents will
-                    appear in the verification
-                    queue.
+                    {t("clinician.noRecordSelectedHint")}
                   </p>
                 </div>
               </div>
@@ -2380,7 +2376,7 @@ export default function ClinicianPage() {
 
                       <div>
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                          Patient clinical snapshot
+                          {t("clinician.snapshot.eyebrow")}
                         </p>
 
                         <h2 className="mt-1 text-2xl font-semibold">
@@ -2395,21 +2391,21 @@ export default function ClinicianPage() {
                           {
                             snapshot?.patient
                               ?.email ||
-                            "Patient details unavailable"
+                            t("clinician.snapshot.detailsUnavailable")
                           }
                         </p>
 
                         <p className="mt-2 text-xs text-slate-400">
-                          Patient ID:{" "}
+                          {t("clinician.snapshot.patientIdPrefix")}{" "}
                           {selectedCase.patientId ||
-                            "Not linked"}
+                            t("clinician.snapshot.notLinked")}
                         </p>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border bg-slate-50 px-4 py-3 text-sm">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Current record
+                        {t("clinician.snapshot.currentRecord")}
                       </p>
 
                       <p className="mt-1 font-medium text-slate-700">
@@ -2419,9 +2415,10 @@ export default function ClinicianPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Submitted{" "}
+                        {t("clinician.snapshot.submittedPrefix")}{" "}
                         {formatDate(
-                          selectedCase.submittedAt
+                          selectedCase.submittedAt,
+                          t
                         )}
                       </p>
                     </div>
@@ -2434,8 +2431,7 @@ export default function ClinicianPage() {
                         className="animate-spin"
                       />
 
-                      Loading patient
-                      longitudinal data...
+                      {t("clinician.snapshot.loading")}
                     </div>
                   ) : snapshotError ? (
                     <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
@@ -2454,12 +2450,11 @@ export default function ClinicianPage() {
                           <div className="mb-4 flex items-center justify-between">
                             <div>
                               <h3 className="font-semibold">
-                                Latest vitals
+                                {t("clinician.vitals.title")}
                               </h3>
 
                               <p className="mt-1 text-sm text-slate-500">
-                                Recent measurements
-                                from JeevanLink
+                                {t("clinician.vitals.subtitle")}
                               </p>
                             </div>
 
@@ -2472,10 +2467,7 @@ export default function ClinicianPage() {
                           {latestVitals.length ===
                           0 ? (
                             <div className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-500">
-                              No valid vital
-                              measurements are
-                              available for this
-                              patient.
+                              {t("clinician.vitals.empty")}
                             </div>
                           ) : (
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -2492,7 +2484,8 @@ export default function ClinicianPage() {
                                     <div className="flex items-center justify-between gap-2">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                                         {getVitalLabel(
-                                          vital.vitalType
+                                          vital.vitalType,
+                                          t
                                         )}
                                       </p>
 
@@ -2517,12 +2510,13 @@ export default function ClinicianPage() {
 
                                     <p className="mt-1 text-xs text-slate-400">
                                       {formatDate(
-                                        vital.recordedAt
+                                        vital.recordedAt,
+                                        t
                                       )}
                                     </p>
 
                                     <p className="mt-1 text-[11px] text-slate-400">
-                                      Source:{" "}
+                                      {t("clinician.vitals.sourcePrefix")}{" "}
                                       {
                                         vital.source
                                       }
@@ -2540,13 +2534,11 @@ export default function ClinicianPage() {
                           <div className="mb-4 flex items-center justify-between">
                             <div>
                               <h3 className="font-semibold">
-                                Recent medical history
+                                {t("clinician.history.title")}
                               </h3>
 
                               <p className="mt-1 text-sm text-slate-500">
-                                Latest documents
-                                across the patient&apos;s
-                                timeline
+                                {t("clinician.history.subtitle")}
                               </p>
                             </div>
 
@@ -2559,8 +2551,7 @@ export default function ClinicianPage() {
                           {recentRecords.length ===
                           0 ? (
                             <div className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-500">
-                              No additional medical
-                              records found.
+                              {t("clinician.history.empty")}
                             </div>
                           ) : (
                             <div className="space-y-2">
@@ -2592,9 +2583,11 @@ export default function ClinicianPage() {
                                             : "bg-amber-50 text-amber-700"
                                         }`}
                                       >
-                                        {
-                                          record.status
-                                        }
+                                        {record.status === "VERIFIED"
+                                          ? t("clinician.status.verifiedCaps")
+                                          : record.status === "REJECTED"
+                                          ? t("clinician.status.rejectedCaps")
+                                          : t("clinician.status.pendingCaps")}
                                       </span>
                                     </div>
 
@@ -2604,7 +2597,8 @@ export default function ClinicianPage() {
                                       }{" "}
                                       ·{" "}
                                       {formatDate(
-                                        record.createdAt
+                                        record.createdAt,
+                                        t
                                       )}
                                     </p>
                                   </div>
@@ -2622,17 +2616,15 @@ export default function ClinicianPage() {
                       <div className="mt-6 rounded-2xl border p-5">
                         <div className="mb-5">
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                            Longitudinal monitoring
+                            {t("clinician.trends.eyebrow")}
                           </p>
 
                           <h3 className="mt-1 text-lg font-semibold text-slate-800">
-                            Vital trends
+                            {t("clinician.trends.title")}
                           </h3>
 
                           <p className="mt-1 text-sm text-slate-500">
-                            Historical vital
-                            measurements available
-                            in JeevanLink.
+                            {t("clinician.trends.subtitle")}
                           </p>
                         </div>
 
@@ -2670,18 +2662,18 @@ export default function ClinicianPage() {
 
                             <div>
                               <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                                Medication continuity
+                                {t("clinician.medContinuity.eyebrow")}
                               </p>
 
                               <h3 className="mt-1 text-lg font-semibold text-slate-800">
-                                Verified medications
+                                {t("clinician.medContinuity.title")}
                               </h3>
                             </div>
                           </div>
 
                           {verifiedMedications.length === 0 ? (
                             <div className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-500">
-                              No medications from a verified record are available.
+                              {t("clinician.medContinuity.empty")}
                             </div>
                           ) : (
                             <div className="space-y-3">
@@ -2697,19 +2689,19 @@ export default function ClinicianPage() {
 
                                     {medication.dosage && (
                                       <p className="mt-1 text-sm text-slate-600">
-                                        Dosage: {medication.dosage}
+                                        {t("clinician.medContinuity.dosagePrefix")} {medication.dosage}
                                       </p>
                                     )}
 
                                     {medication.frequency && (
                                       <p className="mt-1 text-sm text-slate-600">
-                                        Frequency: {medication.frequency}
+                                        {t("clinician.medContinuity.frequencyPrefix")} {medication.frequency}
                                       </p>
                                     )}
 
                                     {medication.duration && (
                                       <p className="mt-1 text-sm text-slate-600">
-                                        Duration: {medication.duration}
+                                        {t("clinician.medContinuity.durationPrefix")} {medication.duration}
                                       </p>
                                     )}
                                   </div>
@@ -2719,7 +2711,7 @@ export default function ClinicianPage() {
                           )}
 
                           <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/50 p-3 text-xs leading-5 text-violet-900">
-                            Only medications attached to VERIFIED medical records are shown in this clinical summary.
+                            {t("clinician.medContinuity.footnote")}
                           </div>
                         </div>
 
@@ -2731,11 +2723,11 @@ export default function ClinicianPage() {
 
                             <div>
                               <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                                Record activity
+                                {t("clinician.activity.eyebrow")}
                               </p>
 
                               <h3 className="mt-1 text-lg font-semibold text-slate-800">
-                                Clinical activity
+                                {t("clinician.activity.title")}
                               </h3>
                             </div>
                           </div>
@@ -2743,7 +2735,7 @@ export default function ClinicianPage() {
                           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                             <div className="rounded-xl bg-emerald-50/70 p-4">
                               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                                Verified
+                                {t("clinician.activity.verified")}
                               </p>
 
                               <p className="mt-2 text-2xl font-semibold text-emerald-900">
@@ -2751,13 +2743,13 @@ export default function ClinicianPage() {
                               </p>
 
                               <p className="mt-1 text-xs text-emerald-700">
-                                Verified records
+                                {t("clinician.activity.verifiedRecords")}
                               </p>
                             </div>
 
                             <div className="rounded-xl bg-amber-50/70 p-4">
                               <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                                Pending
+                                {t("clinician.activity.pending")}
                               </p>
 
                               <p className="mt-2 text-2xl font-semibold text-amber-900">
@@ -2765,13 +2757,13 @@ export default function ClinicianPage() {
                               </p>
 
                               <p className="mt-1 text-xs text-amber-700">
-                                Awaiting review
+                                {t("clinician.activity.awaitingReview")}
                               </p>
                             </div>
 
                             <div className="rounded-xl bg-rose-50/70 p-4">
                               <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
-                                Correction
+                                {t("clinician.activity.correction")}
                               </p>
 
                               <p className="mt-2 text-2xl font-semibold text-rose-900">
@@ -2779,13 +2771,13 @@ export default function ClinicianPage() {
                               </p>
 
                               <p className="mt-1 text-xs text-rose-700">
-                                Sent back for correction
+                                {t("clinician.activity.sentBack")}
                               </p>
                             </div>
                           </div>
 
                           <div className="mt-4 rounded-xl border bg-slate-50 p-3 text-xs leading-5 text-slate-500">
-                            These counts reflect the patient&apos;s records available to the clinician workspace.
+                            {t("clinician.activity.footnote")}
                           </div>
                         </div>
                       </div>
@@ -2808,7 +2800,7 @@ export default function ClinicianPage() {
 
                       <div>
                         <p className="text-sm text-slate-500">
-                          Active verification case
+                          {t("clinician.current.activeCase")}
                         </p>
 
                         <h2 className="text-2xl font-semibold">
@@ -2837,7 +2829,8 @@ export default function ClinicianPage() {
 
                       <span className="text-sm text-slate-600">
                         {formatDate(
-                          selectedCase.submittedAt
+                          selectedCase.submittedAt,
+                          t
                         )}
                       </span>
                     </div>
@@ -2853,17 +2846,11 @@ export default function ClinicianPage() {
 
                     <div>
                       <p className="font-semibold text-slate-800">
-                        Confidential source document
+                        {t("clinician.current.confidentialTitle")}
                       </p>
 
                       <p className="mt-1 text-sm leading-6 text-slate-600">
-                        The original report is
-                        available for clinical
-                        verification in view-only
-                        mode. Download, editing,
-                        and open-in-new-window
-                        controls remain unavailable
-                        in the application UI.
+                        {t("clinician.current.confidentialText")}
                       </p>
                     </div>
                   </div>
@@ -2878,14 +2865,14 @@ export default function ClinicianPage() {
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">
-                                Laboratory-originated record
+                                {t("clinician.lab.eyebrow")}
                               </p>
                               <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sky-700 shadow-sm">
-                                Digital report
+                                {t("clinician.lab.digitalBadge")}
                               </span>
                               {selectedCase.labReport.digitallyReceived !== false && (
                                 <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                                  Digitally received
+                                  {t("clinician.lab.digitallyReceived")}
                                 </span>
                               )}
                             </div>
@@ -2895,7 +2882,7 @@ export default function ClinicianPage() {
                             </h3>
 
                             <p className="mt-1 text-sm text-sky-800">
-                              {selectedCase.labReport.lab?.name || "Laboratory"}
+                              {selectedCase.labReport.lab?.name || t("clinician.lab.laboratoryDefault")}
                               {selectedCase.labReport.reportNumber ? ` · ${selectedCase.labReport.reportNumber}` : ""}
                             </p>
                           </div>
@@ -2904,15 +2891,15 @@ export default function ClinicianPage() {
                         <div className="grid gap-2 text-sm sm:grid-cols-3 xl:min-w-[520px]">
                           <div className="rounded-xl border border-sky-100 bg-white/90 p-3">
                             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                              Report date
+                              {t("clinician.lab.reportDate")}
                             </p>
                             <p className="mt-1 font-semibold text-slate-800">
-                              {formatDate(selectedCase.labReport.reportDate)}
+                              {formatDate(selectedCase.labReport.reportDate, t)}
                             </p>
                           </div>
                           <div className="rounded-xl border border-sky-100 bg-white/90 p-3">
                             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                              Report status
+                              {t("clinician.lab.reportStatus")}
                             </p>
                             <p className="mt-1 font-semibold text-slate-800">
                               {selectedCase.labReport.status}
@@ -2920,10 +2907,10 @@ export default function ClinicianPage() {
                           </div>
                           <div className="rounded-xl border border-sky-100 bg-white/90 p-3">
                             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                              Linked record
+                              {t("clinician.lab.linkedRecord")}
                             </p>
                             <p className="mt-1 font-semibold text-amber-700">
-                              Pending clinician verification
+                              {t("clinician.lab.pendingVerification")}
                             </p>
                           </div>
                         </div>
@@ -2932,27 +2919,27 @@ export default function ClinicianPage() {
                       <div className="mt-4 grid gap-4 lg:grid-cols-2">
                         <div className="rounded-xl border border-sky-100 bg-white/80 p-4">
                           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                            Result summary
+                            {t("clinician.lab.resultSummary")}
                           </p>
                           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
                             {selectedCase.labReport.resultSummary ||
-                              "No structured result summary was supplied by the laboratory."}
+                              t("clinician.lab.noResultSummary")}
                           </p>
                         </div>
 
                         <div className="rounded-xl border border-sky-100 bg-white/80 p-4">
                           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                            Source chain
+                            {t("clinician.lab.sourceChain")}
                           </p>
                           <div className="mt-2 space-y-2 text-sm text-slate-700">
                             <p>
-                              <span className="font-semibold">Lab:</span> {selectedCase.labReport.lab?.name || "Not specified"}
+                              <span className="font-semibold">{t("clinician.lab.labPrefix")}</span> {selectedCase.labReport.lab?.name || t("clinician.lab.notSpecified")}
                             </p>
                             <p>
-                              <span className="font-semibold">Order:</span> {selectedCase.labReport.labOrder?.orderNumber || selectedCase.labReport.labOrder?.id || "Not linked"}
+                              <span className="font-semibold">{t("clinician.lab.orderPrefix")}</span> {selectedCase.labReport.labOrder?.orderNumber || selectedCase.labReport.labOrder?.id || t("clinician.lab.notLinked")}
                             </p>
                             <p>
-                              <span className="font-semibold">Received:</span> {selectedCase.labReport.digitallyReceived !== false ? "Yes" : "No"}
+                              <span className="font-semibold">{t("clinician.lab.receivedPrefix")}</span> {selectedCase.labReport.digitallyReceived !== false ? t("clinician.lab.yes") : t("clinician.lab.no")}
                             </p>
                           </div>
                         </div>
@@ -2960,11 +2947,11 @@ export default function ClinicianPage() {
 
                       <div className="mt-4 flex flex-col gap-3 rounded-xl border border-sky-100 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-sm text-slate-600">
-                          <span className="font-semibold text-slate-800">Clinical gate:</span> this laboratory submission is being reviewed through the same clinician-verification workflow as other medical records.
+                          <span className="font-semibold text-slate-800">{t("clinician.lab.clinicalGatePrefix")}</span> {t("clinician.lab.clinicalGateText")}
                         </div>
                         <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
                           <Clock3 size={14} />
-                          Verify before longitudinal use
+                          {t("clinician.lab.verifyBeforeUse")}
                         </span>
                       </div>
                     </section>
@@ -2978,16 +2965,15 @@ export default function ClinicianPage() {
                     <div>
                       <div className="mb-3">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
-                          Primary source
+                          {t("clinician.review.primarySource")}
                         </p>
 
                         <h2 className="mt-1 text-xl font-semibold">
-                          Original medical document
+                          {t("clinician.review.originalDocTitle")}
                         </h2>
 
                         <p className="mt-1 text-sm text-slate-500">
-                          View only · no download
-                          or editing controls
+                          {t("clinician.review.viewOnlyNote")}
                         </p>
                       </div>
 
@@ -2999,11 +2985,11 @@ export default function ClinicianPage() {
                     <div>
                       <div className="mb-3">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">
-                          AI output
+                          {t("clinician.review.aiOutput")}
                         </p>
 
                         <h2 className="mt-1 text-xl font-semibold">
-                          AI-extracted clinical draft
+                          {t("clinician.review.aiDraftTitle")}
                         </h2>
                       </div>
 
@@ -3016,14 +3002,11 @@ export default function ClinicianPage() {
 
                           <div>
                             <h3 className="font-semibold text-teal-900">
-                              Human verification required
+                              {t("clinician.review.humanVerificationTitle")}
                             </h3>
 
                             <p className="mt-1 text-sm leading-6 text-teal-800">
-                              Compare the AI draft
-                              directly against the
-                              original document before
-                              approving.
+                              {t("clinician.review.humanVerificationText")}
                             </p>
                           </div>
                         </div>
@@ -3041,7 +3024,7 @@ export default function ClinicianPage() {
 
                             <div>
                               <h3 className="font-semibold text-rose-900">
-                                Patient-reported red flags at intake
+                                {t("clinician.review.redFlagsTitle")}
                               </h3>
 
                               <ul className="mt-2 space-y-1 text-sm leading-6 text-rose-800">
@@ -3051,11 +3034,7 @@ export default function ClinicianPage() {
                               </ul>
 
                               <p className="mt-2 text-xs text-rose-700">
-                                Detected automatically from the patient&apos;s
-                                own words at submission time. This is a
-                                triage aid, not a diagnosis — confirm with
-                                the patient and escalate if clinically
-                                warranted.
+                                {t("clinician.review.redFlagsFootnote")}
                               </p>
                             </div>
                           </div>
@@ -3079,7 +3058,7 @@ export default function ClinicianPage() {
                             />
 
                             <h3 className="font-semibold">
-                              Document interpretation
+                              {t("clinician.review.documentInterpretation")}
                             </h3>
                           </div>
 
@@ -3110,12 +3089,11 @@ export default function ClinicianPage() {
                         <div className="mb-4 flex items-center justify-between">
                           <div>
                             <h3 className="font-semibold">
-                              Medication entries
+                              {t("clinician.review.medicationEntries")}
                             </h3>
 
                             <p className="mt-1 text-sm text-slate-500">
-                              Review and correct
-                              extracted medications.
+                              {t("clinician.review.medicationEntriesSubtitle")}
                             </p>
                           </div>
 
@@ -3133,16 +3111,14 @@ export default function ClinicianPage() {
                               size={16}
                             />
 
-                            Add medication
+                            {t("clinician.review.addMedication")}
                           </button>
                         </div>
 
                         {medications.length ===
                         0 ? (
                           <div className="rounded-2xl border border-dashed p-6 text-center text-slate-500">
-                            No medications
-                            identified in this
-                            document.
+                            {t("clinician.review.noMedications")}
                           </div>
                         ) : (
                           <div className="space-y-4">
@@ -3174,7 +3150,7 @@ export default function ClinicianPage() {
                                             .value
                                         )
                                       }
-                                      placeholder="Medication"
+                                      placeholder={t("clinician.review.medicationPlaceholder")}
                                       className="rounded-xl border bg-white px-3 py-2.5 outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
 
@@ -3197,7 +3173,7 @@ export default function ClinicianPage() {
                                             .value
                                         )
                                       }
-                                      placeholder="Dosage"
+                                      placeholder={t("clinician.review.dosagePlaceholder")}
                                       className="rounded-xl border bg-white px-3 py-2.5 outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
 
@@ -3220,7 +3196,7 @@ export default function ClinicianPage() {
                                             .value
                                         )
                                       }
-                                      placeholder="Frequency"
+                                      placeholder={t("clinician.review.frequencyPlaceholder")}
                                       className="rounded-xl border bg-white px-3 py-2.5 outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
 
@@ -3243,7 +3219,7 @@ export default function ClinicianPage() {
                                             .value
                                         )
                                       }
-                                      placeholder="Duration"
+                                      placeholder={t("clinician.review.durationPlaceholder")}
                                       className="rounded-xl border bg-white px-3 py-2.5 outline-none focus:border-teal-500 disabled:opacity-60"
                                     />
                                   </div>
@@ -3260,7 +3236,7 @@ export default function ClinicianPage() {
                                     }
                                     className="mt-3 text-sm font-medium text-red-600 disabled:opacity-50"
                                   >
-                                    Remove medication
+                                    {t("clinician.review.removeMedication")}
                                   </button>
                                 </div>
                               )
@@ -3282,12 +3258,11 @@ export default function ClinicianPage() {
 
                       <div>
                         <h3 className="font-semibold text-amber-900">
-                          Correction note
+                          {t("clinician.correction.title")}
                         </h3>
 
                         <p className="text-sm text-amber-800">
-                          Required when sending
-                          the record back.
+                          {t("clinician.correction.subtitle")}
                         </p>
                       </div>
                     </div>
@@ -3308,7 +3283,7 @@ export default function ClinicianPage() {
                         saving
                       }
                       rows={3}
-                      placeholder="Describe what needs to be corrected..."
+                      placeholder={t("clinician.correction.placeholder")}
                       className="w-full rounded-xl border bg-white p-3 text-sm outline-none focus:border-amber-400 disabled:opacity-60"
                     />
                   </div>
@@ -3333,8 +3308,8 @@ export default function ClinicianPage() {
                       />
 
                       {saving
-                        ? "Saving..."
-                        : "Send Back for Correction"}
+                        ? t("clinician.actions.saving")
+                        : t("clinician.actions.sendBack")}
                     </button>
 
                     <button
@@ -3354,8 +3329,8 @@ export default function ClinicianPage() {
                       />
 
                       {saving
-                        ? "Saving..."
-                        : "Approve & Verify"}
+                        ? t("clinician.actions.saving")
+                        : t("clinician.actions.approveVerify")}
                     </button>
                   </div>
                 </section>
@@ -3374,11 +3349,11 @@ export default function ClinicianPage() {
 
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                        Verification history
+                        {t("clinician.audit.eyebrow")}
                       </p>
 
                       <h2 className="mt-1 text-xl font-semibold">
-                        Audit trail
+                        {t("clinician.audit.title")}
                       </h2>
                     </div>
                   </div>
@@ -3386,8 +3361,7 @@ export default function ClinicianPage() {
                   {recentAudit.length ===
                   0 ? (
                     <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-500">
-                      No verification events are
-                      available for this record.
+                      {t("clinician.audit.empty")}
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -3417,14 +3391,15 @@ export default function ClinicianPage() {
 
                                 <span className="text-xs text-slate-400">
                                   {formatDate(
-                                    audit.createdAt
+                                    audit.createdAt,
+                                    t
                                   )}
                                 </span>
                               </div>
 
                               <p className="mt-2 text-sm leading-6 text-slate-600">
                                 {audit.note ||
-                                  "Verification event recorded."}
+                                  t("clinician.audit.defaultNote")}
                               </p>
                             </div>
                           </div>
