@@ -3,6 +3,7 @@ import { Sora, Manrope } from "next/font/google";
 import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
 import AccessibilityProvider from "@/components/AccessibilityProvider";
+import JeevaOrbGate from "@/components/JeevaOrbGate";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default function RootLayout({
         <LanguageProvider>
           <AccessibilityProvider>
             {children}
+            <JeevaOrbGate />
           </AccessibilityProvider>
         </LanguageProvider>
       </body>

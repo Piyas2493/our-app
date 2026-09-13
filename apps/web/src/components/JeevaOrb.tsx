@@ -45,6 +45,9 @@ function loadOrbScript(): Promise<void> {
 
 export type JeevaOrbHandle = JeevaOrbInstance;
 
+const JEEVA_SERVICE_URL =
+  process.env.NEXT_PUBLIC_JEEVA_SERVICE_URL || "http://localhost:8000";
+
 export default function JeevaOrb({
   errorMessage,
   onReady,
@@ -57,6 +60,46 @@ export default function JeevaOrb({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbRef = useRef<JeevaOrbInstance | null>(null);
   const [state, setState] = useState("dormant");
+  const [internalMessage, setInternalMessage] = useState<string | null>(null);
+
+  /*
+   * No conversation engine exists yet (Sahayak mode is later in the
+   * build order, and needs a Bhashini key that doesn't exist yet). But
+   * a tap that silently does nothing is worse than an honest error --
+   * "degrade loudly, never silently" applies to this first real tap
+   * just as much as it does to a failed ASR call. So a tap plays the
+   * wake bloom and then reports, truthfully, whether Jeeva's service is
+   * even reachable and configured.
+   */
+  async function handleTap() {
+    const orb = orbRef.current;
+    if (!orb) return;
+
+    orb.wake("thinking");
+    setInternalMessage(null);
+
+    try {
+      const response = await fetch(`${JEEVA_SERVICE_URL}/health`, {
+        signal: AbortSignal.timeout(4000),
+      });
+      const body = await response.json();
+
+      if (!body.bhashini_configured) {
+        setInternalMessage("Bhashini not configured — add BHASHINI_API_KEY");
+        orb.error();
+        return;
+      }
+
+      // Health check passed and Bhashini is configured, but Sahayak's
+      // actual conversation loop isn't built yet -- say so rather than
+      // pretending to listen.
+      setInternalMessage("Jeeva is configured, but conversation mode isn't built yet");
+      orb.error();
+    } catch {
+      setInternalMessage("Jeeva service not running — see jeeva/README.md");
+      orb.error();
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -101,9 +144,12 @@ export default function JeevaOrb({
         ref={canvasRef}
         width={96}
         height={96}
+        onClick={handleTap}
+        role="button"
+        aria-label="Talk to Jeeva"
         style={{ width: 96, height: 96, pointerEvents: "auto", cursor: "pointer" }}
       />
-      {state === "error" && errorMessage && (
+      {state === "error" && (internalMessage || errorMessage) && (
         <p
           style={{
             margin: 0,
@@ -115,7 +161,7 @@ export default function JeevaOrb({
             whiteSpace: "nowrap",
           }}
         >
-          {errorMessage}
+          {internalMessage || errorMessage}
         </p>
       )}
     </div>
