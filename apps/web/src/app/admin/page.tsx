@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /* =========================================================
    TYPES
@@ -102,6 +104,7 @@ const TICKET_STATUS_STYLES: Record<string, string> = {
 
 export default function AdminPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,12 +153,12 @@ export default function AdminPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to load the admin overview.");
+        throw new Error(result?.error || t("admin.errors.loadFailed"));
       }
 
       setOverview(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load the admin overview.");
+      setError(err instanceof Error ? err.message : t("admin.errors.loadFailed"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -182,7 +185,7 @@ export default function AdminPage() {
       <main className="flex min-h-screen items-center justify-center bg-[#f4f6f7]">
         <div className="flex items-center gap-3 text-slate-500">
           <RefreshCw size={20} className="animate-spin" />
-          Loading the admin overview…
+          {t("admin.loading")}
         </div>
       </main>
     );
@@ -199,15 +202,17 @@ export default function AdminPage() {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-                  Admin Workspace
+                  {t("admin.eyebrow")}
                 </p>
                 <h1 className="mt-1 text-3xl font-semibold tracking-tight lg:text-4xl">
-                  Operational overview
+                  {t("admin.title")}
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <LanguageSwitcher />
+
               <button
                 type="button"
                 onClick={() => void loadOverview(true)}
@@ -215,7 +220,7 @@ export default function AdminPage() {
                 className="flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
               >
                 <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
-                Refresh
+                {t("admin.refresh")}
               </button>
 
               <LogoutButton />
@@ -234,25 +239,25 @@ export default function AdminPage() {
           <StatCard
             icon={<Users size={21} />}
             iconClass="bg-teal-50 text-teal-700"
-            label="Patients"
+            label={t("admin.stat.patients")}
             value={overview.users.patients}
           />
           <StatCard
             icon={<Stethoscope size={21} />}
             iconClass="bg-violet-50 text-violet-700"
-            label="Clinicians"
+            label={t("admin.stat.clinicians")}
             value={overview.users.clinicians}
           />
           <StatCard
             icon={<LifeBuoy size={21} />}
             iconClass="bg-amber-50 text-amber-700"
-            label="Helpdesk staff"
+            label={t("admin.stat.helpdeskStaff")}
             value={overview.users.helpdesk}
           />
           <StatCard
             icon={<ShieldCheck size={21} />}
             iconClass="bg-slate-100 text-slate-600"
-            label="Total users"
+            label={t("admin.stat.totalUsers")}
             value={overview.users.total}
           />
         </section>
@@ -262,34 +267,34 @@ export default function AdminPage() {
           <StatCard
             icon={<FileText size={21} />}
             iconClass="bg-sky-50 text-sky-700"
-            label="Total health records"
+            label={t("admin.stat.totalRecords")}
             value={overview.records.total}
-            sublabel={`${overview.records.pending} pending · ${overview.records.verified} verified`}
+            sublabel={`${overview.records.pending} ${t("admin.pendingWord")} · ${overview.records.verified} ${t("admin.verifiedWord")}`}
           />
           <StatCard
             icon={<UserCheck size={21} />}
             iconClass="bg-rose-50 text-rose-700"
-            label="Rejected / correction"
+            label={t("admin.stat.rejectedCorrection")}
             value={overview.records.rejected}
           />
           <StatCard
             icon={<Inbox size={21} />}
             iconClass="bg-indigo-50 text-indigo-700"
-            label="Open + active tickets"
+            label={t("admin.stat.openActiveTickets")}
             value={overview.tickets.open + overview.tickets.active}
-            sublabel={`${overview.tickets.waiting} waiting on requester`}
+            sublabel={`${overview.tickets.waiting} ${t("admin.waitingOnRequester")}`}
           />
           <StatCard
             icon={<PhoneCall size={21} />}
             iconClass="bg-amber-50 text-amber-700"
-            label="Callbacks pending"
+            label={t("admin.stat.callbacksPending")}
             value={overview.tickets.pendingCallbacks}
           />
         </section>
 
         {/* RECENT ACTIVITY */}
         <div className="grid gap-5 xl:grid-cols-3">
-          <ActivityCard title="Recent signups" icon={<Users size={18} />}>
+          <ActivityCard title={t("admin.activity.recentSignups")} icon={<Users size={18} />}>
             {overview.recentUsers.length === 0 ? (
               <EmptyRow />
             ) : (
@@ -311,7 +316,7 @@ export default function AdminPage() {
             )}
           </ActivityCard>
 
-          <ActivityCard title="Recent health records" icon={<FileText size={18} />}>
+          <ActivityCard title={t("admin.activity.recentRecords")} icon={<FileText size={18} />}>
             {overview.recentRecords.length === 0 ? (
               <EmptyRow />
             ) : (
@@ -335,7 +340,7 @@ export default function AdminPage() {
             )}
           </ActivityCard>
 
-          <ActivityCard title="Recent tickets" icon={<LifeBuoy size={18} />}>
+          <ActivityCard title={t("admin.activity.recentTickets")} icon={<LifeBuoy size={18} />}>
             {overview.recentTickets.length === 0 ? (
               <EmptyRow />
             ) : (
@@ -360,8 +365,7 @@ export default function AdminPage() {
 
         <p className="mt-7 flex items-center gap-2 text-xs text-slate-400">
           <Ban size={13} />
-          Read-only monitoring. Account and record actions are handled from the
-          patient, clinician and helpdesk workspaces themselves.
+          {t("admin.footerNote")}
         </p>
       </div>
     </main>
@@ -416,10 +420,12 @@ function ActivityCard({
 }
 
 function EmptyRow() {
+  const { t } = useLanguage();
+
   return (
     <div className="flex items-center gap-2 py-6 text-sm text-slate-400">
       <Clock3 size={15} />
-      No activity yet.
+      {t("admin.emptyActivity")}
     </div>
   );
 }
