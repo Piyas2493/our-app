@@ -32,7 +32,6 @@ import {
 import { useRouter } from "next/navigation";
 
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import GlobalVoiceLauncher from "@/components/GlobalVoiceLauncher";
 import { useLanguage } from "@/components/LanguageProvider";
 
 type Hospital = {
@@ -737,8 +736,6 @@ export default function HospitalsLabsPage() {
 
           <div className="top-actions">
             <LanguageSwitcher />
-
-            <GlobalVoiceLauncher />
 
             <button
               type="button"
