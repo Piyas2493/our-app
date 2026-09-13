@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /* =========================================================
    TYPES
@@ -40,6 +42,7 @@ const EMPTY_SOAP: Soap = { subjective: "", objective: "", assessment: "", plan: 
 
 export default function AiMedicalScribePage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -137,7 +140,7 @@ export default function AiMedicalScribePage() {
 
   async function generateSoap() {
     if (!rawNotes.trim()) {
-      setError("Add encounter notes before generating a structured draft.");
+      setError(t("scribe.errors.needNotes"));
       return;
     }
 
@@ -156,12 +159,12 @@ export default function AiMedicalScribePage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to structure these notes.");
+        throw new Error(result?.error || t("scribe.errors.structureFailed"));
       }
 
       setSoap(result.soap);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to structure these notes.");
+      setError(err instanceof Error ? err.message : t("scribe.errors.structureFailed"));
     } finally {
       setGenerating(false);
     }
@@ -169,7 +172,7 @@ export default function AiMedicalScribePage() {
 
   async function saveNote() {
     if (!selectedPatient) {
-      setError("Select a patient before saving.");
+      setError(t("scribe.errors.needPatient"));
       return;
     }
 
@@ -188,14 +191,14 @@ export default function AiMedicalScribePage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to save this note.");
+        throw new Error(result?.error || t("scribe.errors.saveFailed"));
       }
 
-      setSuccess(`Note saved to ${selectedPatient.name}'s record.`);
+      setSuccess(`${t("scribe.success.savedPrefix")} ${selectedPatient.name}.`);
       setRawNotes("");
       setSoap(EMPTY_SOAP);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save this note.");
+      setError(err instanceof Error ? err.message : t("scribe.errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -205,7 +208,7 @@ export default function AiMedicalScribePage() {
     setError("");
 
     if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setError("Voice input is not available in this browser. Please type instead.");
+      setError(t("scribe.errors.voiceUnavailable"));
       return;
     }
 
@@ -233,7 +236,7 @@ export default function AiMedicalScribePage() {
       recorder.onerror = () => {
         stream.getTracks().forEach((track) => track.stop());
         setListening(false);
-        setError("Voice capture failed. Please try again or type your notes.");
+        setError(t("scribe.errors.voiceCaptureFailed"));
       };
 
       recorder.onstop = async () => {
@@ -268,12 +271,12 @@ export default function AiMedicalScribePage() {
           const result = await response.json().catch(() => null);
 
           if (!response.ok || !result?.success || !result?.transcript) {
-            throw new Error(result?.error || "Unable to transcribe.");
+            throw new Error(result?.error || t("scribe.errors.transcribeFailed"));
           }
 
           setRawNotes((current) => (current ? `${current}\n${result.transcript}` : result.transcript));
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Unable to transcribe this recording.");
+          setError(err instanceof Error ? err.message : t("scribe.errors.transcribeRecordingFailed"));
         } finally {
           setTranscribing(false);
         }
@@ -284,7 +287,7 @@ export default function AiMedicalScribePage() {
       setListening(true);
     } catch {
       setListening(false);
-      setError("Microphone access was denied. Please type your notes instead.");
+      setError(t("scribe.errors.micDenied"));
     }
   }
 
@@ -300,7 +303,7 @@ export default function AiMedicalScribePage() {
       <main className="flex min-h-screen items-center justify-center bg-[#f4f6f7]">
         <div className="flex items-center gap-3 text-slate-500">
           <RefreshCw size={20} className="animate-spin" />
-          Loading…
+          {t("scribe.loading")}
         </div>
       </main>
     );
@@ -320,7 +323,7 @@ export default function AiMedicalScribePage() {
                 className="mb-3 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
               >
                 <ArrowLeft size={16} />
-                Back to clinician workspace
+                {t("scribe.backToWorkspace")}
               </Link>
 
               <div className="flex items-center gap-3">
@@ -329,22 +332,23 @@ export default function AiMedicalScribePage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
-                    AI Medical Scribe
+                    {t("scribe.eyebrow")}
                   </p>
                   <h1 className="mt-1 text-3xl font-semibold tracking-tight lg:text-4xl">
-                    Structure a consultation note
+                    {t("scribe.title")}
                   </h1>
                 </div>
               </div>
 
               <p className="mt-3 max-w-2xl text-slate-500">
-                Dictate or type your encounter notes. AI organizes them into a
-                SOAP-format draft for you to review and edit — nothing is saved
-                to the patient&apos;s record until you approve it.
+                {t("scribe.subtitle")}
               </p>
             </div>
 
-            <LogoutButton />
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
+              <LogoutButton />
+            </div>
           </div>
         </header>
 
@@ -363,7 +367,7 @@ export default function AiMedicalScribePage() {
 
         {/* PATIENT SELECTOR */}
         <div className="mb-5 rounded-3xl border bg-white p-5 shadow-sm">
-          <p className="mb-2 text-sm font-semibold text-slate-700">Patient</p>
+          <p className="mb-2 text-sm font-semibold text-slate-700">{t("scribe.patientLabel")}</p>
 
           {selectedPatient ? (
             <div className="flex items-center justify-between rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
@@ -379,7 +383,7 @@ export default function AiMedicalScribePage() {
                 onClick={() => setSelectedPatient(null)}
                 className="text-xs font-semibold text-teal-700 hover:underline"
               >
-                Change
+                {t("scribe.change")}
               </button>
             </div>
           ) : (
@@ -389,16 +393,16 @@ export default function AiMedicalScribePage() {
                 <input
                   value={patientQuery}
                   onChange={(event) => setPatientQuery(event.target.value)}
-                  placeholder="Search patients by name or email…"
+                  placeholder={t("scribe.searchPlaceholder")}
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
                 />
               </div>
 
               <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
                 {searching ? (
-                  <p className="px-1 py-2 text-xs text-slate-400">Searching…</p>
+                  <p className="px-1 py-2 text-xs text-slate-400">{t("scribe.searching")}</p>
                 ) : patients.length === 0 ? (
-                  <p className="px-1 py-2 text-xs text-slate-400">No patients found.</p>
+                  <p className="px-1 py-2 text-xs text-slate-400">{t("scribe.noPatientsFound")}</p>
                 ) : (
                   patients.map((patient) => (
                     <button
@@ -420,7 +424,7 @@ export default function AiMedicalScribePage() {
         {/* RAW NOTES */}
         <div className="mb-5 rounded-3xl border bg-white p-5 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-700">Encounter notes</p>
+            <p className="text-sm font-semibold text-slate-700">{t("scribe.encounterNotes")}</p>
             {voiceSupported && (
               <button
                 type="button"
@@ -431,7 +435,7 @@ export default function AiMedicalScribePage() {
                 }`}
               >
                 {listening ? <MicOff size={13} /> : <Mic size={13} />}
-                {listening ? "Stop" : transcribing ? "Transcribing…" : "Dictate"}
+                {listening ? t("scribe.stop") : transcribing ? t("scribe.transcribing") : t("scribe.dictate")}
               </button>
             )}
           </div>
@@ -440,7 +444,7 @@ export default function AiMedicalScribePage() {
             value={rawNotes}
             onChange={(event) => setRawNotes(event.target.value)}
             rows={6}
-            placeholder="e.g. Patient reports three days of dry cough and mild fever, worse at night. No shortness of breath. Chest clear on auscultation, temp 99.8F. Likely viral URI. Advised rest, fluids, paracetamol as needed, review in 5 days if not improving."
+            placeholder={t("scribe.notesPlaceholder")}
             className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100"
           />
 
@@ -451,7 +455,7 @@ export default function AiMedicalScribePage() {
             className="mt-3 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
           >
             {generating ? <RefreshCw size={15} className="animate-spin" /> : <Sparkles size={15} />}
-            Generate structured note
+            {t("scribe.generateNote")}
           </button>
         </div>
 
@@ -461,28 +465,28 @@ export default function AiMedicalScribePage() {
             <div className="mb-4 flex items-center gap-2">
               <Sparkles size={17} className="text-teal-700" />
               <p className="text-sm font-semibold text-slate-800">
-                AI-structured draft — review and edit before saving
+                {t("scribe.draftReviewTitle")}
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <SoapField
-                label="Subjective"
+                label={t("scribe.field.subjective")}
                 value={soap.subjective}
                 onChange={(value) => setSoap((current) => ({ ...current, subjective: value }))}
               />
               <SoapField
-                label="Objective"
+                label={t("scribe.field.objective")}
                 value={soap.objective}
                 onChange={(value) => setSoap((current) => ({ ...current, objective: value }))}
               />
               <SoapField
-                label="Assessment"
+                label={t("scribe.field.assessment")}
                 value={soap.assessment}
                 onChange={(value) => setSoap((current) => ({ ...current, assessment: value }))}
               />
               <SoapField
-                label="Plan"
+                label={t("scribe.field.plan")}
                 value={soap.plan}
                 onChange={(value) => setSoap((current) => ({ ...current, plan: value }))}
               />
@@ -493,18 +497,17 @@ export default function AiMedicalScribePage() {
               disabled={saving || !selectedPatient}
               onClick={() => void saveNote()}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
-              title={!selectedPatient ? "Select a patient first" : undefined}
+              title={!selectedPatient ? t("scribe.selectPatientFirst") : undefined}
             >
               {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
-              Save to patient record
+              {t("scribe.saveToRecord")}
             </button>
           </div>
         )}
 
         <p className="flex items-center gap-2 text-xs text-slate-400">
           <Check size={13} />
-          Saved notes are attributed to you and stored as verified — no separate
-          clinician review step, since you authored and reviewed it yourself.
+          {t("scribe.footerNote")}
         </p>
       </div>
     </main>
