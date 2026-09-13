@@ -1,9 +1,15 @@
 # dependencies
 node_modules/
+jeeva/.venv/
+jeeva/__pycache__/
+jeeva/**/__pycache__/
+*.pyc
 
 # env files
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # logs
 *.log
