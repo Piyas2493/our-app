@@ -72,6 +72,15 @@ with a known `serviceId` string — no pipeline ID, no config call, no
 `userID`/`ulcaApiKey` pair. See `app/bhashini.py` for the full story and
 the exact service IDs used.
 
+**Bhashini's TTS output is 32-bit float PCM WAV (format tag 3), not the
+far more universal 16-bit integer PCM (format tag 1)** — Python's own
+`wave` module rejects it outright, and it's a known source of browsers
+silently mis-rendering audio via `decodeAudioData` (no exception, just
+near-silent or wrong output). `/speak` re-encodes to plain 16-bit PCM
+server-side (`app/audio.py`'s `to_playable_wav`) before it ever reaches
+a browser — found this the hard way when the orb wiring played nothing
+despite every network call succeeding.
+
 **This backend is measurably flaky** — roughly 1 in 3 calls during
 testing failed with a bare TCP connection reset before reaching the
 model, no error body; `bhashini.py` retries both that and 5xx responses
