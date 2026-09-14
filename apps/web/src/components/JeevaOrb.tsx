@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useLanguage } from "@/components/LanguageProvider";
+
 /*
- * React only mounts the canvas and loads the vanilla-JS orb via a plain
- * <script> tag -- it never reaches into orb.js's rendering logic. This
- * keeps orb.js truly framework-agnostic (see public/jeeva/orb.js) so the
- * same file can later back the Rogi kiosk route without React at all.
+ * React only mounts the canvas and loads the vanilla-JS orb/mic modules
+ * via plain <script> tags -- it never reaches into their internals.
+ * This keeps orb.js/mic.js truly framework-agnostic (see public/jeeva/)
+ * so the same files can later back the Rogi kiosk route without React.
  */
 
 declare global {
@@ -15,6 +17,13 @@ declare global {
       canvas: HTMLCanvasElement,
       opts?: { onStateChange?: (state: string) => void },
     ) => JeevaOrbInstance;
+    JeevaMic?: new (opts: {
+      onLevel?: (level: number) => void;
+      onTurnEnd?: (blob: Blob) => void;
+      onError?: (reason: string) => void;
+      silenceMs?: number;
+    }) => JeevaMicInstance;
+    webkitAudioContext?: typeof AudioContext;
   }
 }
 
@@ -26,27 +35,50 @@ type JeevaOrbInstance = {
   destroy: () => void;
 };
 
-let scriptLoadPromise: Promise<void> | null = null;
+type JeevaMicInstance = {
+  start: () => Promise<void>;
+  stop: () => void;
+  setGated: (gated: boolean) => void;
+  setSilenceMs: (ms: number) => void;
+};
 
-function loadOrbScript(): Promise<void> {
-  if (window.JeevaOrb) return Promise.resolve();
-  if (scriptLoadPromise) return scriptLoadPromise;
+/** Shared with jeeva-dev/page.tsx so the two files don't drift on the
+ * window.JeevaMic global's shape. */
+export type JeevaMicHandle = JeevaMicInstance;
 
-  scriptLoadPromise = new Promise((resolve, reject) => {
+const loadedScripts = new Map<string, Promise<void>>();
+
+function loadScript(src: string): Promise<void> {
+  const existing = loadedScripts.get(src);
+  if (existing) return existing;
+
+  const promise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/jeeva/orb.js";
+    script.src = src;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Jeeva orb script."));
+    script.onerror = () => reject(new Error(`Failed to load ${src}`));
     document.body.appendChild(script);
   });
 
-  return scriptLoadPromise;
+  loadedScripts.set(src, promise);
+  return promise;
 }
 
 export type JeevaOrbHandle = JeevaOrbInstance;
 
 const JEEVA_SERVICE_URL =
   process.env.NEXT_PUBLIC_JEEVA_SERVICE_URL || "http://localhost:8000";
+
+// Bhashini calls can legitimately take minutes on a cold GPU model (see
+// jeeva/app/bhashini.py) -- this must stay comfortably longer than that
+// server-side retry budget, or the browser gives up before Bhashini's
+// own retries do.
+const CALL_TIMEOUT_MS = 10 * 60 * 1000;
+
+// Sampling cadence for driving the orb's "speaking" level from the
+// actual TTS playback -- setInterval, not requestAnimationFrame, same
+// reasoning as mic.js: this reads audio state, it doesn't draw anything.
+const LEVEL_SAMPLE_MS = 50;
 
 export default function JeevaOrb({
   errorMessage,
@@ -57,23 +89,166 @@ export default function JeevaOrb({
   errorMessage?: string;
   onReady?: (orb: JeevaOrbHandle) => void;
 }) {
+  const { language } = useLanguage();
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbRef = useRef<JeevaOrbInstance | null>(null);
+  const micRef = useRef<JeevaMicInstance | null>(null);
+  const sessionActiveRef = useRef(false);
+
   const [state, setState] = useState("dormant");
   const [internalMessage, setInternalMessage] = useState<string | null>(null);
 
-  /*
-   * No conversation engine exists yet (Sahayak mode is later in the
-   * build order, and needs a Bhashini key that doesn't exist yet). But
-   * a tap that silently does nothing is worse than an honest error --
-   * "degrade loudly, never silently" applies to this first real tap
-   * just as much as it does to a failed ASR call. So a tap plays the
-   * wake bloom and then reports, truthfully, whether Jeeva's service is
-   * even reachable and configured.
+  function endSession() {
+    sessionActiveRef.current = false;
+    micRef.current?.stop();
+    micRef.current = null;
+  }
+
+  /** Plays one TTS reply, driving the orb's "speaking" waves from the
+   * audio's own level in real time (decoded via Web Audio, same RMS
+   * approach mic.js uses for the mic) rather than leaving it to idle. */
+  function playReply(orb: JeevaOrbInstance, audioBytes: ArrayBuffer): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContextCtor();
+
+      audioCtx
+        .decodeAudioData(audioBytes)
+        .then((audioBuffer) => {
+          const source = audioCtx.createBufferSource();
+          source.buffer = audioBuffer;
+
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 1024;
+          source.connect(analyser);
+          analyser.connect(audioCtx.destination);
+
+          const buffer = new Uint8Array(analyser.fftSize);
+          const interval = setInterval(() => {
+            analyser.getByteTimeDomainData(buffer);
+            let sumSquares = 0;
+            for (let i = 0; i < buffer.length; i++) {
+              const normalized = (buffer[i] - 128) / 128;
+              sumSquares += normalized * normalized;
+            }
+            const rms = Math.sqrt(sumSquares / buffer.length);
+            orb.setLevel(Math.min(1, rms * 4));
+          }, LEVEL_SAMPLE_MS);
+
+          source.onended = () => {
+            clearInterval(interval);
+            audioCtx.close();
+            resolve();
+          };
+          source.start();
+        })
+        .catch(reject);
+    });
+  }
+
+  async function speakText(orb: JeevaOrbInstance, text: string) {
+    orb.setState("speaking");
+    micRef.current?.setGated(true);
+
+    const formData = new FormData();
+    formData.set("text", text);
+    formData.set("language", languageRef.current);
+
+    const response = await fetch(`${JEEVA_SERVICE_URL}/speak`, {
+      method: "POST",
+      body: formData,
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}) as { detail?: string; message?: string });
+      throw new Error(body.detail || body.message || `Speech synthesis failed (${response.status}).`);
+    }
+
+    await playReply(orb, await response.arrayBuffer());
+  }
+
+  /** One recorded turn -> transcript -> spoken reply. No conversation
+   * engine exists yet (Sahayak's reasoning is later in the build order),
+   * so the reply is an echo of what was heard -- this proves the full
+   * listen+speak loop through the real orb UI, the same round trip
+   * already verified directly against the service for all 12 languages. */
+  async function handleTurn(blob: Blob) {
+    const orb = orbRef.current;
+    if (!orb || !sessionActiveRef.current) return;
+
+    orb.setState("thinking");
+
+    try {
+      const formData = new FormData();
+      formData.set("audio", blob, "turn.webm");
+      formData.set("language", languageRef.current);
+
+      const response = await fetch(`${JEEVA_SERVICE_URL}/listen`, {
+        method: "POST",
+        body: formData,
+        signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+      });
+
+      if (response.status === 422) {
+        // Nothing recognized -- not an error, just keep listening.
+        if (sessionActiveRef.current) {
+          orb.setState("listening");
+          micRef.current?.setGated(false);
+        }
+        return;
+      }
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}) as { detail?: string; message?: string });
+        throw new Error(body.detail || body.message || `Transcription failed (${response.status}).`);
+      }
+
+      const { transcript } = (await response.json()) as { transcript?: string };
+      if (!transcript) {
+        if (sessionActiveRef.current) {
+          orb.setState("listening");
+          micRef.current?.setGated(false);
+        }
+        return;
+      }
+
+      await speakText(orb, transcript);
+
+      if (sessionActiveRef.current) {
+        orb.setState("listening");
+        micRef.current?.setGated(false);
+      }
+    } catch (error) {
+      setInternalMessage(error instanceof Error ? error.message : "Something went wrong.");
+      orb.error();
+      endSession();
+    }
+  }
+
+  /**
+   * A tap starts a listening session; a tap while one is already active
+   * is barge-in -- stop everything and return to dormant, per the build
+   * spec ("Tap the orb, Space, or Esc cuts Jeeva off mid-sentence").
+   * "Degrade loudly, never silently" applies here too: before opening
+   * the mic, this checks Jeeva's own health so a down/unconfigured
+   * service reports its actual reason instead of a dead click.
    */
   async function handleTap() {
     const orb = orbRef.current;
     if (!orb) return;
+
+    if (sessionActiveRef.current) {
+      endSession();
+      orb.setState("dormant");
+      setInternalMessage(null);
+      return;
+    }
 
     orb.wake("thinking");
     setInternalMessage(null);
@@ -85,26 +260,52 @@ export default function JeevaOrb({
       const body = await response.json();
 
       if (!body.bhashini_configured) {
-        setInternalMessage("Bhashini not configured — add BHASHINI_API_KEY");
+        setInternalMessage("Bhashini not configured — add BHASHINI_ULCA_API_KEY");
         orb.error();
         return;
       }
-
-      // Health check passed and Bhashini is configured, but Sahayak's
-      // actual conversation loop isn't built yet -- say so rather than
-      // pretending to listen.
-      setInternalMessage("Jeeva is configured, but conversation mode isn't built yet");
-      orb.error();
     } catch {
       setInternalMessage("Jeeva service not running — see jeeva/README.md");
       orb.error();
+      return;
     }
+
+    try {
+      await loadScript("/jeeva/mic.js");
+    } catch {
+      setInternalMessage("Failed to load the microphone module.");
+      orb.error();
+      return;
+    }
+
+    if (!window.JeevaMic) {
+      setInternalMessage("Microphone module unavailable.");
+      orb.error();
+      return;
+    }
+
+    const mic = new window.JeevaMic({
+      onLevel: (level) => orb.setLevel(level),
+      onTurnEnd: (blob) => {
+        void handleTurn(blob);
+      },
+      onError: (reason) => {
+        setInternalMessage(reason);
+        orb.error();
+        endSession();
+      },
+    });
+
+    micRef.current = mic;
+    sessionActiveRef.current = true;
+    orb.setState("listening");
+    await mic.start();
   }
 
   useEffect(() => {
     let cancelled = false;
 
-    loadOrbScript()
+    loadScript("/jeeva/orb.js")
       .then(() => {
         if (cancelled || !canvasRef.current || !window.JeevaOrb) return;
         const orb = new window.JeevaOrb(canvasRef.current, {
@@ -119,6 +320,7 @@ export default function JeevaOrb({
 
     return () => {
       cancelled = true;
+      endSession();
       orbRef.current?.destroy();
       orbRef.current = null;
     };

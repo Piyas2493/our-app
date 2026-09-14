@@ -2,32 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import JeevaOrb, { type JeevaOrbHandle } from "@/components/JeevaOrb";
+import JeevaOrb, { type JeevaOrbHandle, type JeevaMicHandle } from "@/components/JeevaOrb";
 
 /*
  * Private dev-only harness for reviewing the Jeeva orb and mic in
- * isolation -- steps 1-2 of the build order, minus the actual Bhashini
- * calls (no API key configured yet). Not linked from any nav. Delete or
- * gate this route once the orb is mounted globally in a later step.
+ * isolation -- steps 1-2 of the build order. The window.JeevaMic global
+ * is declared once, in JeevaOrb.tsx, and reused here via JeevaMicHandle
+ * so the two files can't drift on its shape. Not linked from any nav.
  */
-
-declare global {
-  interface Window {
-    JeevaMic?: new (opts: {
-      onLevel?: (level: number) => void;
-      onTurnEnd?: (blob: Blob) => void;
-      onError?: (reason: string) => void;
-      silenceMs?: number;
-    }) => JeevaMicInstance;
-  }
-}
-
-type JeevaMicInstance = {
-  start: () => Promise<void>;
-  stop: () => void;
-  setGated: (gated: boolean) => void;
-  setSilenceMs: (ms: number) => void;
-};
 
 const STATES = [
   "dormant",
@@ -59,7 +41,7 @@ function loadScript(src: string): Promise<void> {
 
 export default function JeevaDevPage() {
   const orbRef = useRef<JeevaOrbHandle | null>(null);
-  const micRef = useRef<JeevaMicInstance | null>(null);
+  const micRef = useRef<JeevaMicHandle | null>(null);
 
   const [activeState, setActiveState] = useState<string>("dormant");
   const [levelSource, setLevelSource] = useState<LevelSource>("auto");
