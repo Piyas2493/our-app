@@ -181,10 +181,24 @@
   };
 
   /** Mute level/turn-taking while Jeeva is speaking -- "the mic goes
-   * deaf while Jeeva speaks." Recording keeps running underneath so
-   * resuming is instant; gated samples just report level 0. */
+   * deaf while Jeeva speaks." Actually pauses the MediaRecorder (not
+   * just the level/silence logic): without this, the recorder kept
+   * capturing audio the whole time Jeeva talked, so whatever leaked
+   * from the speakers into the mic got baked into the *next* turn's
+   * blob -- Bhashini would transcribe Jeeva's own voice back, Jeeva
+   * would speak that, the mic would catch that too, and so on forever
+   * (found 2026-09-14: reported as "two voices colliding and repeating
+   * continuously"). Pausing means literally no audio is captured while
+   * gated, so there is nothing left to echo. */
   JeevaMic.prototype.setGated = function (gated) {
     this._gated = !!gated;
+    if (this._recorder) {
+      if (gated && this._recorder.state === "recording") {
+        this._recorder.pause();
+      } else if (!gated && this._recorder.state === "paused") {
+        this._recorder.resume();
+      }
+    }
     if (!gated) {
       this._silenceStartedAt = null;
     }

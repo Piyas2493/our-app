@@ -14,9 +14,10 @@ Run with:  uvicorn app.main:app --reload --port 8000   (from jeeva/)
 from fastapi import FastAPI, HTTPException, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from starlette.concurrency import run_in_threadpool
 
 from app.audio import AudioConversionError, to_playable_wav, to_wav_16k_mono
-from app.bhashini import BhashiniError, synthesize, transcribe
+from app.bhashini import BhashiniError, detect_language, synthesize, transcribe
 from app.config import BHASHINI_CONFIGURED, DEMO_MODE, FRONTEND_ORIGIN
 
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10MB, matches the app's existing cap
@@ -76,23 +77,33 @@ async def listen(
         raise HTTPException(status_code=400, detail="Recording is too long.")
 
     try:
-        wav_bytes = to_wav_16k_mono(data)
+        wav_bytes = await run_in_threadpool(to_wav_16k_mono, data)
     except AudioConversionError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
+
+    # Detect the language actually being spoken rather than trusting the
+    # caller's `language` (which just reflects the app's current UI
+    # setting, not what the patient chose to speak) -- falls back to it
+    # when detection fails or returns something JeevanLink doesn't
+    # support, so this can only improve on the old behavior, never break it.
+    detected_language = await run_in_threadpool(detect_language, wav_bytes)
+    spoken_language = detected_language or language
 
     # TODO(lexicon): run the clinical term-biasing pass (jeeva/app/lexicon.py,
     # not yet written) over the raw transcript before returning it, snapping
     # near-miss Ayurvedic/Sanskrit terms to canonical spelling -- visibly,
     # per the build spec, never silently.
     try:
-        transcript = transcribe(wav_bytes, language)
+        transcript = await run_in_threadpool(transcribe, wav_bytes, spoken_language)
     except BhashiniError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
 
     if not transcript:
         raise HTTPException(status_code=422, detail="No speech was recognized.")
 
-    return {"transcript": transcript}
+    # The caller should reply in the language actually spoken, not
+    # whatever `language` it sent us -- see spoken_language above.
+    return {"transcript": transcript, "language": spoken_language}
 
 
 @app.post("/speak")
@@ -107,7 +118,7 @@ async def speak(text: str = Form(...), language: str = Form(default="en")):
         raise HTTPException(status_code=400, detail="No text to speak.")
 
     try:
-        audio_bytes = synthesize(text, language)
+        audio_bytes = await run_in_threadpool(synthesize, text, language)
     except BhashiniError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
 
@@ -116,7 +127,7 @@ async def speak(text: str = Form(...), language: str = Form(default="en")):
     # rejecting outright -- see to_playable_wav's docstring. Re-encode to
     # plain 16-bit PCM before this ever reaches a browser.
     try:
-        playable_bytes = to_playable_wav(audio_bytes)
+        playable_bytes = await run_in_threadpool(to_playable_wav, audio_bytes)
     except AudioConversionError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
 

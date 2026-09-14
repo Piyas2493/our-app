@@ -35,16 +35,25 @@ a bug in this client.
 """
 
 import base64
+import logging
 import time
 
 import requests
 
 from app.config import BHASHINI_ULCA_API_KEY
 
+logger = logging.getLogger("jeeva.bhashini")
+
 INFERENCE_URL = "https://dhruva-api.bhashini.gov.in/services/inference/pipeline"
 REQUEST_TIMEOUT_S = 90  # GPU-backed models can have a slow cold start
 MAX_ATTEMPTS = 6  # a less-used model's GPU instance can take a few tries to wake up
-RETRY_DELAY_S = 5
+
+# A flat 5s sleep between every retry cost ~5-10s per call on the common
+# case (a same-second TCP reset, not a real cold start) since this
+# backend fails ~1 in 3 calls. Backing off from 1s instead recovers from
+# that common case fast while still giving a genuine cold start (Odia
+# took >200s once) a comparable total wait budget across MAX_ATTEMPTS.
+RETRY_DELAYS_S = [1, 2, 4, 8, 16]
 
 # One ASR model covers all 12 languages JeevanLink's UI supports.
 # VERIFIED 2026-09-14: full TTS->ASR round trip for all 12 (en, hi, bn,
@@ -83,6 +92,13 @@ TTS_SERVICE_ID_BY_LANGUAGE = {
     "ml": _TTS_DRAVIDIAN,
 }
 
+# Found via Bhashini's own docs (2026-09-14, same MCP server that corrected
+# the ASR/TTS flow above): a dedicated audio-lang-detection task, covering
+# exactly JeevanLink's 12 supported languages. Used so a spoken turn is
+# transcribed (and replied to) in whatever language was actually spoken,
+# not whichever language the app's UI happens to be set to.
+AUDIO_LANG_DETECTION_SERVICE_ID = "bhashini/iitmandi/audio-lang-detection/gpu"
+
 
 class BhashiniError(Exception):
     """Raised for any Bhashini call failure -- main.py turns this into a
@@ -103,9 +119,11 @@ def _post(body: dict) -> dict:
     # GPU instance cold-starts, then succeed. A 4xx is never retried:
     # that's a real request problem (bad serviceId, bad payload), not a
     # transient one, and retrying it would just waste time.
+    call_started = time.monotonic()
     response = None
     last_error: Exception | str | None = None
     for attempt in range(MAX_ATTEMPTS):
+        attempt_started = time.monotonic()
         try:
             response = requests.post(
                 INFERENCE_URL, headers=headers, json=body, timeout=REQUEST_TIMEOUT_S
@@ -120,14 +138,22 @@ def _post(body: dict) -> dict:
             if response.status_code < 500:
                 break  # client error -- not retryable
 
+        logger.warning(
+            "Bhashini attempt %d/%d failed after %.1fs: %s",
+            attempt + 1, MAX_ATTEMPTS, time.monotonic() - attempt_started, last_error,
+        )
         if attempt < MAX_ATTEMPTS - 1:
-            time.sleep(RETRY_DELAY_S)
+            time.sleep(RETRY_DELAYS_S[min(attempt, len(RETRY_DELAYS_S) - 1)])
 
+    total_s = time.monotonic() - call_started
     if response is None:
-        raise BhashiniError(f"Bhashini connection failed after {MAX_ATTEMPTS} attempts: {last_error}")
+        raise BhashiniError(f"Bhashini connection failed after {MAX_ATTEMPTS} attempts ({total_s:.1f}s): {last_error}")
 
     if not response.ok:
-        raise BhashiniError(f"Bhashini call failed ({response.status_code}): {response.text[:500]}")
+        raise BhashiniError(f"Bhashini call failed ({response.status_code}, {total_s:.1f}s): {response.text[:500]}")
+
+    if attempt > 0:
+        logger.info("Bhashini call succeeded on attempt %d/%d after %.1fs total", attempt + 1, MAX_ATTEMPTS, total_s)
 
     return response.json()
 
@@ -159,6 +185,37 @@ def transcribe(wav_bytes: bytes, source_language: str) -> str:
         return result["pipelineResponse"][0]["output"][0]["source"].strip()
     except (KeyError, IndexError) as error:
         raise BhashiniError(f"Unexpected ASR response shape: {error}") from error
+
+
+def detect_language(wav_bytes: bytes) -> str | None:
+    """Identifies which of JeevanLink's 12 languages is actually being
+    spoken in wav_bytes. Returns None (never raises) on any failure or an
+    unrecognized/unsupported result -- this is an enhancement over a
+    caller-supplied language, not a hard requirement, so a detection
+    problem should fall back silently rather than break /listen."""
+    body = {
+        "pipelineTasks": [
+            {
+                "taskType": "audio-lang-detection",
+                "config": {"serviceId": AUDIO_LANG_DETECTION_SERVICE_ID},
+            }
+        ],
+        "inputData": {"audio": [{"audioContent": base64.b64encode(wav_bytes).decode("ascii")}]},
+    }
+
+    try:
+        result = _post(body)
+        predictions = result["pipelineResponse"][0]["output"][0]["langPrediction"]
+        lang_code = predictions[0]["langCode"]
+    except (BhashiniError, KeyError, IndexError, TypeError) as error:
+        logger.warning("Audio language detection failed, falling back to caller-supplied language: %s", error)
+        return None
+
+    if lang_code not in TTS_SERVICE_ID_BY_LANGUAGE:
+        logger.warning("Audio language detection returned unsupported code %r, ignoring", lang_code)
+        return None
+
+    return lang_code
 
 
 def synthesize(text: str, language: str, gender: str = "female") -> bytes:
