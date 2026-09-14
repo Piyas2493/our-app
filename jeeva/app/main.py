@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
-from app.audio import AudioConversionError, to_wav_16k_mono
+from app.audio import AudioConversionError, to_playable_wav, to_wav_16k_mono
 from app.bhashini import BhashiniError, synthesize, transcribe
 from app.config import BHASHINI_CONFIGURED, DEMO_MODE, FRONTEND_ORIGIN
 
@@ -111,4 +111,13 @@ async def speak(text: str = Form(...), language: str = Form(default="en")):
     except BhashiniError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
 
-    return Response(content=audio_bytes, media_type="audio/wav")
+    # Bhashini's TTS returns 32-bit float PCM WAV (format tag 3), which
+    # some Web Audio decoders render silently/incorrectly rather than
+    # rejecting outright -- see to_playable_wav's docstring. Re-encode to
+    # plain 16-bit PCM before this ever reaches a browser.
+    try:
+        playable_bytes = to_playable_wav(audio_bytes)
+    except AudioConversionError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+    return Response(content=playable_bytes, media_type="audio/wav")
