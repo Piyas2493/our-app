@@ -32,14 +32,24 @@ rather than a cryptic failure.
 
 ## Run
 
+Once the one-time setup above is done, `npm run dev` from `apps/web`
+starts **both** this service and the Next.js app together (via
+`concurrently` — see `apps/web/package.json`'s `dev`/`dev:web`/
+`dev:jeeva` scripts). Output is prefixed `[web]`/`[jeeva]` so you can
+tell which process logged what; Ctrl+C stops both.
+
+To run this service on its own (e.g. for the curl/Python testing this
+README describes elsewhere):
+
 ```bash
 cd jeeva
 .venv/Scripts/activate
 uvicorn app.main:app --reload --port 8000
 ```
 
-The Next.js app (`apps/web`) runs separately as usual (`npm run dev`).
-Two processes, not one, for now — see the architecture note below.
+Still two separate OS processes under the hood, not one binary — see
+the architecture note below — `concurrently` just launches both with a
+single command instead of two manual terminals.
 
 ## Status
 

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -n web,jeeva -c blue,green \"npm:dev:web\" \"npm:dev:jeeva\"",
+    "dev:web": "next dev",
+    "dev:jeeva": "cd ..\\..\\jeeva && .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -28,6 +30,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
