@@ -3,3 +3,8 @@ uvicorn[standard]==0.34.0
 requests==2.32.3
 python-multipart==0.0.20
 python-dotenv==1.0.1
+pydub==0.25.1
+# pydub imports the stdlib `audioop` module, which Python 3.13+ removed
+# entirely -- this backport restores it. Without it, importing pydub
+# (and therefore this whole service) fails on any Python 3.13+ install.
+audioop-lts==0.2.2; python_version >= "3.13"

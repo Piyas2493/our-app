@@ -12,8 +12,22 @@ cd jeeva
 python -m venv .venv
 .venv/Scripts/activate      # Windows. Use `source .venv/bin/activate` on macOS/Linux.
 pip install -r requirements.txt
-cp .env.example .env        # then fill in BHASHINI_API_KEY once you have one
+cp .env.example .env
 ```
+
+Then open `.env` and fill in `BHASHINI_USER_ID` and `BHASHINI_ULCA_API_KEY`
+from dashboard.bhashini.co.in → API Keys → your app's "UDYAT KEY" and
+"INFERENCE" key respectively.
+
+**Also install ffmpeg** and make sure it's on your PATH (`ffmpeg -version`
+should work in a terminal). The browser records audio as webm/opus;
+Bhashini's ASR needs WAV. `pydub` does that conversion by shelling out to
+ffmpeg — without it, `/listen` returns a clear error naming the problem
+rather than a cryptic failure.
+- Windows: `winget install ffmpeg` (or download from ffmpeg.org and add
+  `bin/` to PATH)
+- macOS: `brew install ffmpeg`
+- Linux: `apt install ffmpeg` / your distro's equivalent
 
 ## Run
 
@@ -28,11 +42,21 @@ Two processes, not one, for now — see the architecture note below.
 
 ## Status
 
-No Bhashini API key is configured yet. `/listen` and `/speak` both
-return `503 {"error": "bhashini_not_configured"}` until `BHASHINI_API_KEY`
-is set in `.env` — this is the intended "degrade loudly" behavior, not a
-bug: the Jeeva orb in the browser reads this and shows its `error` state
-with the reason on screen, rather than failing silently.
+`/listen` and `/speak` call Bhashini for real once both `BHASHINI_USER_ID`
+and `BHASHINI_ULCA_API_KEY` are set in `.env` — until then they return
+`503 {"error": "bhashini_not_configured"}`. This is the intended
+"degrade loudly" behavior, not a bug: the Jeeva orb in the browser reads
+this and shows its `error` state with the reason on screen, rather than
+failing silently.
+
+The exact request/response shapes for the Pipeline Config and Compute
+calls (`app/bhashini.py`) are assembled from Bhashini's public GitBook
+docs plus a third-party reference client, not confirmed against a real
+key yet — the config call's two header names (`userID`/`ulcaApiKey`)
+mapping to the dashboard's "UDYAT KEY"/"INFERENCE" fields is the most
+likely reading, but if the config call itself starts rejecting
+credentials, that mapping is the first thing to double-check (try
+swapping which dashboard value goes in which env var).
 
 Check it's up: `curl http://localhost:8000/health`
 
@@ -58,8 +82,9 @@ deadline, and only Jeeva's own voice pipeline lives here for now.
 ## Where does the audio go?
 
 Recorded audio is posted to `/listen` from the browser, held in memory
-for the duration of the request, and (once Bhashini is wired in) deleted
-immediately after transcription unless the vaidya pins it. Nothing
-leaves India — Bhashini is a MeitY/government-run service. The API key
-never reaches the browser; the frontend only ever calls this local
+for the duration of the request, and discarded once transcribed —
+nothing is written to disk here. (The "unless the vaidya pins it"
+retention behavior from the build spec isn't implemented yet.) Nothing
+leaves India — Bhashini is a MeitY/government-run service. The API keys
+never reach the browser; the frontend only ever calls this local
 FastAPI service.

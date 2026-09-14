@@ -13,8 +13,10 @@ Run with:  uvicorn app.main:app --reload --port 8000   (from jeeva/)
 
 from fastapi import FastAPI, HTTPException, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
+from app.audio import AudioConversionError, to_wav_16k_mono
+from app.bhashini import BhashiniError, synthesize, transcribe
 from app.config import BHASHINI_CONFIGURED, DEMO_MODE, FRONTEND_ORIGIN
 
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10MB, matches the app's existing cap
@@ -38,7 +40,8 @@ def not_configured_response() -> JSONResponse:
         status_code=503,
         content={
             "error": "bhashini_not_configured",
-            "message": "Bhashini not configured — add BHASHINI_API_KEY to jeeva/.env",
+            "message": "Bhashini not configured — add BHASHINI_USER_ID and "
+            "BHASHINI_ULCA_API_KEY to jeeva/.env",
         },
     )
 
@@ -72,10 +75,24 @@ async def listen(
     if len(data) > MAX_AUDIO_BYTES:
         raise HTTPException(status_code=400, detail="Recording is too long.")
 
-    # TODO(bhashini): call the ASR pipeline once BHASHINI_API_KEY exists,
-    # then run the clinical term-biasing pass (jeeva/app/lexicon.py,
-    # not yet written) before returning the transcript.
-    raise HTTPException(status_code=501, detail="Bhashini ASR call not yet implemented.")
+    try:
+        wav_bytes = to_wav_16k_mono(data)
+    except AudioConversionError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+    # TODO(lexicon): run the clinical term-biasing pass (jeeva/app/lexicon.py,
+    # not yet written) over the raw transcript before returning it, snapping
+    # near-miss Ayurvedic/Sanskrit terms to canonical spelling -- visibly,
+    # per the build spec, never silently.
+    try:
+        transcript = transcribe(wav_bytes, language)
+    except BhashiniError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+    if not transcript:
+        raise HTTPException(status_code=422, detail="No speech was recognized.")
+
+    return {"transcript": transcript}
 
 
 @app.post("/speak")
@@ -86,5 +103,12 @@ async def speak(text: str = Form(...), language: str = Form(default="en")):
     if not BHASHINI_CONFIGURED:
         return not_configured_response()
 
-    # TODO(bhashini): call the TTS pipeline once BHASHINI_API_KEY exists.
-    raise HTTPException(status_code=501, detail="Bhashini TTS call not yet implemented.")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="No text to speak.")
+
+    try:
+        audio_bytes = synthesize(text, language)
+    except BhashiniError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+    return Response(content=audio_bytes, media_type="audio/wav")
