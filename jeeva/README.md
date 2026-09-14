@@ -50,11 +50,14 @@ until then they return `503 {"error": "bhashini_not_configured"}`
 this and shows its `error` state with the reason on screen).
 
 Verified with a real round trip through the actual running service, not
-just a script: `POST /speak` with English text produced real audio;
-posting that exact audio back to `POST /listen` returned the original
-text almost verbatim. Hindi and Bengali TTS/ASR use service IDs that are
-documented to support them but haven't been spot-checked the same way
-yet — worth a quick manual test before relying on them for a demo.
+just a script, for **all 12 languages JeevanLink's UI supports** (en,
+hi, bn, ta, te, mr, gu, kn, ml, pa, or, as): `POST /speak` produced real
+audio for each; posting that exact audio back to `POST /listen`
+returned the original text almost verbatim every time (only trailing
+punctuation is ever missing — ASR doesn't reproduce it, expected).
+Odia's first-ever call needed a long cold-start (>200s) before it
+worked — if you see a slow first response for a language nobody's
+tested yet in this run of the service, that's normal, not a hang.
 
 This took real investigation to get right: the two-step "Pipeline
 Config Call → Pipeline Compute Call" flow described in Bhashini's older
@@ -71,10 +74,14 @@ the exact service IDs used.
 
 **This backend is measurably flaky** — roughly 1 in 3 calls during
 testing failed with a bare TCP connection reset before reaching the
-model, no error body. `bhashini.py` retries blindly a few times; this
-is a property of the upstream service, not a bug to chase down here.
-GPU-backed models can also have a slow cold start (tens of seconds) on
-their first call after being idle.
+model, no error body; `bhashini.py` retries both that and 5xx responses
+a few times, which is a property of the upstream service, not a bug to
+chase down here. GPU-backed models can also have a slow cold start —
+usually tens of seconds, but a language's first-ever call in a fresh
+run of the service can take several minutes (Odia took over 200s
+during testing). Any HTTP client calling this service (including the
+future browser-side wiring) needs a timeout comfortably longer than
+that, or it'll give up before the retries inside `bhashini.py` do.
 
 Check it's up: `curl http://localhost:8000/health`
 

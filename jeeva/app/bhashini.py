@@ -43,20 +43,44 @@ from app.config import BHASHINI_ULCA_API_KEY
 
 INFERENCE_URL = "https://dhruva-api.bhashini.gov.in/services/inference/pipeline"
 REQUEST_TIMEOUT_S = 90  # GPU-backed models can have a slow cold start
-MAX_ATTEMPTS = 4
-RETRY_DELAY_S = 3
+MAX_ATTEMPTS = 6  # a less-used model's GPU instance can take a few tries to wake up
+RETRY_DELAY_S = 5
 
-# One ASR model covers all three languages Jeeva speaks (see
-# jeeva-apis "Available Models for usage"). Verified empirically for
-# English; Hindi/Bengali are per-docs, not yet spot-checked.
+# One ASR model covers all 12 languages JeevanLink's UI supports.
+# VERIFIED 2026-09-14: full TTS->ASR round trip for all 12 (en, hi, bn,
+# ta, te, mr, gu, kn, ml, pa, or, as) came back correct except for
+# trailing punctuation (expected -- ASR doesn't reproduce it).
 ASR_SERVICE_ID = "bhashini/bodhan/asr-transcribe-core"
 
-# TTS needs a different model per language family. English verified
-# empirically (full round-trip with ASR above); hi/bn are per-docs.
+# TTS needs a different model per language family -- one service ID
+# does not cover all 12. Grouped per Bhashini's own "Available Models"
+# listing, and VERIFIED 2026-09-14 the same way as ASR above -- every
+# language below round-tripped correctly:
+#   misc:       en (+ Manipuri, Bodo, not used by JeevanLink)
+#   indo_aryan: hi, mr, bn, gu, or, pa, as
+#   dravidian:  ta, te, kn, ml
+# Odia's first-ever call needed >200s (a cold GPU instance for a
+# less-used model) -- REQUEST_TIMEOUT_S/MAX_ATTEMPTS below give enough
+# retry budget for that, but the CALLER (main.py's HTTP client, or the
+# browser fetch once wired up) needs a client-side timeout comfortably
+# longer than REQUEST_TIMEOUT_S * MAX_ATTEMPTS or it'll give up first.
+_TTS_MISC = "ai4bharat/indic-tts-coqui-misc-gpu--t4"
+_TTS_INDO_ARYAN = "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4"
+_TTS_DRAVIDIAN = "ai4bharat/indic-tts-coqui-dravidian-gpu--t4"
+
 TTS_SERVICE_ID_BY_LANGUAGE = {
-    "en": "ai4bharat/indic-tts-coqui-misc-gpu--t4",
-    "hi": "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4",
-    "bn": "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4",
+    "en": _TTS_MISC,
+    "hi": _TTS_INDO_ARYAN,
+    "mr": _TTS_INDO_ARYAN,
+    "bn": _TTS_INDO_ARYAN,
+    "gu": _TTS_INDO_ARYAN,
+    "or": _TTS_INDO_ARYAN,
+    "pa": _TTS_INDO_ARYAN,
+    "as": _TTS_INDO_ARYAN,
+    "ta": _TTS_DRAVIDIAN,
+    "te": _TTS_DRAVIDIAN,
+    "kn": _TTS_DRAVIDIAN,
+    "ml": _TTS_DRAVIDIAN,
 }
 
 
@@ -72,21 +96,35 @@ def _post(body: dict) -> dict:
         "Content-Type": "application/json",
     }
 
-    last_error: Exception | None = None
+    # Retries on BOTH connection-level failures (bare TCP resets, seen
+    # on roughly 1 in 3 calls during testing) AND 5xx responses -- a
+    # less-frequently-used model can come back with a 500
+    # "DHRUVA-101 Failed to send request" a few times in a row while its
+    # GPU instance cold-starts, then succeed. A 4xx is never retried:
+    # that's a real request problem (bad serviceId, bad payload), not a
+    # transient one, and retrying it would just waste time.
+    response = None
+    last_error: Exception | str | None = None
     for attempt in range(MAX_ATTEMPTS):
         try:
             response = requests.post(
                 INFERENCE_URL, headers=headers, json=body, timeout=REQUEST_TIMEOUT_S
             )
-            break
         except requests.exceptions.RequestException as error:
             last_error = error
-            if attempt < MAX_ATTEMPTS - 1:
-                time.sleep(RETRY_DELAY_S)
-    else:
-        raise BhashiniError(
-            f"Bhashini connection failed after {MAX_ATTEMPTS} attempts: {last_error}"
-        )
+            response = None
+        else:
+            if response.ok:
+                break
+            last_error = f"{response.status_code}: {response.text[:300]}"
+            if response.status_code < 500:
+                break  # client error -- not retryable
+
+        if attempt < MAX_ATTEMPTS - 1:
+            time.sleep(RETRY_DELAY_S)
+
+    if response is None:
+        raise BhashiniError(f"Bhashini connection failed after {MAX_ATTEMPTS} attempts: {last_error}")
 
     if not response.ok:
         raise BhashiniError(f"Bhashini call failed ({response.status_code}): {response.text[:500]}")
