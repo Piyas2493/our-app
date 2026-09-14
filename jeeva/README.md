@@ -104,6 +104,43 @@ that, or it'll give up before the retries inside `bhashini.py` do.
 
 Check it's up: `curl http://localhost:8000/health`
 
+## Offline demo mode ("golden consult")
+
+Demo day can't depend on venue wifi, and Bhashini itself fails ~1 in 3
+calls even on a good connection (see above) — so there's a fixed,
+rehearsed script that runs with **zero live network calls** to Bhashini
+or Gemini, for exactly the moment you can least afford either to be
+flaky. Only patient-facing capability that's actually built and verified
+today is scripted (grounded Q&A, voice navigation) — it does not cover
+clinician-facing Sahayak tools, which don't exist yet.
+
+**Generating the script's assets** (run once, or whenever the script
+changes, requires `npm run dev` already running and a working Gemini
+quota — it makes real Gemini + Bhashini calls to produce genuine,
+verified answers/audio, not invented ones):
+
+```bash
+cd apps/web
+npx tsx scripts/generate-jeeva-demo.ts
+```
+
+This writes `apps/web/public/jeeva/demo/script.json` (the turns) and one
+`.wav` per turn — edit the `DEMO_SCRIPT` array at the top of that file to
+change what's asked, then re-run it.
+
+**Running the demo**: open any page with `?jeevaDemo=1` on the URL once
+(e.g. `http://localhost:3000/dashboard?jeevaDemo=1`) — this is
+remembered (via `localStorage`) across normal in-app navigation for the
+rest of that browser session, so you don't need the query param again.
+`?jeevaDemo=0` turns it back off. In demo mode, tapping the orb skips
+Jeeva's own `/health` check and every Bhashini/Gemini call entirely — the
+mic still opens and drives the orb's real listening/speaking animation
+for authenticity (so it looks exactly like the live version to an
+audience), but each turn just advances through the pre-baked script in
+order, regardless of what was actually said. This also means demo mode
+works even if the `jeeva` Python service isn't running at all — it only
+ever touches static files already bundled with the Next.js app.
+
 ## Cost
 
 ₹0 on Bhashini's free tier. No paid speech vendor is used anywhere in
