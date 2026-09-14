@@ -99,6 +99,7 @@ export default function JeevaOrb({
   const orbRef = useRef<JeevaOrbInstance | null>(null);
   const micRef = useRef<JeevaMicInstance | null>(null);
   const sessionActiveRef = useRef(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const [state, setState] = useState("dormant");
   const [internalMessage, setInternalMessage] = useState<string | null>(null);
@@ -107,18 +108,35 @@ export default function JeevaOrb({
     sessionActiveRef.current = false;
     micRef.current?.stop();
     micRef.current = null;
+    audioCtxRef.current?.close().catch(() => {});
+    audioCtxRef.current = null;
   }
 
   /** Plays one TTS reply, driving the orb's "speaking" waves from the
    * audio's own level in real time (decoded via Web Audio, same RMS
-   * approach mic.js uses for the mic) rather than leaving it to idle. */
+   * approach mic.js uses for the mic) rather than leaving it to idle.
+   *
+   * Reuses the ONE AudioContext created synchronously in handleTap's
+   * click handler (see there) instead of making a fresh one here.
+   * Making a fresh AudioContext inside this function used to be the
+   * bug: this runs from mic.js's onTurnEnd, which fires asynchronously
+   * off a silence timer, not directly inside a click -- Chrome's
+   * autoplay policy can silently start such a context "suspended," so
+   * source.start() schedules playback that never actually produces
+   * sound and no error is ever thrown. A context created directly in
+   * the tap handler is reliably unlocked for the rest of the session. */
   function playReply(orb: JeevaOrbInstance, audioBytes: ArrayBuffer): Promise<void> {
     return new Promise((resolve, reject) => {
-      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioContextCtor();
+      const audioCtx = audioCtxRef.current;
+      if (!audioCtx) {
+        reject(new Error("Audio playback context missing -- session was not started via a tap."));
+        return;
+      }
 
       audioCtx
-        .decodeAudioData(audioBytes)
+        .resume()
+        .catch(() => {})
+        .then(() => audioCtx.decodeAudioData(audioBytes))
         .then((audioBuffer) => {
           const source = audioCtx.createBufferSource();
           source.buffer = audioBuffer;
@@ -142,7 +160,6 @@ export default function JeevaOrb({
 
           source.onended = () => {
             clearInterval(interval);
-            audioCtx.close();
             resolve();
           };
           source.start();
@@ -250,8 +267,27 @@ export default function JeevaOrb({
       return;
     }
 
+    // Created HERE, synchronously, directly inside the click handler --
+    // not later inside an async callback (see playReply's comment for
+    // why that was the actual bug). This is what lets the browser treat
+    // all of this session's later, asynchronously-triggered playback as
+    // still tied to a real user gesture.
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    audioCtxRef.current = new AudioContextCtor();
+
     orb.wake("thinking");
     setInternalMessage(null);
+
+    // Any failure between here and the mic actually starting must close
+    // the AudioContext just opened above -- otherwise a failed tap
+    // leaks one every time (audio contexts are a limited browser
+    // resource, and this one is doing nothing without an active session).
+    function failTap(target: JeevaOrbInstance, message: string) {
+      setInternalMessage(message);
+      target.error();
+      audioCtxRef.current?.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
 
     try {
       const response = await fetch(`${JEEVA_SERVICE_URL}/health`, {
@@ -260,27 +296,23 @@ export default function JeevaOrb({
       const body = await response.json();
 
       if (!body.bhashini_configured) {
-        setInternalMessage("Bhashini not configured — add BHASHINI_ULCA_API_KEY");
-        orb.error();
+        failTap(orb, "Bhashini not configured — add BHASHINI_ULCA_API_KEY");
         return;
       }
     } catch {
-      setInternalMessage("Jeeva service not running — see jeeva/README.md");
-      orb.error();
+      failTap(orb, "Jeeva service not running — see jeeva/README.md");
       return;
     }
 
     try {
       await loadScript("/jeeva/mic.js");
     } catch {
-      setInternalMessage("Failed to load the microphone module.");
-      orb.error();
+      failTap(orb, "Failed to load the microphone module.");
       return;
     }
 
     if (!window.JeevaMic) {
-      setInternalMessage("Microphone module unavailable.");
-      orb.error();
+      failTap(orb, "Microphone module unavailable.");
       return;
     }
 
