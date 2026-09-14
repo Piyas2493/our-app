@@ -17,13 +17,7 @@ from fastapi.responses import JSONResponse, Response
 
 from app.audio import AudioConversionError, to_wav_16k_mono
 from app.bhashini import BhashiniError, synthesize, transcribe
-from app.config import (
-    BHASHINI_CONFIGURED,
-    BHASHINI_ULCA_API_KEY,
-    BHASHINI_USER_ID,
-    DEMO_MODE,
-    FRONTEND_ORIGIN,
-)
+from app.config import BHASHINI_CONFIGURED, DEMO_MODE, FRONTEND_ORIGIN
 
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # 10MB, matches the app's existing cap
 
@@ -41,24 +35,14 @@ app.add_middleware(
 def not_configured_response() -> JSONResponse:
     """The one place that shapes the 'degrade loudly' error the orb
     reads to show its error state and on-screen message. Never return
-    silence or a fake success when the speech backend isn't reachable.
-    Names the SPECIFIC missing piece rather than a generic message --
-    the pipeline ID has no working default (see config.py), so it's
-    the most likely thing to still be missing once the two keys are in."""
-    if not (BHASHINI_USER_ID and BHASHINI_ULCA_API_KEY):
-        message = (
-            "Bhashini not configured — add BHASHINI_USER_ID and "
-            "BHASHINI_ULCA_API_KEY to jeeva/.env"
-        )
-    else:
-        message = (
-            "Bhashini pipeline ID missing — add BHASHINI_PIPELINE_ID to "
-            "jeeva/.env (check your Bhashini dashboard's Pipelines/Services "
-            "section; no public default works for this dashboard style)"
-        )
+    silence or a fake success when the speech backend isn't reachable."""
     return JSONResponse(
         status_code=503,
-        content={"error": "bhashini_not_configured", "message": message},
+        content={
+            "error": "bhashini_not_configured",
+            "message": "Bhashini not configured — add BHASHINI_ULCA_API_KEY "
+            "(the dashboard's \"INFERENCE\" key) to jeeva/.env",
+        },
     )
 
 

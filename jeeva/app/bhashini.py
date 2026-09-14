@@ -1,36 +1,63 @@
 """
-Bhashini/ULCA client: the real ASR and TTS calls, replacing the
-"bhashini_not_configured" stubs in main.py.
+Bhashini client -- real ASR and TTS calls for /listen and /speak.
 
-The flow is two HTTP calls, not one -- this is Bhashini's own design,
-not something added here for complexity's sake:
+CORRECTED 2026-09-14: the two-step "Pipeline Config Call then Pipeline
+Compute Call" flow this file originally implemented (per the classic
+public ULCA docs) does NOT apply to this Bhashini-Udyat dashboard
+account -- every pipeline ID tried (public defaults and the one
+documented to support ASR+TTS) failed, in two different, mutually
+inconsistent ways. Root-caused by connecting to Bhashini's own docs
+MCP server (dibd-bhashini.gitbook.io) directly instead of guessing from
+partial web fetches, then verified empirically end-to-end: a real TTS
+call followed by feeding that exact audio into ASR and getting the
+original text back.
 
-  1. Pipeline Config Call (meity-auth.ulcacontrib.org) -- authenticates
-     with your dashboard credentials and a pipeline ID, and returns
-     which serviceId to use for each task PLUS a fresh, short-lived
-     inference Authorization token for step 2. This is cached in memory
-     per (task, language) combo so it isn't re-fetched on every request.
-  2. Pipeline Compute Call (the callbackUrl from step 1, normally
-     dhruva-api.bhashini.gov.in) -- the actual ASR/TTS inference, using
-     the token step 1 returned (never your dashboard credentials
-     directly).
+The actual flow for this account type is much simpler and needs NO
+pipeline ID and NO config call at all:
 
-Reference: https://bhashini.gitbook.io/bhashini-apis (config/compute
-request+response payload pages) and a working reference client
-(github.com/AdityaKukreti/bhashini-api) used to fill in the parts the
-public docs describe conceptually but don't give exact schemas for.
-Verify against your own account if the config call itself starts
-rejecting credentials -- see the note in config.py.
+  POST https://dhruva-api.bhashini.gov.in/services/inference/pipeline
+  Headers: Authorization: <BHASHINI_ULCA_API_KEY -- the dashboard's
+           "INFERENCE" key, used directly, not as part of a userID/
+           ulcaApiKey pair>
+  Body: {"pipelineTasks": [...], "inputData": {...}} -- same task/
+        input shape as the classic flow, just no config-call
+        indirection to get there.
+
+BHASHINI_USER_ID (the "UDYAT KEY") turned out to be unused for this --
+kept in config.py in case some other Bhashini surface needs it later,
+but ASR/TTS here only need the one key.
+
+This backend is measurably flaky: roughly 1 in 3 calls during testing
+failed with a plain TCP connection reset (no error body, nothing to
+retry-after) before ever reaching the model. That is worked around here
+with a blind retry, not something a code fix can eliminate -- it isn't
+a bug in this client.
 """
 
 import base64
+import time
 
 import requests
 
-from app.config import BHASHINI_PIPELINE_ID, BHASHINI_ULCA_API_KEY, BHASHINI_USER_ID
+from app.config import BHASHINI_ULCA_API_KEY
 
-PIPELINE_CONFIG_URL = "https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline"
-REQUEST_TIMEOUT_S = 30
+INFERENCE_URL = "https://dhruva-api.bhashini.gov.in/services/inference/pipeline"
+REQUEST_TIMEOUT_S = 90  # GPU-backed models can have a slow cold start
+MAX_ATTEMPTS = 4
+RETRY_DELAY_S = 3
+
+# One ASR model covers all three languages Jeeva speaks (see
+# jeeva-apis "Available Models for usage"). Verified empirically for
+# English; Hindi/Bengali are per-docs, not yet spot-checked.
+ASR_SERVICE_ID = "bhashini/bodhan/asr-transcribe-core"
+
+# TTS needs a different model per language family. English verified
+# empirically (full round-trip with ASR above); hi/bn are per-docs.
+TTS_SERVICE_ID_BY_LANGUAGE = {
+    "en": "ai4bharat/indic-tts-coqui-misc-gpu--t4",
+    "hi": "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4",
+    "bn": "ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4",
+}
 
 
 class BhashiniError(Exception):
@@ -38,101 +65,31 @@ class BhashiniError(Exception):
     clean 502, never a raw stack trace to the browser."""
 
 
-# Cached per (tuple of task types, source language, target language) so
-# repeated /listen or /speak calls in one conversation don't re-run the
-# config call every time. Not TTL'd -- if a cached entry's token goes
-# stale, the one retry in _compute() clears it and re-fetches once.
-_pipeline_config_cache: dict[tuple, dict] = {}
-
-
-def _pipeline_config(task_types: list[str], source_language: str, target_language: str | None = None):
-    cache_key = (tuple(task_types), source_language, target_language)
-    if cache_key in _pipeline_config_cache:
-        return _pipeline_config_cache[cache_key]
-
-    pipeline_tasks = []
-    for task_type in task_types:
-        language = {"sourceLanguage": source_language}
-        if target_language:
-            language["targetLanguage"] = target_language
-        pipeline_tasks.append({"taskType": task_type, "config": {"language": language}})
-
-    response = requests.post(
-        PIPELINE_CONFIG_URL,
-        headers={
-            "userID": BHASHINI_USER_ID,
-            "ulcaApiKey": BHASHINI_ULCA_API_KEY,
-            "Content-Type": "application/json",
-        },
-        json={
-            "pipelineTasks": pipeline_tasks,
-            "pipelineRequestConfig": {"pipelineId": BHASHINI_PIPELINE_ID},
-        },
-        timeout=REQUEST_TIMEOUT_S,
-    )
-
-    if not response.ok:
-        raise BhashiniError(
-            f"Pipeline config call failed ({response.status_code}): {response.text[:500]}"
-        )
-
-    body = response.json()
-
-    try:
-        service_ids = {
-            task["taskType"]: task["config"][0]["serviceId"]
-            for task in body["pipelineResponseConfig"]
-        }
-        endpoint = body["pipelineInferenceAPIEndPoint"]
-        callback_url = endpoint["callbackUrl"]
-        auth_header_name = endpoint["inferenceApiKey"]["name"]
-        auth_header_value = endpoint["inferenceApiKey"]["value"]
-    except (KeyError, IndexError) as error:
-        raise BhashiniError(f"Unexpected pipeline config response shape: {error}") from error
-
-    config = {
-        "service_ids": service_ids,
-        "callback_url": callback_url,
-        "auth_header_name": auth_header_name,
-        "auth_header_value": auth_header_value,
+def _post(body: dict) -> dict:
+    headers = {
+        "Accept": "*/*",
+        "Authorization": BHASHINI_ULCA_API_KEY,
+        "Content-Type": "application/json",
     }
-    _pipeline_config_cache[cache_key] = config
-    return config
 
-
-def _compute(cache_key_tasks: list[str], source_language: str, target_language, payload_builder):
-    config = _pipeline_config(cache_key_tasks, source_language, target_language)
-    body = payload_builder(config["service_ids"])
-
-    response = requests.post(
-        config["callback_url"],
-        headers={
-            config["auth_header_name"]: config["auth_header_value"],
-            "Content-Type": "application/json",
-        },
-        json=body,
-        timeout=REQUEST_TIMEOUT_S,
-    )
-
-    if response.status_code in (401, 403):
-        # Cached token likely expired -- refetch config once and retry.
-        _pipeline_config_cache.pop((tuple(cache_key_tasks), source_language, target_language), None)
-        config = _pipeline_config(cache_key_tasks, source_language, target_language)
-        body = payload_builder(config["service_ids"])
-        response = requests.post(
-            config["callback_url"],
-            headers={
-                config["auth_header_name"]: config["auth_header_value"],
-                "Content-Type": "application/json",
-            },
-            json=body,
-            timeout=REQUEST_TIMEOUT_S,
+    last_error: Exception | None = None
+    for attempt in range(MAX_ATTEMPTS):
+        try:
+            response = requests.post(
+                INFERENCE_URL, headers=headers, json=body, timeout=REQUEST_TIMEOUT_S
+            )
+            break
+        except requests.exceptions.RequestException as error:
+            last_error = error
+            if attempt < MAX_ATTEMPTS - 1:
+                time.sleep(RETRY_DELAY_S)
+    else:
+        raise BhashiniError(
+            f"Bhashini connection failed after {MAX_ATTEMPTS} attempts: {last_error}"
         )
 
     if not response.ok:
-        raise BhashiniError(
-            f"Pipeline compute call failed ({response.status_code}): {response.text[:500]}"
-        )
+        raise BhashiniError(f"Bhashini call failed ({response.status_code}): {response.text[:500]}")
 
     return response.json()
 
@@ -140,60 +97,55 @@ def _compute(cache_key_tasks: list[str], source_language: str, target_language, 
 def transcribe(wav_bytes: bytes, source_language: str) -> str:
     """ASR: 16kHz mono WAV bytes in, transcript text out. Raises
     BhashiniError on any failure -- never returns a guessed transcript."""
+    body = {
+        "pipelineTasks": [
+            {
+                "taskType": "asr",
+                "config": {
+                    "language": {"sourceLanguage": source_language},
+                    "serviceId": ASR_SERVICE_ID,
+                    "audioFormat": "wav",
+                    "samplingRate": 16000,
+                },
+            }
+        ],
+        # NOTE: omit "input" entirely for ASR -- this endpoint's schema
+        # validation rejects {"source": None}, unlike the classic
+        # pipeline-compute-call docs' example.
+        "inputData": {"audio": [{"audioContent": base64.b64encode(wav_bytes).decode("ascii")}]},
+    }
 
-    def build_payload(service_ids: dict):
-        return {
-            "pipelineTasks": [
-                {
-                    "taskType": "asr",
-                    "config": {
-                        "language": {"sourceLanguage": source_language},
-                        "serviceId": service_ids["asr"],
-                        "audioFormat": "wav",
-                        "samplingRate": 16000,
-                    },
-                }
-            ],
-            "inputData": {
-                "input": [{"source": None}],
-                "audio": [{"audioContent": base64.b64encode(wav_bytes).decode("ascii")}],
-            },
-        }
-
-    result = _compute(["asr"], source_language, None, build_payload)
+    result = _post(body)
 
     try:
         return result["pipelineResponse"][0]["output"][0]["source"].strip()
     except (KeyError, IndexError) as error:
-        raise BhashiniError(f"Unexpected ASR compute response shape: {error}") from error
+        raise BhashiniError(f"Unexpected ASR response shape: {error}") from error
 
 
 def synthesize(text: str, language: str, gender: str = "female") -> bytes:
     """TTS: text in, WAV audio bytes out. Raises BhashiniError on any
     failure -- never returns silence pretending to be a real reply."""
+    service_id = TTS_SERVICE_ID_BY_LANGUAGE.get(language, TTS_SERVICE_ID_BY_LANGUAGE["en"])
 
-    def build_payload(service_ids: dict):
-        return {
-            "pipelineTasks": [
-                {
-                    "taskType": "tts",
-                    "config": {
-                        "language": {"sourceLanguage": language},
-                        "serviceId": service_ids["tts"],
-                        "gender": gender,
-                    },
-                }
-            ],
-            "inputData": {
-                "input": [{"source": text}],
-                "audio": [{"audioContent": None}],
-            },
-        }
+    body = {
+        "pipelineTasks": [
+            {
+                "taskType": "tts",
+                "config": {
+                    "language": {"sourceLanguage": language},
+                    "serviceId": service_id,
+                    "gender": gender,
+                },
+            }
+        ],
+        "inputData": {"input": [{"source": text}], "audio": [{"audioContent": None}]},
+    }
 
-    result = _compute(["tts"], language, None, build_payload)
+    result = _post(body)
 
     try:
         audio_b64 = result["pipelineResponse"][0]["audio"][0]["audioContent"]
         return base64.b64decode(audio_b64)
     except (KeyError, IndexError) as error:
-        raise BhashiniError(f"Unexpected TTS compute response shape: {error}") from error
+        raise BhashiniError(f"Unexpected TTS response shape: {error}") from error

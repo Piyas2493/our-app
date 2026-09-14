@@ -15,9 +15,10 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Then open `.env` and fill in `BHASHINI_USER_ID` and `BHASHINI_ULCA_API_KEY`
-from dashboard.bhashini.co.in → API Keys → your app's "UDYAT KEY" and
-"INFERENCE" key respectively.
+Then open `.env` and fill in `BHASHINI_ULCA_API_KEY` from
+dashboard.bhashini.co.in → API Keys → your app's "INFERENCE" key. That's
+the only credential ASR/TTS actually need (see Status below) —
+`BHASHINI_USER_ID` ("UDYAT KEY") can stay blank.
 
 **Also install ffmpeg** and make sure it's on your PATH (`ffmpeg -version`
 should work in a terminal). The browser records audio as webm/opus;
@@ -42,21 +43,38 @@ Two processes, not one, for now — see the architecture note below.
 
 ## Status
 
-`/listen` and `/speak` call Bhashini for real once both `BHASHINI_USER_ID`
-and `BHASHINI_ULCA_API_KEY` are set in `.env` — until then they return
-`503 {"error": "bhashini_not_configured"}`. This is the intended
-"degrade loudly" behavior, not a bug: the Jeeva orb in the browser reads
-this and shows its `error` state with the reason on screen, rather than
-failing silently.
+**Working, verified end-to-end (2026-09-14).** `/listen` and `/speak`
+call Bhashini for real once `BHASHINI_ULCA_API_KEY` is set in `.env` —
+until then they return `503 {"error": "bhashini_not_configured"}`
+(the intended "degrade loudly" behavior, not a bug: the Jeeva orb reads
+this and shows its `error` state with the reason on screen).
 
-The exact request/response shapes for the Pipeline Config and Compute
-calls (`app/bhashini.py`) are assembled from Bhashini's public GitBook
-docs plus a third-party reference client, not confirmed against a real
-key yet — the config call's two header names (`userID`/`ulcaApiKey`)
-mapping to the dashboard's "UDYAT KEY"/"INFERENCE" fields is the most
-likely reading, but if the config call itself starts rejecting
-credentials, that mapping is the first thing to double-check (try
-swapping which dashboard value goes in which env var).
+Verified with a real round trip through the actual running service, not
+just a script: `POST /speak` with English text produced real audio;
+posting that exact audio back to `POST /listen` returned the original
+text almost verbatim. Hindi and Bengali TTS/ASR use service IDs that are
+documented to support them but haven't been spot-checked the same way
+yet — worth a quick manual test before relying on them for a demo.
+
+This took real investigation to get right: the two-step "Pipeline
+Config Call → Pipeline Compute Call" flow described in Bhashini's older
+public docs (and implemented by most third-party reference clients)
+does NOT apply to this Bhashini-Udyat dashboard account — every
+pipeline ID tried failed. Connecting directly to Bhashini's own docs via
+their MCP server (`dibd-bhashini.gitbook.io`) surfaced the real,
+simpler flow this account actually uses: `BHASHINI_ULCA_API_KEY` (the
+dashboard's "INFERENCE" key) goes straight into an `Authorization`
+header on `https://dhruva-api.bhashini.gov.in/services/inference/pipeline`,
+with a known `serviceId` string — no pipeline ID, no config call, no
+`userID`/`ulcaApiKey` pair. See `app/bhashini.py` for the full story and
+the exact service IDs used.
+
+**This backend is measurably flaky** — roughly 1 in 3 calls during
+testing failed with a bare TCP connection reset before reaching the
+model, no error body. `bhashini.py` retries blindly a few times; this
+is a property of the upstream service, not a bug to chase down here.
+GPU-backed models can also have a slow cold start (tens of seconds) on
+their first call after being idle.
 
 Check it's up: `curl http://localhost:8000/health`
 
