@@ -107,7 +107,23 @@ function getErrorStatus(error: unknown): number | null {
   return null;
 }
 
+/** A day-scoped free-tier quota (e.g. "GenerateRequestsPerDayPerProjectPerModel-FreeTier")
+ * cannot be fixed by retrying within seconds -- it only resets at
+ * midnight Pacific. Retrying it anyway just burns ~26s of sleep (the
+ * delays below) on three doomed attempts before failing regardless,
+ * which is what made the voice assistant feel like it had hung rather
+ * than failed. Distinguished from a genuine short-lived 429 (a
+ * per-minute rate limit) by matching Google's own error shape for this
+ * specific quota, so THOSE still get retried normally. */
+function isQuotaExhaustedError(error: unknown): boolean {
+  if (getErrorStatus(error) !== 429) return false;
+  const message = error instanceof Error ? error.message : String(error);
+  return /RESOURCE_EXHAUSTED|PerDay|free_tier_requests/i.test(message);
+}
+
 function isRetryableGeminiError(error: unknown): boolean {
+  if (isQuotaExhaustedError(error)) return false;
+
   const status = getErrorStatus(error);
 
   if (
@@ -122,7 +138,7 @@ function isRetryableGeminiError(error: unknown): boolean {
 
   const message = error instanceof Error ? error.message : String(error);
 
-  return /429|500|502|503|504|UNAVAILABLE|RESOURCE_EXHAUSTED|temporarily unavailable|high demand|rate.?limit|quota/i.test(
+  return /429|500|502|503|504|UNAVAILABLE|temporarily unavailable|high demand|rate.?limit/i.test(
     message,
   );
 }
