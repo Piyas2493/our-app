@@ -22,7 +22,6 @@ import {
   Thermometer,
   Upload,
   User,
-  UserCheck,
   Weight,
   Workflow,
   AlertCircle,
@@ -233,11 +232,6 @@ const navItems = [
   },
 
   {
-    label: "AI Medical Scribe",
-    icon: Bot,
-  },
-
-  {
     label: "Vitals",
     icon: HeartPulse,
     href: "/vitals",
@@ -266,11 +260,6 @@ const navItems = [
     label: "Voice Assistant",
     icon: Mic,
     href: "/voice-assistant",
-  },
-
-  {
-    label: "Clinician Verification",
-    icon: UserCheck,
   },
 
   {
@@ -371,13 +360,11 @@ const navLabelKeys: Record<string, string> = {
   "Health Records": "nav.records",
   "Health Timeline": "nav.timeline",
   "Prescriptions": "nav.prescriptions",
-  "AI Medical Scribe": "nav.aiScribe",
   "Vitals": "nav.vitals",
   "Medication & Reminders": "nav.medications",
   "Personalized Health": "nav.personalizedHealth",
   "Hospitals & Labs": "nav.hospitalsLabs",
   "Voice Assistant": "nav.voiceAssistant",
-  "Clinician Verification": "nav.clinician",
   "FHIR / ABDM": "nav.fhir",
   "Consent & Privacy": "nav.consent",
   "Help & Support": "nav.support",
