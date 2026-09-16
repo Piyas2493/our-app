@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/app/lib/prisma";
 import { requireRole } from "@/app/lib/auth";
+import { generateGeminiWithRetry, getErrorMessage, getErrorStatus } from "@/app/lib/geminiRetry";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -82,116 +83,6 @@ const VOICE_VITAL_UNITS: Record<string, string> = {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
-}
-
-/* =========================================================
-   GEMINI RETRY HELPER
-   (mirrors analyze-document/route.ts and transcribe/route.ts)
-   ========================================================= */
-
-function getErrorStatus(error: unknown): number | null {
-  if (typeof error === "object" && error !== null) {
-    const candidate = error as {
-      status?: unknown;
-      code?: unknown;
-      response?: { status?: unknown };
-    };
-
-    if (typeof candidate.status === "number") return candidate.status;
-    if (typeof candidate.code === "number") return candidate.code;
-    if (typeof candidate.response?.status === "number") {
-      return candidate.response.status;
-    }
-  }
-
-  return null;
-}
-
-/** A day-scoped free-tier quota (e.g. "GenerateRequestsPerDayPerProjectPerModel-FreeTier")
- * cannot be fixed by retrying within seconds -- it only resets at
- * midnight Pacific. Retrying it anyway just burns ~26s of sleep (the
- * delays below) on three doomed attempts before failing regardless,
- * which is what made the voice assistant feel like it had hung rather
- * than failed. Distinguished from a genuine short-lived 429 (a
- * per-minute rate limit) by matching Google's own error shape for this
- * specific quota, so THOSE still get retried normally. */
-function isQuotaExhaustedError(error: unknown): boolean {
-  if (getErrorStatus(error) !== 429) return false;
-  const message = error instanceof Error ? error.message : String(error);
-  return /RESOURCE_EXHAUSTED|PerDay|free_tier_requests/i.test(message);
-}
-
-function isRetryableGeminiError(error: unknown): boolean {
-  if (isQuotaExhaustedError(error)) return false;
-
-  const status = getErrorStatus(error);
-
-  if (
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
-  ) {
-    return true;
-  }
-
-  const message = error instanceof Error ? error.message : String(error);
-
-  return /429|500|502|503|504|UNAVAILABLE|temporarily unavailable|high demand|rate.?limit/i.test(
-    message,
-  );
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-
-  if (typeof error === "object" && error !== null) {
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return String(error);
-    }
-  }
-
-  return String(error);
-}
-
-async function generateGeminiWithRetry<T>(
-  request: () => Promise<T>,
-  maxRetries = 3,
-): Promise<T> {
-  let lastError: unknown = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await request();
-    } catch (error) {
-      lastError = error;
-
-      const status = getErrorStatus(error);
-      const retryable = isRetryableGeminiError(error);
-
-      console.error(
-        `Gemini voice-assistant request failed. Attempt ${attempt + 1}/${
-          maxRetries + 1
-        }. Status: ${status ?? "unknown"}. Error: ${getErrorMessage(error)}`,
-      );
-
-      if (!retryable || attempt === maxRetries) {
-        throw error;
-      }
-
-      const delays = [3000, 8000, 15000];
-      const delay =
-        delays[Math.min(attempt, delays.length - 1)] +
-        Math.floor(Math.random() * 1000);
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  throw lastError;
 }
 
 /* =========================================================
@@ -452,6 +343,7 @@ Return ONLY structured JSON matching the requested schema.
             },
           },
         }),
+        { label: "Gemini voice-assistant request" },
       );
     } catch (error: unknown) {
       const message = getErrorMessage(error);

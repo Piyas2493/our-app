@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/app/lib/auth";
 import { extractOcrText } from "@/app/lib/ocr";
 import { extractHandwritingText } from "@/app/lib/handwritingOcr";
+import { generateGeminiWithRetry, getErrorMessage, getErrorStatus } from "@/app/lib/geminiRetry";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -20,190 +21,6 @@ const ai = new GoogleGenAI({
   apiKey: GEMINI_API_KEY,
 });
 
-/* =========================================================
-   GEMINI RETRY HELPER
-   ========================================================= */
-
-function getErrorStatus(
-  error: unknown
-): number | null {
-  if (
-    typeof error === "object" &&
-    error !== null
-  ) {
-    const candidate =
-      error as {
-        status?: unknown;
-        code?: unknown;
-        response?: {
-          status?: unknown;
-        };
-      };
-
-    if (
-      typeof candidate.status ===
-      "number"
-    ) {
-      return candidate.status;
-    }
-
-    if (
-      typeof candidate.code ===
-      "number"
-    ) {
-      return candidate.code;
-    }
-
-    if (
-      typeof candidate.response
-        ?.status === "number"
-    ) {
-      return candidate.response.status;
-    }
-  }
-
-  return null;
-}
-
-function isRetryableGeminiError(
-  error: unknown
-): boolean {
-  const status =
-    getErrorStatus(error);
-
-  if (
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
-  ) {
-    return true;
-  }
-
-  const message =
-    error instanceof Error
-      ? error.message
-      : String(error);
-
-  return /429|500|502|503|504|UNAVAILABLE|RESOURCE_EXHAUSTED|temporarily unavailable|high demand|rate.?limit|quota/i.test(
-    message
-  );
-}
-
-function getErrorMessage(
-  error: unknown
-): string {
-  if (
-    error instanceof Error
-  ) {
-    return error.message;
-  }
-
-  if (
-    typeof error === "object" &&
-    error !== null
-  ) {
-    try {
-      return JSON.stringify(
-        error
-      );
-    } catch {
-      return String(error);
-    }
-  }
-
-  return String(error);
-}
-
-async function generateGeminiWithRetry<
-  T
->(
-  request: () => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
-  let lastError: unknown =
-    null;
-
-  for (
-    let attempt = 0;
-    attempt <= maxRetries;
-    attempt++
-  ) {
-    try {
-      return await request();
-    } catch (error) {
-      lastError =
-        error;
-
-      const status =
-        getErrorStatus(
-          error
-        );
-
-      const retryable =
-        isRetryableGeminiError(
-          error
-        );
-
-      console.error(
-        `Gemini request failed. Attempt ${
-          attempt + 1
-        }/${maxRetries + 1}. Status: ${
-          status ?? "unknown"
-        }. Error: ${getErrorMessage(
-          error
-        )}`
-      );
-
-      if (
-        !retryable ||
-        attempt ===
-          maxRetries
-      ) {
-        throw error;
-      }
-
-      /*
-       * Longer backoff is intentional.
-       * Recent Gemini 503 reports indicate that
-       * very short retries can land in the same
-       * congestion window.
-       */
-
-      const delays = [
-        5000,
-        15000,
-        30000,
-      ];
-
-      const delay =
-        delays[
-          Math.min(
-            attempt,
-            delays.length - 1
-          )
-        ] +
-        Math.floor(
-          Math.random() * 1500
-        );
-
-      console.warn(
-        `Retrying Gemini request in ${delay}ms...`
-      );
-
-      await new Promise(
-        (resolve) =>
-          setTimeout(
-            resolve,
-            delay
-          )
-      );
-    }
-  }
-
-  throw lastError;
-}
 
 /* =========================================================
    POST
@@ -726,7 +543,7 @@ ${ocrSection}${handwritingSection}`;
                 },
               }
             ),
-          3
+          { label: "Gemini request", delays: [5000, 15000, 30000], jitterMs: 1500 }
         );
     } catch (
       error: unknown

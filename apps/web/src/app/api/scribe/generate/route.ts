@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireRole } from "@/app/lib/auth";
+import { generateGeminiWithRetry, getErrorMessage, getErrorStatus } from "@/app/lib/geminiRetry";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,98 +17,6 @@ const ai = new GoogleGenAI({
   apiKey: GEMINI_API_KEY,
 });
 
-/* =========================================================
-   GEMINI RETRY HELPER
-   (mirrors analyze-document/route.ts and transcribe/route.ts)
-   ========================================================= */
-
-function getErrorStatus(error: unknown): number | null {
-  if (typeof error === "object" && error !== null) {
-    const candidate = error as {
-      status?: unknown;
-      code?: unknown;
-      response?: { status?: unknown };
-    };
-
-    if (typeof candidate.status === "number") return candidate.status;
-    if (typeof candidate.code === "number") return candidate.code;
-    if (typeof candidate.response?.status === "number") {
-      return candidate.response.status;
-    }
-  }
-
-  return null;
-}
-
-function isRetryableGeminiError(error: unknown): boolean {
-  const status = getErrorStatus(error);
-
-  if (
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
-  ) {
-    return true;
-  }
-
-  const message = error instanceof Error ? error.message : String(error);
-
-  return /429|500|502|503|504|UNAVAILABLE|RESOURCE_EXHAUSTED|temporarily unavailable|high demand|rate.?limit|quota/i.test(
-    message,
-  );
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-
-  if (typeof error === "object" && error !== null) {
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return String(error);
-    }
-  }
-
-  return String(error);
-}
-
-async function generateGeminiWithRetry<T>(
-  request: () => Promise<T>,
-  maxRetries = 3,
-): Promise<T> {
-  let lastError: unknown = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await request();
-    } catch (error) {
-      lastError = error;
-
-      const retryable = isRetryableGeminiError(error);
-
-      console.error(
-        `Gemini scribe request failed. Attempt ${attempt + 1}/${
-          maxRetries + 1
-        }. Error: ${getErrorMessage(error)}`,
-      );
-
-      if (!retryable || attempt === maxRetries) {
-        throw error;
-      }
-
-      const delays = [3000, 8000, 15000];
-      const delay =
-        delays[Math.min(attempt, delays.length - 1)] +
-        Math.floor(Math.random() * 1000);
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  throw lastError;
-}
 
 /* =========================================================
    POST /api/scribe/generate
@@ -199,6 +108,7 @@ Return ONLY structured JSON matching the requested schema.
             },
           },
         }),
+        { label: "Gemini scribe request" },
       );
     } catch (error: unknown) {
       const message = getErrorMessage(error);

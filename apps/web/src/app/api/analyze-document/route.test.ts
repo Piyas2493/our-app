@@ -315,32 +315,30 @@ describe("POST /api/analyze-document -- Gemini upstream failures", () => {
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
   });
 
-  // These two intentionally use real timers with a generous test timeout
-  // rather than vi.useFakeTimers(): something in this route's Next.js
-  // module context makes both runAllTimersAsync() and a bounded
+  it("fails fast on a quota error and maps it to 429 AI_QUOTA_EXCEEDED", async () => {
+    // A day-scoped free-tier quota can't be fixed by retrying within
+    // seconds -- see lib/geminiRetry.ts -- so this must fail on the
+    // first attempt, not burn through the retry backoff.
+    const quotaError = Object.assign(new Error("RESOURCE_EXHAUSTED: quota"), {
+      status: 429,
+    });
+    mockGenerateContent.mockRejectedValue(quotaError);
+
+    const response = await POST(requestWithFile(validPdfFile()));
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(body.code).toBe("AI_QUOTA_EXCEEDED");
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+  });
+
+  // Intentionally uses real timers with a generous test timeout rather
+  // than vi.useFakeTimers(): something in this route's Next.js module
+  // context makes both runAllTimersAsync() and a bounded
   // advanceTimersByTimeAsync() hang indefinitely here, even though the
   // identical retry-loop-with-setTimeout pattern advances instantly in
   // isolation. Real time is slower (the route's own 5s/15s/30s backoff)
   // but correct and doesn't fight framework internals.
-  it(
-    "retries a quota error and eventually maps it to 429 AI_QUOTA_EXCEEDED",
-    async () => {
-      const quotaError = Object.assign(new Error("RESOURCE_EXHAUSTED: quota"), {
-        status: 429,
-      });
-      mockGenerateContent.mockRejectedValue(quotaError);
-
-      const response = await POST(requestWithFile(validPdfFile()));
-      const body = await response.json();
-
-      expect(response.status).toBe(429);
-      expect(body.code).toBe("AI_QUOTA_EXCEEDED");
-      // Initial attempt + 3 retries = 4 calls to the same underlying client.
-      expect(mockGenerateContent).toHaveBeenCalledTimes(4);
-    },
-    70000,
-  );
-
   it(
     "maps a 503 service-congestion error to AI_SERVICE_UNAVAILABLE",
     async () => {
