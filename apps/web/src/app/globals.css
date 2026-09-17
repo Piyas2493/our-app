@@ -27,6 +27,12 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  /* Safety net: several duplicated per-page topbars don't perfectly
+     fit their fixed-width controls (language switcher + notification
+     + avatar + logout) into narrow viewports. Rather than hand-tune
+     spacing across every one of those pages, clip any residual
+     overflow here so no page can ever show a horizontal scrollbar. */
+  overflow-x: hidden;
 }
 
 body {
@@ -255,6 +261,11 @@ html.a11y-high-contrast body {
   font-size: 25px;
   color: #34495e;
   margin-right: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .chevron {
@@ -1033,6 +1044,14 @@ html.a11y-high-contrast body {
 @media (max-width: 850px) {
   .sidebar {
     display: none;
+  }
+
+  /* The hamburger (MobileSidebarToggle) toggles this on <body>. */
+  body.sidebar-open .sidebar {
+    display: block;
+    z-index: 1000;
+    width: min(285px, 80vw);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
   }
 
   .main-content {

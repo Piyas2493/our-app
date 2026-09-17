@@ -24,6 +24,7 @@ import {
 
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 /* =========================================================
    TYPES
@@ -407,7 +408,7 @@ export default function SupportPage() {
       <section className="main-content">
         <header className="topbar relative z-10">
           <div className="breadcrumb">
-            <span className="menu-lines">☰</span>
+            <MobileSidebarToggle />
             <span>JeevanLink</span>
             <span className="chevron">›</span>
             <strong>{t("nav.support")}</strong>

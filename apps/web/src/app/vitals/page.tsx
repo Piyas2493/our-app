@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 /* =========================================================
    TYPES
@@ -1370,9 +1371,7 @@ export default function VitalsPage() {
 
           <div className="breadcrumb">
 
-            <span className="menu-lines">
-              ☰
-            </span>
+            <MobileSidebarToggle />
 
             <Link href="/dashboard">
               JeevanLink

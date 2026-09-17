@@ -21,6 +21,7 @@ import {
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import VoiceAssistant from "@/components/VoiceAssistant";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 /* =========================================================
    NAVIGATION (mirrors the shared patient sidebar)
@@ -175,7 +176,7 @@ export default function VoiceAssistantPage() {
       <section className="main-content">
         <header className="topbar relative z-10">
           <div className="breadcrumb">
-            <span className="menu-lines">☰</span>
+            <MobileSidebarToggle />
             <span>JeevanLink</span>
             <span className="chevron">›</span>
             <strong>{t("nav.voiceAssistant")}</strong>

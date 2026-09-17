@@ -32,6 +32,7 @@ import { useRouter } from "next/navigation";
 
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 type Hospital = {
   id: string;
@@ -723,7 +724,7 @@ export default function HospitalsLabsPage() {
 
         <header className="topbar relative z-10">
           <div className="breadcrumb">
-            <span className="menu-lines">☰</span>
+            <MobileSidebarToggle />
             <span>JeevanLink</span>
             <span className="chevron">›</span>
             <strong>{t("nav.hospitalsLabs")}</strong>

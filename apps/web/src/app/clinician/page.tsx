@@ -31,6 +31,7 @@ import {
 import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 import VitalTrendPanel from "@/components/clinician/VitalTrendPanel";
 import ClinicalHistoryPanel from "@/components/clinician/ClinicalHistoryPanel";
 
@@ -1983,7 +1984,7 @@ export default function ClinicianPage() {
 
         <header className="topbar">
           <div className="breadcrumb">
-            <span className="menu-lines">☰</span>
+            <MobileSidebarToggle />
             <span>JeevanLink</span>
             <span className="chevron">›</span>
             <strong>{t("clinician.nav.verificationQueue")}</strong>

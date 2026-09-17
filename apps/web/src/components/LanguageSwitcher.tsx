@@ -20,7 +20,7 @@ export default function LanguageSwitcher() {
   } = useLanguage();
 
   return (
-    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-2 sm:px-3">
       <Globe2
         size={18}
         className="text-slate-500"
@@ -28,7 +28,7 @@ export default function LanguageSwitcher() {
 
       <Languages
         size={16}
-        className="text-slate-400"
+        className="hidden text-slate-400 sm:block"
       />
 
       <select
@@ -40,7 +40,7 @@ export default function LanguageSwitcher() {
             event.target.value as typeof language
           )
         }
-        className="bg-transparent text-sm font-medium text-slate-700 outline-none"
+        className="w-16 bg-transparent text-sm font-medium text-slate-700 outline-none sm:w-auto"
       >
         {SUPPORTED_LANGUAGES.map(
           (item) => (

@@ -34,6 +34,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 type MedicalRecord = {
   id: string;
@@ -1283,9 +1284,7 @@ export default function Home() {
 
           <div className="breadcrumb">
 
-            <span className="menu-lines">
-              ☰
-            </span>
+            <MobileSidebarToggle />
 
             <span>
               JeevanLink
@@ -1364,7 +1363,7 @@ export default function Home() {
               <LogOut
                 size={16}
               />
-              {t("common.logout")}
+              <span className="hidden sm:inline">{t("common.logout")}</span>
             </button>
 
           </div>
