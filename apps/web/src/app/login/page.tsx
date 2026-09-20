@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   FormEvent,
   ReactNode,
@@ -406,10 +407,13 @@ export default function LoginPage() {
 
             <div className="absolute bottom-0 left-0 z-10 h-[56%] w-[66%] overflow-hidden">
 
-              <img
+              <Image
                 src="/login-doctor.png"
                 alt={t("login.hero.imageAlt")}
-                className="h-full w-full object-cover object-center"
+                fill
+                priority
+                sizes="(min-width: 1024px) 33vw, 66vw"
+                className="object-cover object-center"
               />
 
             </div>
