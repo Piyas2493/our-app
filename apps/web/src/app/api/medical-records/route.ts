@@ -3,8 +3,23 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/prisma";
 import { getCurrentUser } from "@/app/lib/auth";
 import { collectIntakeText, detectRedFlags } from "@/app/lib/redFlags";
+import { ALLOWED_DOCUMENT_MIME_TYPES } from "@/app/lib/documentStorage";
 
 export const runtime = "nodejs";
+
+// [id]/document later serves this value back as the literal
+// Content-Type header with Content-Disposition: inline -- an
+// unvalidated value like "text/html" would let whoever wrote this
+// record make the browser render it as a live page instead of a
+// document (stored XSS). Never trust it further than this allowlist.
+function sanitizeFileType(value: unknown): string | null {
+  return typeof value === "string" &&
+    ALLOWED_DOCUMENT_MIME_TYPES.includes(
+      value as (typeof ALLOWED_DOCUMENT_MIME_TYPES)[number]
+    )
+    ? value
+    : null;
+}
 
 function buildRedFlags(interpretation: string): string[] {
   let parsed: unknown;
@@ -222,11 +237,7 @@ export async function POST(request: NextRequest) {
               ? originalFileUrl.trim()
               : null,
 
-          originalFileType:
-            typeof originalFileType === "string" &&
-            originalFileType.trim()
-              ? originalFileType.trim()
-              : null,
+          originalFileType: sanitizeFileType(originalFileType),
 
           labResults:
             sanitizeLabResults(labResults) ?? Prisma.JsonNull,
@@ -350,6 +361,20 @@ export async function PATCH(request: NextRequest) {
         {
           success: false,
           error: "Medical record ID is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof originalFileType === "string" &&
+      originalFileType.trim() &&
+      !sanitizeFileType(originalFileType)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Unsupported document type.",
         },
         { status: 400 }
       );

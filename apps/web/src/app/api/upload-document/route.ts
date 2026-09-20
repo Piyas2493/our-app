@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { requireRole } from "@/app/lib/auth";
+import { putMedicalDocument } from "@/app/lib/documentStorage";
 
 export const runtime = "nodejs";
 
@@ -55,19 +55,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Constructed with literal segments (rather than importing the
-    // shared MEDICAL_UPLOAD_DIRECTORY constant) so the bundler can
-    // statically scope filesystem tracing to this subfolder.
-    const uploadDirectory = path.join(
-      process.cwd(),
-      "private-uploads",
-      "medical"
-    );
-
-    await fs.mkdir(uploadDirectory, {
-      recursive: true,
-    });
-
     const extension =
       path.extname(file.name).toLowerCase() ||
       getExtensionFromMimeType(file.type);
@@ -75,20 +62,13 @@ export async function POST(request: NextRequest) {
     const storedFileName =
       `${randomUUID()}${extension}`;
 
-    const filePath = path.join(
-      uploadDirectory,
-      storedFileName
-    );
-
     const bytes = await file.arrayBuffer();
 
-    await fs.writeFile(
-      filePath,
-      Buffer.from(bytes)
+    const publicUrl = await putMedicalDocument(
+      storedFileName,
+      Buffer.from(bytes),
+      file.type
     );
-
-    const publicUrl =
-      `/uploads/medical/${storedFileName}`;
 
     return NextResponse.json({
       success: true,

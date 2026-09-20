@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
 import { prisma } from "@/app/lib/prisma";
 import { getCurrentUser } from "@/app/lib/auth";
-import { resolveMedicalUploadPath } from "@/app/lib/documentStorage";
+import { getMedicalDocument } from "@/app/lib/documentStorage";
 
 export const runtime = "nodejs";
 
@@ -101,36 +100,16 @@ export async function GET(
     }
 
     /*
-     * The original document lives in a private directory
-     * outside public/, so it is never served as a static
-     * asset. Resolve and validate the stored reference.
+     * The original document lives in a private R2 bucket, so it is
+     * never served as a static asset. Resolve and validate the stored
+     * reference, then fetch it.
      */
-    const filePath =
-      resolveMedicalUploadPath(
-        record.originalFileUrl
-      );
-
-    if (!filePath) {
-      console.error(
-        "Unexpected medical document path:",
-        record.originalFileUrl
-      );
-
-      return new NextResponse(
-        "Invalid document reference.",
-        {
-          status: 500,
-        }
-      );
-    }
-
-    let fileBuffer: Buffer;
+    let fileBuffer: Buffer | null;
 
     try {
-      fileBuffer =
-        await fs.readFile(
-          filePath
-        );
+      fileBuffer = await getMedicalDocument(
+        record.originalFileUrl
+      );
     } catch (error) {
       console.error(
         "Original medical document could not be read:",
@@ -141,6 +120,20 @@ export async function GET(
         "Original document not found.",
         {
           status: 404,
+        }
+      );
+    }
+
+    if (!fileBuffer) {
+      console.error(
+        "Unexpected medical document path:",
+        record.originalFileUrl
+      );
+
+      return new NextResponse(
+        "Invalid document reference.",
+        {
+          status: 500,
         }
       );
     }

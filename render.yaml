@@ -1,0 +1,37 @@
+# Render Blueprint -- deploys jeeva and ocr-service as persistent Python
+# web services (unlike Vercel, Render runs long-lived processes, which
+# these actually need: uvicorn stays up between requests rather than
+# cold-starting per invocation).
+#
+# The Next.js app itself is NOT here -- it goes to Vercel, which is
+# built for exactly that (unified frontend + API routes, zero config).
+#
+# To use: Render dashboard -> New -> Blueprint -> point at this repo.
+# Secrets marked `sync: false` must be filled in manually in Render's
+# dashboard after the blueprint creates the services -- never commit
+# real values for these.
+services:
+  - type: web
+    name: jeevanlink-jeeva
+    runtime: python
+    rootDir: jeeva
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: BHASHINI_ULCA_API_KEY
+        sync: false
+      - key: JEEVA_FRONTEND_ORIGIN
+        sync: false # set to the real Vercel deployment URL, e.g. https://jeevanlink.vercel.app
+      - key: JEEVANLINK_DEMO
+        value: "1"
+
+  - type: web
+    name: jeevanlink-ocr-service
+    runtime: python
+    rootDir: ocr-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: standard # torch + transformers need more than the free tier's 512MB RAM to load the TrOCR model
+    envVars:
+      - key: OCR_FRONTEND_ORIGIN
+        sync: false # set to the real Vercel deployment URL, e.g. https://jeevanlink.vercel.app

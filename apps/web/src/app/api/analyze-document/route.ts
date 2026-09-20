@@ -4,6 +4,7 @@ import { requireRole } from "@/app/lib/auth";
 import { extractOcrText } from "@/app/lib/ocr";
 import { extractHandwritingText } from "@/app/lib/handwritingOcr";
 import { generateGeminiWithRetry, getErrorMessage, getErrorStatus } from "@/app/lib/geminiRetry";
+import { ALLOWED_DOCUMENT_MIME_TYPES } from "@/app/lib/documentStorage";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -61,17 +62,9 @@ export async function POST(
        FILE TYPE
        ------------------------------------------------------- */
 
-    const allowedTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-    ];
-
     if (
-      !allowedTypes.includes(
-        file.type
+      !ALLOWED_DOCUMENT_MIME_TYPES.includes(
+        file.type as (typeof ALLOWED_DOCUMENT_MIME_TYPES)[number]
       )
     ) {
       return NextResponse.json(

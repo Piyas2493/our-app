@@ -1,10 +1,19 @@
+// One-time migration helper (2026-09-19): a copy of the schema exactly
+// as it was on SQLite, before the MongoDB migration, so this old data
+// can be read with proper types (real Date objects, parsed JSON,
+// booleans) via Prisma Client instead of hand-rolling SQLite's raw
+// on-disk representation of each. A distinct generator `output` and
+// datasource env var keep this from colliding with the real (now
+// MongoDB) schema/client. Not part of the running app -- delete this
+// whole `scripts/mongo-migration/` folder once the migration is done.
 generator client {
   provider = "prisma-client-js"
+  output   = "./generated-sqlite-legacy-client"
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("SQLITE_LEGACY_URL")
 }
 
 enum UserRole {
@@ -106,7 +115,7 @@ enum LabReportStatus {
 }
 
 model User {
-  id       String   @id @default(cuid()) @map("_id")
+  id       String   @id @default(cuid())
   name     String
   email    String   @unique
   password String
@@ -129,33 +138,12 @@ model User {
   assignedTickets  Ticket[]        @relation("TicketAssignee")
   ticketMessages   TicketMessage[] @relation("TicketMessageAuthor")
 
-  sessions Session[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Server-side session record. The `jeevanlink_session` cookie holds only
-// this row's opaque, cryptographically random `token` -- never a user ID
-// directly, so a leaked or guessed user ID alone can never authenticate
-// as that user (see the 2026-09-17 security review).
-model Session {
-  id String @id @default(cuid()) @map("_id")
-
-  token String @unique
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  expiresAt DateTime
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
 model MedicalRecord {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   patientName    String
   documentName   String
@@ -190,7 +178,7 @@ model MedicalRecord {
 }
 
 model Medication {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   name      String
   dosage    String?
@@ -210,7 +198,7 @@ model Medication {
 }
 
 model MedicationReminder {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   medicationId String
 
@@ -228,7 +216,7 @@ model MedicationReminder {
 }
 
 model MedicationLog {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   reminderId String
 
@@ -252,7 +240,7 @@ model MedicationLog {
 }
 
 model VerificationAudit {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   medicalRecordId String
 
@@ -269,7 +257,7 @@ model VerificationAudit {
 }
 
 model VitalMeasurement {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   patientId String
 
@@ -298,7 +286,7 @@ model VitalMeasurement {
 }
 
 model Hospital {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   name String
   code String? @unique
@@ -317,7 +305,7 @@ model Hospital {
 }
 
 model HospitalAdmission {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   patientId String
 
@@ -356,7 +344,7 @@ model HospitalAdmission {
 }
 
 model HospitalEncounter {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   admissionId String?
 
@@ -383,7 +371,7 @@ model HospitalEncounter {
 }
 
 model HospitalTest {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   admissionId String
 
@@ -413,7 +401,7 @@ model HospitalTest {
 }
 
 model HospitalProcedure {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   admissionId String
 
@@ -436,7 +424,7 @@ model HospitalProcedure {
 }
 
 model HospitalBill {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   admissionId String
 
@@ -465,7 +453,7 @@ model HospitalBill {
 }
 
 model HospitalBillItem {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   billId String
 
@@ -484,7 +472,7 @@ model HospitalBillItem {
 }
 
 model InsuranceClaim {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   admissionId String
 
@@ -520,7 +508,7 @@ model InsuranceClaim {
 }
 
 model Lab {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   name String
   code String? @unique
@@ -539,7 +527,7 @@ model Lab {
 }
 
 model LabOrder {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   patientId String
 
@@ -573,7 +561,7 @@ model LabOrder {
 }
 
 model LabReport {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   patientId String
 
@@ -633,7 +621,7 @@ enum ConsentCategory {
 // mutated in place, so every grant/revoke stays independently
 // auditable rather than being overwritten.
 model ConsentEvent {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   patientId String
 
@@ -680,7 +668,7 @@ enum TicketCategory {
 }
 
 model Ticket {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   ticketNumber String @unique
 
@@ -716,7 +704,7 @@ model Ticket {
 }
 
 model TicketMessage {
-  id String @id @default(cuid()) @map("_id")
+  id String @id @default(cuid())
 
   ticketId String
   ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
