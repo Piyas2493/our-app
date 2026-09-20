@@ -2,9 +2,8 @@
 
 import { Volume2, VolumeX } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 
-import { useAccessibility } from "@/components/AccessibilityProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { TranslationKey } from "@/app/lib/i18n";
 
@@ -14,6 +13,9 @@ import type { TranslationKey } from "@/app/lib/i18n";
  * mounted once here so the TTS audio cache survives navigation instead
  * of resetting per page, and hidden on paths that either don't need it
  * or already have their own audio-guide UI (clinical-intake).
+ *
+ * Deliberately manual, not automatic: it never speaks on its own when
+ * you land on or navigate between pages -- only when you tap it.
  */
 const PAGE_NARRATION: Partial<Record<string, TranslationKey>> = {
   "/dashboard": "audioGuide.dashboard",
@@ -33,9 +35,9 @@ const HIDDEN_PATHS = new Set(["/", "/login", "/clinical-intake"]);
 
 export default function AudioGuide() {
   const pathname = usePathname();
-  const { audioGuided, toggleAudioGuided } = useAccessibility();
   const { language, t } = useLanguage();
 
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const cacheRef = useRef<Map<string, Blob>>(new Map());
   const requestIdRef = useRef(0);
@@ -43,14 +45,23 @@ export default function AudioGuide() {
   const narrationKey = PAGE_NARRATION[pathname];
   const narrationText = narrationKey ? t(narrationKey) : null;
 
-  async function speak(text: string) {
-    const requestId = ++requestIdRef.current;
+  async function handleTap() {
+    // Tapping while already speaking stops it, rather than restarting.
+    if (isSpeaking) {
+      requestIdRef.current++;
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setIsSpeaking(false);
+      return;
+    }
 
-    audioRef.current?.pause();
-    audioRef.current = null;
+    if (!narrationText) return;
+
+    const requestId = ++requestIdRef.current;
+    setIsSpeaking(true);
 
     try {
-      const cacheKey = `${language}:${text}`;
+      const cacheKey = `${language}:${narrationText}`;
       let audioBlob = cacheRef.current.get(cacheKey);
 
       if (!audioBlob) {
@@ -58,7 +69,7 @@ export default function AudioGuide() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ text, language }),
+          body: JSON.stringify({ text: narrationText, language }),
         });
 
         if (requestId !== requestIdRef.current || !response.ok) return;
@@ -73,45 +84,37 @@ export default function AudioGuide() {
 
       const url = URL.createObjectURL(audioBlob);
       const audio = new Audio(url);
-      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (requestId === requestIdRef.current) setIsSpeaking(false);
+      };
       audioRef.current = audio;
       await audio.play();
     } catch {
-      // Silent guide is a harmless degradation -- e.g. a non-patient
-      // role gets a 403 from the speak endpoint, or Gemini's quota is
-      // exhausted. No error UI for a background narration.
+      // e.g. a non-patient role gets a 403, or Gemini's quota is
+      // exhausted -- just fall back to the idle button, no error UI.
+    } finally {
+      if (requestId !== requestIdRef.current) return;
+      if (!audioRef.current) setIsSpeaking(false);
     }
   }
 
-  useEffect(() => {
-    if (!audioGuided || !narrationText) return;
-    void speak(narrationText);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioGuided, narrationText, language]);
-
-  useEffect(() => {
-    if (!audioGuided) {
-      audioRef.current?.pause();
-      audioRef.current = null;
-    }
-  }, [audioGuided]);
-
-  if (HIDDEN_PATHS.has(pathname)) return null;
+  if (HIDDEN_PATHS.has(pathname) || !narrationText) return null;
 
   return (
     <button
       type="button"
-      onClick={toggleAudioGuided}
-      aria-pressed={audioGuided}
-      title={t(audioGuided ? "audioGuide.on" : "audioGuide.off")}
+      onClick={handleTap}
+      aria-pressed={isSpeaking}
+      title={t("audioGuide.title")}
       style={{ position: "fixed", bottom: 24, right: 24, zIndex: 999980 }}
       className={`inline-flex items-center gap-2 rounded-full border px-4 py-3 text-xs font-semibold shadow-lg transition ${
-        audioGuided
+        isSpeaking
           ? "border-teal-600 bg-teal-600 text-white"
           : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
       }`}
     >
-      {audioGuided ? <Volume2 size={16} /> : <VolumeX size={16} />}
+      {isSpeaking ? <Volume2 size={16} /> : <VolumeX size={16} />}
       {t("audioGuide.buttonLabel")}
     </button>
   );

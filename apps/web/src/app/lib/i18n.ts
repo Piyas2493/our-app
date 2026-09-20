@@ -827,8 +827,7 @@ const en = {
   "nav.clinicalIntake": "Clinical Intake",
 
   "audioGuide.buttonLabel": "Audio guide",
-  "audioGuide.on": "Audio guide is on. Tap to turn off.",
-  "audioGuide.off": "Audio guide is off. Tap to turn on and hear each page read aloud.",
+  "audioGuide.title": "Tap to hear this page read aloud.",
   "audioGuide.dashboard": "This is your dashboard, the home screen of JeevanLink. Here you can see a summary of your health records, reminders, and quick links to every other section of the app.",
   "audioGuide.records": "This is your Health Records page. Here you can see every medical document you've uploaded, such as prescriptions and lab reports, along with whether a clinician has verified it.",
   "audioGuide.healthTimeline": "This is your Health Timeline. It shows your medical history in order, from oldest to newest, so you can see how your health has changed over time.",
