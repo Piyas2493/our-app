@@ -4,6 +4,7 @@ import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
 import AccessibilityProvider from "@/components/AccessibilityProvider";
 import JeevaOrbGate from "@/components/JeevaOrbGate";
+import AudioGuide from "@/components/AudioGuide";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({
           <AccessibilityProvider>
             {children}
             <JeevaOrbGate />
+            <AudioGuide />
           </AccessibilityProvider>
         </LanguageProvider>
       </body>

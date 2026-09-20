@@ -825,6 +825,21 @@ const en = {
   "helpdesk.internalNoteCheckbox": "Internal note (not visible to requester)",
   "helpdesk.send": "Send",
   "nav.clinicalIntake": "Clinical Intake",
+
+  "audioGuide.buttonLabel": "Audio guide",
+  "audioGuide.on": "Audio guide is on. Tap to turn off.",
+  "audioGuide.off": "Audio guide is off. Tap to turn on and hear each page read aloud.",
+  "audioGuide.dashboard": "This is your dashboard, the home screen of JeevanLink. Here you can see a summary of your health records, reminders, and quick links to every other section of the app.",
+  "audioGuide.records": "This is your Health Records page. Here you can see every medical document you've uploaded, such as prescriptions and lab reports, along with whether a clinician has verified it.",
+  "audioGuide.healthTimeline": "This is your Health Timeline. It shows your medical history in order, from oldest to newest, so you can see how your health has changed over time.",
+  "audioGuide.prescriptions": "This is your Prescriptions page. Here you can view medicines your doctor has prescribed, and upload new prescription documents for the app to read.",
+  "audioGuide.vitals": "This is your Vitals page. Here you can log and track measurements like blood pressure, heart rate, and blood sugar, and see how they change over time.",
+  "audioGuide.medications": "This is your Medication and Reminders page. Here you can see your current medicines and set reminders so you never miss a dose.",
+  "audioGuide.personalizedHealth": "This is your Personalized Health page. Here the app looks at your records and gives you simple, easy to understand health insights.",
+  "audioGuide.hospitalsLabs": "This is the Hospitals and Labs page. Here you can see admissions, test orders, and bills from hospitals and labs connected to your account.",
+  "audioGuide.voiceAssistant": "This is the Voice Assistant page. You can ask questions about your health records out loud, and it will answer using your own medical information.",
+  "audioGuide.consent": "This is your Consent and Privacy page. Here you control what JeevanLink is allowed to do with your health information, and every change is logged for you to see.",
+  "audioGuide.support": "This is the Help and Support page. Here you can raise a support ticket if you need help, and track replies from the helpdesk team.",
 } as const;
 
 const hi: Partial<Record<keyof typeof en, string>> = {
