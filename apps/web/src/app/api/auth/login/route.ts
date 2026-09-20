@@ -1,6 +1,12 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/prisma";
+import { createSession, SESSION_COOKIE, SESSION_TTL_MS } from "@/app/lib/auth";
+import {
+  clearLoginAttempts,
+  isLoginRateLimited,
+  recordFailedLogin,
+} from "@/app/lib/loginRateLimit";
 
 export const runtime = "nodejs";
 
@@ -31,6 +37,17 @@ export async function POST(
       );
     }
 
+    if (isLoginRateLimited(email)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Too many attempts. Please try again in a few minutes.",
+        },
+        { status: 429 }
+      );
+    }
+
     const user =
       await prisma.user.findUnique({
         where: {
@@ -39,6 +56,7 @@ export async function POST(
       });
 
     if (!user) {
+      recordFailedLogin(email);
       return NextResponse.json(
         {
           success: false,
@@ -56,6 +74,7 @@ export async function POST(
       );
 
     if (!passwordValid) {
+      recordFailedLogin(email);
       return NextResponse.json(
         {
           success: false,
@@ -65,6 +84,10 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    clearLoginAttempts(email);
+
+    const token = await createSession(user.id);
 
     const response =
       NextResponse.json({
@@ -78,8 +101,8 @@ export async function POST(
       });
 
     response.cookies.set(
-      "jeevanlink_session",
-      user.id,
+      SESSION_COOKIE,
+      token,
       {
         httpOnly: true,
         sameSite: "lax",
@@ -88,7 +111,7 @@ export async function POST(
           "production",
         path: "/",
         maxAge:
-          60 * 60 * 24 * 7,
+          SESSION_TTL_MS / 1000,
       }
     );
 
