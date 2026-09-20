@@ -33,6 +33,9 @@ import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { TranslationKey } from "@/app/lib/i18n";
+import ClinicalIntakeSummary, {
+  clinicalIntakePreviewText,
+} from "@/components/ClinicalIntakeSummary";
 
 type Medication = {
   name?: string | null;
@@ -863,7 +866,10 @@ export default function HealthTimelinePage() {
                                 </p>
 
                                 <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">
-                                  {record.interpretation || record.summary || t("timeline.detail.noInterpretation")}
+                                  {clinicalIntakePreviewText(
+                                    record.interpretation,
+                                    record.summary || t("timeline.detail.noInterpretation")
+                                  )}
                                 </p>
                               </div>
 
@@ -934,11 +940,23 @@ export default function HealthTimelinePage() {
                       {t("timeline.detail.interpretation")}
                     </h3>
                     <div className="mt-3 rounded-2xl bg-slate-50 p-4">
-                      <p className="text-sm leading-6 text-slate-700">
-                        {selectedRecord.interpretation ||
-                          selectedRecord.summary ||
-                          t("timeline.detail.noInterpretation")}
-                      </p>
+                      {selectedRecord.interpretation ? (
+                        <ClinicalIntakeSummary
+                          interpretation={selectedRecord.interpretation}
+                          fallback={
+                            <p className="text-sm leading-6 text-slate-700">
+                              {selectedRecord.interpretation ||
+                                selectedRecord.summary ||
+                                t("timeline.detail.noInterpretation")}
+                            </p>
+                          }
+                        />
+                      ) : (
+                        <p className="text-sm leading-6 text-slate-700">
+                          {selectedRecord.summary ||
+                            t("timeline.detail.noInterpretation")}
+                        </p>
+                      )}
                     </div>
                   </div>
 

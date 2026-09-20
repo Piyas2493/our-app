@@ -27,6 +27,7 @@ import {
 
 import LogoutButton from "@/components/LogoutButton";
 import { useLanguage } from "@/components/LanguageProvider";
+import ClinicalIntakeSummary from "@/components/ClinicalIntakeSummary";
 
 type Medication = {
   name: string;
@@ -1179,11 +1180,23 @@ export default function RecordsPage() {
 
                   <div className="mt-3 rounded-2xl border bg-slate-50 p-5">
 
-                    <p className="leading-7 text-slate-700">
-                      {selectedRecord.interpretation ||
-                        selectedRecord.summary ||
-                        t("records.noInterpretation")}
-                    </p>
+                    {selectedRecord.interpretation ? (
+                      <ClinicalIntakeSummary
+                        interpretation={selectedRecord.interpretation}
+                        fallback={
+                          <p className="leading-7 text-slate-700">
+                            {selectedRecord.interpretation ||
+                              selectedRecord.summary ||
+                              t("records.noInterpretation")}
+                          </p>
+                        }
+                      />
+                    ) : (
+                      <p className="leading-7 text-slate-700">
+                        {selectedRecord.summary ||
+                          t("records.noInterpretation")}
+                      </p>
+                    )}
 
                   </div>
 
