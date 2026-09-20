@@ -239,8 +239,10 @@ export async function POST(request: NextRequest) {
 
           originalFileType: sanitizeFileType(originalFileType),
 
+          // Prisma.JsonNull is for SQL connectors only -- MongoDB takes a
+          // plain null for an empty Json field.
           labResults:
-            sanitizeLabResults(labResults) ?? Prisma.JsonNull,
+            sanitizeLabResults(labResults) ?? null,
 
           medications: {
             create:
@@ -548,7 +550,7 @@ export async function PATCH(request: NextRequest) {
               // never includes it, and must leave the existing value alone.
               labResults:
                 labResults !== undefined
-                  ? (sanitizeLabResults(labResults) ?? Prisma.JsonNull)
+                  ? (sanitizeLabResults(labResults) ?? null)
                   : undefined,
 
               medications: {
