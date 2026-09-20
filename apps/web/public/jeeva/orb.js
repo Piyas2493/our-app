@@ -36,16 +36,15 @@
     "error",
   ];
 
-  // Turmeric/brass accent, warm-grounded dark ground. Fallback palette
-  // per the build spec — replace if a reference screenshot arrives.
+  // Red accent, warm-grounded dark ground.
   // The tridosha triad (Vata/Pitta/Kapha) is reserved for dosha
   // attribution elsewhere in the app and is deliberately NOT used here;
   // the orb communicates system state, not clinical content.
   var COLOR = {
     bg: "#1a1512",
-    dim: "rgba(212, 160, 44, 0.35)",
-    accent: "#d4a02c",
-    accentBright: "#f0c25c",
+    dim: "rgba(212, 52, 44, 0.35)",
+    accent: "#d4342c",
+    accentBright: "#f0645c",
     critical: "#c65b45",
   };
 
