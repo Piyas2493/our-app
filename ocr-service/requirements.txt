@@ -2,6 +2,8 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 python-dotenv==1.0.1
-torch==2.5.1
-transformers==4.47.1
-Pillow==11.0.0
+torch
+transformers<5
+Pillow
+sentencepiece
+protobuf
