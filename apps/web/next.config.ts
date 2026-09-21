@@ -18,10 +18,12 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
-          // No legitimate reason for JeevanLink to be framed by
-          // another site -- a login-gated health app framed
-          // elsewhere is a clickjacking setup, not a real use case.
-          { key: "X-Frame-Options", value: "DENY" },
+          // SAMEORIGIN, not DENY -- records/page.tsx frames a medical
+          // document's own /api/.../document route inline (same origin)
+          // for the preview modal. DENY blocked that self-framing too;
+          // SAMEORIGIN still blocks the actual threat, a third-party
+          // site framing JeevanLink for clickjacking.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // Jeeva's mic capture happens in this same top-level page,
           // never a cross-origin iframe, so (self) covers it; every
