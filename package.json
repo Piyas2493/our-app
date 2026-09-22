@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@prisma/client": "^7.10.0",
-    "prisma": "^8.0.0-rc.12"
-  }
-}
