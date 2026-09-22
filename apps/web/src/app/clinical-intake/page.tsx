@@ -24,6 +24,8 @@ import {
 import { useLanguage } from "../../components/LanguageProvider";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { useAccessibility } from "../../components/AccessibilityProvider";
+import Sidebar from "../../components/Sidebar";
+import MobileSidebarToggle from "../../components/MobileSidebarToggle";
 import { CLINICAL_INTAKE_COPY as copy } from "../clinical-intake-copy";
 
 type IntakeMode = "GENERAL" | "AYUSH";
@@ -1102,7 +1104,10 @@ export default function ClinicalIntakePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f8f7] text-slate-900">
+    <main className="app-shell">
+      <Sidebar />
+
+      <section className="main-content min-h-screen bg-[#f4f8f7] text-slate-900">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute left-[5%] top-[8%] h-64 w-64 rounded-full bg-teal-200/20 blur-3xl" />
         <div className="absolute right-[5%] top-[22%] h-80 w-80 rounded-full bg-cyan-200/20 blur-3xl" />
@@ -1110,14 +1115,17 @@ export default function ClinicalIntakePage() {
 
       <div className="relative mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
         <header className="mb-6 flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white"
-          >
-            <ArrowLeft size={17} />
-            {text.backDashboard}
-          </button>
+          <div className="flex items-center gap-2">
+            <MobileSidebarToggle />
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white"
+            >
+              <ArrowLeft size={17} />
+              {text.backDashboard}
+            </button>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <AccessibilityToggle
               active={audioGuided}
@@ -1463,6 +1471,7 @@ export default function ClinicalIntakePage() {
           </aside>
         </section>
       </div>
+      </section>
     </main>
   );
 }

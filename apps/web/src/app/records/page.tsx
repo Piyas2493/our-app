@@ -28,6 +28,8 @@ import {
 import LogoutButton from "@/components/LogoutButton";
 import { useLanguage } from "@/components/LanguageProvider";
 import ClinicalIntakeSummary from "@/components/ClinicalIntakeSummary";
+import Sidebar from "@/components/Sidebar";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 type Medication = {
   name: string;
@@ -651,7 +653,10 @@ export default function RecordsPage() {
      ========================================================= */
 
   return (
-    <main className="min-h-screen bg-[#f5f7f7] text-slate-900">
+    <main className="app-shell">
+      <Sidebar />
+
+      <section className="main-content min-h-screen bg-[#f5f7f7] text-slate-900">
 
       <div className="mx-auto max-w-[1600px] px-6 py-8">
 
@@ -663,18 +668,21 @@ export default function RecordsPage() {
 
           <div>
 
-            <Link
-              href="/dashboard"
-              className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
-            >
+            <div className="mb-4 flex items-center gap-2">
+              <MobileSidebarToggle />
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
+              >
 
-              <ArrowLeft
-                size={16}
-              />
+                <ArrowLeft
+                  size={16}
+                />
 
-              {t("records.backDashboard")}
+                {t("records.backDashboard")}
 
-            </Link>
+              </Link>
+            </div>
 
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
               {t("records.eyebrow")}
@@ -1522,6 +1530,7 @@ export default function RecordsPage() {
 
       )}
 
+    </section>
     </main>
   );
 }

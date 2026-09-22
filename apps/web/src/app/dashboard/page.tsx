@@ -11,12 +11,8 @@ import {
   Bell,
   Bot,
   BrainCircuit,
-  Building2,
   FileText,
-  ClipboardList,
   HeartPulse,
-  LifeBuoy,
-  Link2,
   LogOut,
   Mic,
   Pill,
@@ -35,6 +31,7 @@ import { useRouter } from "next/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import MobileSidebarToggle from "@/components/MobileSidebarToggle";
+import Sidebar from "@/components/Sidebar";
 
 type MedicalRecord = {
   id: string;
@@ -218,113 +215,6 @@ function formatDate(
       month: "short",
     }
   );
-}
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-const navItems = [
-  {
-    label: "Dashboard",
-    icon: Activity,
-    active: true,
-    href: "/dashboard",
-  },
-
-  {
-    label: "Clinical Intake",
-    icon: ClipboardList,
-    href: "/clinical-intake",
-  },
-
-  {
-    label: "Health Records",
-    icon: FileText,
-    href: "/records",
-  },
-
-  {
-    label: "Health Timeline",
-    icon: Clock,
-    href: "/health-timeline",
-  },
-
-  {
-    label: "Prescriptions",
-    icon: Pill,
-    href: "/prescriptions",
-  },
-
-  {
-    label: "Vitals",
-    icon: HeartPulse,
-     href: "/vitals",
-  },
-
-  {
-    label: "Medication & Reminders",
-    icon: Bell,
-    href: "/medications",
-  },
-
-  {
-    label: "Personalized Health",
-    icon: BrainCircuit,
-    href: "/personalized-health",
-  },
-
-  {
-    label: "Hospitals & Labs",
-    icon: Building2,
-    href: "/hospitals-labs",
-  },
-
-  {
-    label: "Voice Assistant",
-    icon: Mic,
-    href: "/voice-assistant",
-  },
-
-  {
-    label: "FHIR / ABDM",
-    icon: Workflow,
-  },
-
-  {
-    label: "Consent & Privacy",
-    icon: ShieldCheck,
-    href: "/consent",
-  },
-
-  {
-    label: "Help & Support",
-    icon: LifeBuoy,
-    href: "/support",
-  },
-];
-
-function getNavLabel(
-  label: string,
-  t: (key: string) => string
-) {
-  const labels: Record<string, string> = {
-    "Dashboard": t("nav.dashboard"),
-    "Clinical Intake": t("nav.clinicalIntake"),
-    "Health Records": t("nav.records"),
-    "Health Timeline": t("nav.timeline"),
-    "Prescriptions": t("nav.prescriptions"),
-    "Vitals": t("nav.vitals"),
-    "Medication & Reminders": t("nav.medications"),
-    "Personalized Health": t("nav.personalizedHealth"),
-    "Hospitals & Labs": t("nav.hospitalsLabs"),
-    "Voice Assistant": t("nav.voiceAssistant"),
-    "FHIR / ABDM": t("nav.fhir"),
-    "Consent & Privacy": t("nav.consent"),
-    "Help & Support": t("nav.support"),
-  };
-
-  return labels[label] ?? label;
 }
 
 /* =========================================================
@@ -1059,20 +949,6 @@ export default function Home() {
       : "there";
 
   /* =======================================================
-     NAVIGATION
-     ======================================================= */
-
-  function handleNavClick(
-    item: (typeof navItems)[number]
-  ) {
-    if (item.href) {
-      router.push(
-        item.href
-      );
-    }
-  }
-
-  /* =======================================================
      REFRESH
      ======================================================= */
 
@@ -1142,133 +1018,10 @@ export default function Home() {
           SIDEBAR
           =================================================== */}
 
-      <aside className="sidebar">
-
-        <div className="brand">
-
-          <div className="brand-icon">
-
-            <Link2
-              size={30}
-            />
-
-          </div>
-
-          <div>
-
-            <h1>
-              JeevanLink
-            </h1>
-
-            <p>
-              {t("app.tagline")}
-            </p>
-
-          </div>
-
-        </div>
-
-        <div className="sidebar-label">
-          {t("app.continuityCentre")}
-        </div>
-
-        <nav className="nav-menu">
-
-          {navItems.map(
-            (item) => {
-              const Icon =
-                item.icon;
-
-              return (
-                <button
-                  key={
-                    item.label
-                  }
-                  type="button"
-                  onClick={() =>
-                    handleNavClick(
-                      item
-                    )
-                  }
-                  disabled={
-                    !item.href
-                  }
-                  className={`nav-item ${
-                    item.active
-                      ? "active"
-                      : ""
-                  } ${
-                    !item.href
-                      ? "cursor-default opacity-60"
-                      : ""
-                  }`}
-                >
-
-                  <Icon
-                    size={21}
-                    strokeWidth={
-                      1.8
-                    }
-                  />
-
-                  <span>
-                    {getNavLabel(item.label, t)}
-                  </span>
-
-                  {item.label ===
-                    "Prescriptions" &&
-                    stats.attentionRecords >
-                      0 && (
-                      <span className="nav-badge red">
-                        {
-                          stats.attentionRecords
-                        }
-                      </span>
-                    )}
-
-                  {item.label ===
-                    "Medication & Reminders" &&
-                    stats.activeReminderCount >
-                      0 && (
-                      <span className="nav-badge orange">
-                        {
-                          stats.activeReminderCount
-                        }
-                      </span>
-                    )}
-
-                </button>
-              );
-            }
-          )}
-
-        </nav>
-
-        <div className="sidebar-bottom">
-
-          <div className="workspace-card">
-
-            <ShieldCheck
-              size={28}
-            />
-
-            <div>
-
-              <strong>
-                {t("app.prototypeWorkspace")}
-              </strong>
-
-              <p>
-                {t("app.aiDisclaimer")}
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </aside>
+      <Sidebar
+        attentionRecordsCount={stats.attentionRecords}
+        activeReminderCount={stats.activeReminderCount}
+      />
 
       {/* ===================================================
           MAIN

@@ -27,6 +27,8 @@ import {
 
 import LogoutButton from "@/components/LogoutButton";
 import { useLanguage } from "@/components/LanguageProvider";
+import Sidebar from "@/components/Sidebar";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 type Medication = {
   name: string;
@@ -813,7 +815,9 @@ export default function PrescriptionsPage() {
      ========================================================= */
 
   return (
-    <main className="min-h-screen bg-[#f5f7f7] px-5 py-5 md:px-8 lg:px-12">
+    <main className="app-shell">
+      <Sidebar />
+      <section className="main-content min-h-screen bg-[#f5f7f7] px-5 py-5 md:px-8 lg:px-12">
 
       {/* =====================================================
           HERO
@@ -829,13 +833,16 @@ export default function PrescriptionsPage() {
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
 
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900"
-              >
-                <ArrowLeft size={17} />
-                {t("prescriptions.backDashboard")}
-              </Link>
+              <div className="flex items-center gap-2">
+                <MobileSidebarToggle />
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900"
+                >
+                  <ArrowLeft size={17} />
+                  {t("prescriptions.backDashboard")}
+                </Link>
+              </div>
 
               <LogoutButton />
 
@@ -1747,6 +1754,7 @@ export default function PrescriptionsPage() {
 
       </section>
 
+    </section>
     </main>
   );
 }

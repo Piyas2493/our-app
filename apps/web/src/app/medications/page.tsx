@@ -27,6 +27,8 @@ import {
 import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
+import Sidebar from "@/components/Sidebar";
+import MobileSidebarToggle from "@/components/MobileSidebarToggle";
 
 /* =========================================================
    TYPES
@@ -561,7 +563,9 @@ export default function MedicationsPage() {
      ========================================================= */
 
   return (
-    <main className="min-h-screen bg-[#f5f7f7] text-slate-900">
+    <main className="app-shell">
+      <Sidebar />
+      <section className="main-content min-h-screen bg-[#f5f7f7] text-slate-900">
       <div className="mx-auto max-w-[1500px] px-6 py-8">
 
         {/* =================================================
@@ -571,16 +575,19 @@ export default function MedicationsPage() {
         <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
 
           <div>
-            <Link
-              href="/dashboard"
-              className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
-            >
-              <ArrowLeft
-                size={16}
-              />
+            <div className="mb-4 flex items-center gap-2">
+              <MobileSidebarToggle />
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
+              >
+                <ArrowLeft
+                  size={16}
+                />
 
-              {t("medications.backDashboard")}
-            </Link>
+                {t("medications.backDashboard")}
+              </Link>
+            </div>
 
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
               {t("medications.eyebrow")}
@@ -1405,6 +1412,7 @@ export default function MedicationsPage() {
         </div>
 
       </div>
+    </section>
     </main>
   );
 }
