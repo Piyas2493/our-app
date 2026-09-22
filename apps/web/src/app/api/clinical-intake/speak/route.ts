@@ -1,5 +1,7 @@
+import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/app/lib/auth";
+import { generateGeminiWithRetry, getErrorMessage } from "@/app/lib/geminiRetry";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -134,25 +136,14 @@ Text:
 ${text}
 `;
 
-    const geminiResponse = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
+    const ai = new GoogleGenAI({ apiKey });
+
+    const response = await generateGeminiWithRetry(
+      () =>
+        ai.models.generateContent({
+          model: "gemini-3.1-flash-tts-preview",
+          contents: prompt,
+          config: {
             responseModalities: ["AUDIO"],
             speechConfig: {
               voiceConfig: {
@@ -163,45 +154,13 @@ ${text}
             },
           },
         }),
-      },
+      { label: "Clinical intake TTS" },
     );
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-
-      console.error(
-        "Gemini TTS error:",
-        geminiResponse.status,
-        errorText,
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Gemini speech generation failed.",
-          details: errorText,
-        },
-        { status: 502 },
-      );
-    }
-
-    const data = await geminiResponse.json();
-
-    const base64Audio =
-      data?.candidates?.[0]?.content?.parts?.find(
-        (part: {
-          inlineData?: {
-            data?: string;
-          };
-        }) => Boolean(part?.inlineData?.data),
-      )?.inlineData?.data;
+    const base64Audio = response.data;
 
     if (!base64Audio) {
-      console.error(
-        "No audio returned by Gemini:",
-        JSON.stringify(data).slice(0, 3000),
-      );
+      console.error("No audio returned by Gemini.");
 
       return NextResponse.json(
         {
@@ -240,10 +199,7 @@ ${text}
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to generate the spoken explanation.",
+        error: getErrorMessage(error) || "Unable to generate the spoken explanation.",
       },
       { status: 500 },
     );
