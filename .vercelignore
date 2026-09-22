@@ -1,0 +1,7 @@
+# jeeva/ and ocr-service/ are separate Python services deployed on Render,
+# not Vercel -- but Vercel's zero-config Python detection scans the whole
+# repo for requirements.txt regardless of the project's Root Directory
+# setting, and was trying to build ocr-service (torch + transformers) as
+# a stray serverless function, failing on Vercel's 500MB function-size cap.
+jeeva/
+ocr-service/
