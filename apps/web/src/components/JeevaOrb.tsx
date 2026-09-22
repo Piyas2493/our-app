@@ -475,8 +475,14 @@ export default function JeevaOrb({
       }
     } else {
       try {
+        // 4s was fine against a locally-running jeeva, but Render's free
+        // tier spins the service down after inactivity and can take
+        // 30-50s to wake it back up on the next request -- the exact
+        // case a judge tapping the orb cold will hit. orb.wake() above
+        // already shows a "waking" animation for the whole wait, so a
+        // longer timeout here doesn't look frozen, it looks alive.
         const response = await fetch(`${JEEVA_SERVICE_URL}/health`, {
-          signal: AbortSignal.timeout(4000),
+          signal: AbortSignal.timeout(60000),
         });
         const body = await response.json();
 
