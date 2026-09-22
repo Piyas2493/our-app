@@ -3,5 +3,10 @@
 # repo for requirements.txt regardless of the project's Root Directory
 # setting, and was trying to build ocr-service (torch + transformers) as
 # a stray serverless function, failing on Vercel's 500MB function-size cap.
-jeeva/
-ocr-service/
+#
+# Leading slash matters: an unanchored "jeeva/" matches a directory named
+# jeeva at ANY depth (same rule as .gitignore) -- it was also excluding
+# apps/web/public/jeeva/, which holds the orb's real orb.js/mic.js static
+# assets, breaking the orb on the live site. Anchor to the repo root only.
+/jeeva/
+/ocr-service/
