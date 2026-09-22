@@ -92,13 +92,6 @@ TTS_SERVICE_ID_BY_LANGUAGE = {
     "ml": _TTS_DRAVIDIAN,
 }
 
-# Found via Bhashini's own docs (2026-09-14, same MCP server that corrected
-# the ASR/TTS flow above): a dedicated audio-lang-detection task, covering
-# exactly JeevanLink's 12 supported languages. Used so a spoken turn is
-# transcribed (and replied to) in whatever language was actually spoken,
-# not whichever language the app's UI happens to be set to.
-AUDIO_LANG_DETECTION_SERVICE_ID = "bhashini/iitmandi/audio-lang-detection/gpu"
-
 
 class BhashiniError(Exception):
     """Raised for any Bhashini call failure -- main.py turns this into a
@@ -185,37 +178,6 @@ def transcribe(wav_bytes: bytes, source_language: str) -> str:
         return result["pipelineResponse"][0]["output"][0]["source"].strip()
     except (KeyError, IndexError) as error:
         raise BhashiniError(f"Unexpected ASR response shape: {error}") from error
-
-
-def detect_language(wav_bytes: bytes) -> str | None:
-    """Identifies which of JeevanLink's 12 languages is actually being
-    spoken in wav_bytes. Returns None (never raises) on any failure or an
-    unrecognized/unsupported result -- this is an enhancement over a
-    caller-supplied language, not a hard requirement, so a detection
-    problem should fall back silently rather than break /listen."""
-    body = {
-        "pipelineTasks": [
-            {
-                "taskType": "audio-lang-detection",
-                "config": {"serviceId": AUDIO_LANG_DETECTION_SERVICE_ID},
-            }
-        ],
-        "inputData": {"audio": [{"audioContent": base64.b64encode(wav_bytes).decode("ascii")}]},
-    }
-
-    try:
-        result = _post(body)
-        predictions = result["pipelineResponse"][0]["output"][0]["langPrediction"]
-        lang_code = predictions[0]["langCode"]
-    except (BhashiniError, KeyError, IndexError, TypeError) as error:
-        logger.warning("Audio language detection failed, falling back to caller-supplied language: %s", error)
-        return None
-
-    if lang_code not in TTS_SERVICE_ID_BY_LANGUAGE:
-        logger.warning("Audio language detection returned unsupported code %r, ignoring", lang_code)
-        return None
-
-    return lang_code
 
 
 def synthesize(text: str, language: str, gender: str = "female") -> bytes:

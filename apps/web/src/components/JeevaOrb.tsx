@@ -389,12 +389,13 @@ export default function JeevaOrb({
         throw new Error(body.detail || body.message || `Transcription failed (${response.status}).`);
       }
 
-      // /listen detects the language actually spoken (falling back to
-      // languageRef.current, the app's UI setting, only if detection
-      // failed) -- reply in THAT language, not necessarily the UI's, so
-      // speaking Bengali gets a Bengali reply even if the UI is in
-      // English.
-      const { transcript, language: spokenLanguage } = (await response.json()) as {
+      // /listen used to try detecting the language actually spoken and
+      // reply in that instead of the UI's setting -- reverted 2026-09-22,
+      // Bhashini's detector wasn't reliable enough (confirmed: English
+      // speech, English UI, detector said Hindi, which also corrupted
+      // the transcript since it told ASR to transcribe as Hindi). /listen
+      // now always echoes back the language it was given.
+      const { transcript, language: echoedLanguage } = (await response.json()) as {
         transcript?: string;
         language?: string;
       };
@@ -402,7 +403,7 @@ export default function JeevaOrb({
         resumeListening();
         return;
       }
-      const replyLanguage = spokenLanguage || languageRef.current;
+      const replyLanguage = echoedLanguage || languageRef.current;
 
       const { answer, navigateTo } = await askAssistant(transcript, replyLanguage);
       if (navigateTo) {
