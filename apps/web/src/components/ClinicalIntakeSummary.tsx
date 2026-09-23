@@ -1,5 +1,4 @@
 import {
-  AYUSH_FIELD_LABELS,
   HPI_FIELD_LABELS,
   parseClinicalIntake,
 } from "@/app/lib/clinicalIntake";
@@ -86,7 +85,6 @@ export default function ClinicalIntakeSummary({
   if (!draft) return <>{fallback}</>;
 
   const hpiEntries = HPI_FIELD_LABELS.filter(([field]) => hasText(draft.hpi[field]));
-  const ayushEntries = AYUSH_FIELD_LABELS.filter(([key]) => hasText(draft.ayush[key]));
   const personalHistoryEntries = Object.entries(draft.personalHistory).filter(
     ([, value]) => hasText(value)
   );
@@ -149,22 +147,6 @@ export default function ClinicalIntakeSummary({
               <div key={key}>
                 <dt className="text-xs capitalize text-slate-400">{key}</dt>
                 <dd className="text-sm text-slate-700">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      )}
-
-      {ayushEntries.length > 0 && (
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Ayurvedic assessment (Dashavidha Pariksha)
-          </h4>
-          <dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-            {ayushEntries.map(([key, label]) => (
-              <div key={key}>
-                <dt className="text-xs text-slate-400">{label}</dt>
-                <dd className="text-sm text-slate-700">{draft.ayush[key]}</dd>
               </div>
             ))}
           </dl>

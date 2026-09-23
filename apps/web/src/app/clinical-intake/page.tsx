@@ -28,7 +28,6 @@ import Sidebar from "../../components/Sidebar";
 import MobileSidebarToggle from "../../components/MobileSidebarToggle";
 import { CLINICAL_INTAKE_COPY as copy } from "../clinical-intake-copy";
 
-type IntakeMode = "GENERAL" | "AYUSH";
 type ComplaintCategory = "chestPain" | "fever" | "cough" | "abdominalPain" | "headache" | "general";
 type HistoryState = {
   chiefComplaint: string;
@@ -53,7 +52,6 @@ type HistoryState = {
   occupation: string;
   ros: string;
   investigations: string;
-  ayush: Record<string, string>;
 };
 
 const languageLocales: Record<string, string> = {
@@ -70,50 +68,6 @@ const languageLocales: Record<string, string> = {
   or: "or-IN",
   as: "as-IN",
 };
-
-const ayushFields = [
-  ["prakriti", "Prakriti"],
-  ["prakritiNotes", "Prakriti notes"],
-  ["vikriti", "Vikriti"],
-  ["vikritiNotes", "Vikriti notes"],
-  ["sara", "Sara"],
-  ["saraNotes", "Sara notes"],
-  ["samhanana", "Samhanana"],
-  ["samhananaNotes", "Samhanana notes"],
-  ["pramana", "Pramana"],
-  ["pramanaNotes", "Pramana notes"],
-  ["satmya", "Satmya"],
-  ["satmyaNotes", "Satmya notes"],
-  ["sattva", "Sattva"],
-  ["sattvaNotes", "Sattva notes"],
-  ["abhyavaharanaShakti", "Abhyavaharana Shakti"],
-  ["jaranaShakti", "Jarana Shakti"],
-  ["aharaShaktiNotes", "Ahara Shakti notes"],
-  ["vyayamaShakti", "Vyayama Shakti"],
-  ["vyayamaShaktiNotes", "Vyayama Shakti notes"],
-  ["vaya", "Vaya"],
-  ["vayaYears", "Exact age (years)"],
-  ["aharaVihara", "Ahara-Vihara"],
-  ["nidana", "Nidana"],
-  ["samprapti", "Samprapti"],
-] as const;
-
-// Dashavidha Pariksha (ten-fold examination) selectable option sets.
-// Values are stable identifiers persisted in history.ayush; labels are
-// resolved from the localized copy object at render/summary time.
-const doshaOptionValues = [
-  "vata",
-  "pitta",
-  "kapha",
-  "vata-pitta",
-  "pitta-kapha",
-  "vata-kapha",
-  "sama",
-] as const;
-
-const gradeOptionValues = ["pravara", "madhyama", "avara"] as const;
-const satmyaOptionValues = ["sama", "vishama", "ekarasa"] as const;
-const vayaOptionValues = ["bala", "madhyama", "vriddha"] as const;
 
 const defaultState: HistoryState = {
   chiefComplaint: "",
@@ -138,7 +92,6 @@ const defaultState: HistoryState = {
   occupation: "",
   ros: "",
   investigations: "",
-  ayush: Object.fromEntries(ayushFields.map(([key]) => [key, ""])),
 };
 
 const steps = ["consent", "complaint", "hpi", "history", "review", "reviewSubmit"] as const;
@@ -209,7 +162,6 @@ export default function ClinicalIntakePage() {
   const [userName, setUserName] = useState("Patient");
   const [correctionRecordId, setCorrectionRecordId] = useState<string | null>(null);
   const [loadingCorrection, setLoadingCorrection] = useState(false);
-  const [mode, setMode] = useState<IntakeMode>("GENERAL");
   const [step, setStep] = useState(0);
   const [history, setHistory] = useState<HistoryState>(defaultState);
   const [complaintCategory, setComplaintCategory] = useState<ComplaintCategory>("general");
@@ -309,8 +261,6 @@ export default function ClinicalIntakePage() {
           intake.reviewOfSystems && typeof intake.reviewOfSystems === "object"
             ? intake.reviewOfSystems
             : {};
-        const ayush = intake.ayush && typeof intake.ayush === "object" ? intake.ayush : {};
-
         const toText = (value: unknown) =>
           Array.isArray(value)
             ? value.filter((item) => item != null && String(item).trim()).map(String).join("\n")
@@ -320,9 +270,6 @@ export default function ClinicalIntakePage() {
 
         const nextHistory: HistoryState = {
           ...defaultState,
-          ayush: Object.fromEntries(
-            ayushFields.map(([key]) => [key, toText(ayush[key])]),
-          ),
           chiefComplaint: toText(intake.chiefComplaint),
           onset: toText(hpi.onset),
           duration: toText(hpi.duration),
@@ -349,7 +296,6 @@ export default function ClinicalIntakePage() {
 
         if (cancelled) return;
 
-        setMode(intake.mode === "AYUSH" ? "AYUSH" : "GENERAL");
         setConsent({
           clinicalHistory: Boolean(intake.consent?.clinicalHistory),
           documentProcessing: Boolean(intake.consent?.documentProcessing),
@@ -419,7 +365,6 @@ export default function ClinicalIntakePage() {
   }, []);
 
   const progress = ((step + 1) / steps.length) * 100;
-  const ayushMode = mode === "AYUSH";
 
   function updateField(field: keyof HistoryState, value: string) {
     setHistory((current) => ({ ...current, [field]: value }));
@@ -435,81 +380,6 @@ export default function ClinicalIntakePage() {
   function selectQuickComplaint(category: ComplaintCategory, label: string) {
     setHistory((current) => ({ ...current, chiefComplaint: label }));
     setComplaintCategory(category);
-  }
-
-  function updateAyushField(field: string, value: string) {
-    setHistory((current) => ({
-      ...current,
-      ayush: { ...current.ayush, [field]: value },
-    }));
-  }
-
-  // Dashavidha Pariksha option sets, localized. Built from the same
-  // stable identifiers stored in history.ayush so the selected pill
-  // stays correctly highlighted when the language is switched mid-form.
-  const doshaLabels: Record<string, string> = {
-    vata: text.doshaVata,
-    pitta: text.doshaPitta,
-    kapha: text.doshaKapha,
-    "vata-pitta": text.doshaVataPitta,
-    "pitta-kapha": text.doshaPittaKapha,
-    "vata-kapha": text.doshaVataKapha,
-    sama: text.doshaSama,
-  };
-  const gradeLabels: Record<string, string> = {
-    pravara: text.gradePravara,
-    madhyama: text.gradeMadhyama,
-    avara: text.gradeAvara,
-  };
-  const satmyaLabels: Record<string, string> = {
-    sama: text.satmyaSama,
-    vishama: text.satmyaVishama,
-    ekarasa: text.satmyaEkaRasa,
-  };
-  const vayaLabels: Record<string, string> = {
-    bala: text.vayaBala,
-    madhyama: text.vayaMadhyama,
-    vriddha: text.vayaVriddha,
-  };
-
-  const doshaOptions: PillOption[] = doshaOptionValues.map((value) => ({ value, label: doshaLabels[value] }));
-  const vikritiOptions: PillOption[] = [...doshaOptions, { value: "none", label: text.vikritiNoImbalance }];
-  const gradeOptions: PillOption[] = gradeOptionValues.map((value) => ({ value, label: gradeLabels[value] }));
-  const satmyaOptions: PillOption[] = satmyaOptionValues.map((value) => ({ value, label: satmyaLabels[value] }));
-  const vayaOptions: PillOption[] = vayaOptionValues.map((value) => ({ value, label: vayaLabels[value] }));
-
-  // Renders the captured Dashavidha Pariksha as readable review lines,
-  // resolving stored identifiers back to their localized labels.
-  function formatDashavidhaSummary(ayush: Record<string, string>): string {
-    const lines: string[] = [];
-
-    function pushLine(title: string, valueLabel: string | undefined, notes?: string) {
-      const parts = [valueLabel, notes].filter((part): part is string => Boolean(part));
-      if (parts.length) lines.push(`${title}: ${parts.join(" — ")}`);
-    }
-
-    pushLine(text.prakritiTitle, doshaLabels[ayush.prakriti], ayush.prakritiNotes);
-    pushLine(text.vikritiTitle, ayush.vikriti === "none" ? text.vikritiNoImbalance : doshaLabels[ayush.vikriti], ayush.vikritiNotes);
-    pushLine(text.saraTitle, gradeLabels[ayush.sara], ayush.saraNotes);
-    pushLine(text.samhananaTitle, gradeLabels[ayush.samhanana], ayush.samhananaNotes);
-    pushLine(text.pramanaTitle, gradeLabels[ayush.pramana], ayush.pramanaNotes);
-    pushLine(text.satmyaTitle, satmyaLabels[ayush.satmya], ayush.satmyaNotes);
-    pushLine(text.sattvaTitle, gradeLabels[ayush.sattva], ayush.sattvaNotes);
-
-    const aharaShaktiParts = [
-      gradeLabels[ayush.abhyavaharanaShakti] && `${text.abhyavaharanaShaktiLabel}: ${gradeLabels[ayush.abhyavaharanaShakti]}`,
-      gradeLabels[ayush.jaranaShakti] && `${text.jaranaShaktiLabel}: ${gradeLabels[ayush.jaranaShakti]}`,
-    ].filter(Boolean).join("; ");
-    pushLine(text.aharaShaktiTitle, aharaShaktiParts || undefined, ayush.aharaShaktiNotes);
-
-    pushLine(text.vyayamaShaktiTitle, gradeLabels[ayush.vyayamaShakti], ayush.vyayamaShaktiNotes);
-    pushLine(text.vayaTitle, vayaLabels[ayush.vaya], ayush.vayaYears ? `${ayush.vayaYears}` : undefined);
-
-    if (ayush.aharaVihara) lines.push(`${text.aharaVihara}: ${ayush.aharaVihara}`);
-    if (ayush.nidana) lines.push(`${text.nidana}: ${ayush.nidana}`);
-    if (ayush.samprapti) lines.push(`${text.samprapti}: ${ayush.samprapti}`);
-
-    return lines.join("\n");
   }
 
   async function say(textToSpeak: string) {
@@ -950,7 +820,6 @@ export default function ClinicalIntakePage() {
 
       const intakePayload = {
         preferredLanguage: lang,
-        mode,
         consent,
         chiefComplaint: history.chiefComplaint,
         hpi: {
@@ -996,7 +865,6 @@ export default function ClinicalIntakePage() {
           .split(/\n|,/)
           .map((v) => v.trim())
           .filter(Boolean),
-        ayush: history.ayush,
         sourceDocuments: storedDocuments.map((document) => ({
           name: document.name,
           type: document.type,
@@ -1241,19 +1109,6 @@ export default function ClinicalIntakePage() {
                   ))}
                 </div>
 
-                <div className="mt-7">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">{text.historyMode}</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button type="button" onClick={() => setMode("GENERAL")} className={`rounded-2xl border p-4 text-left transition ${mode === "GENERAL" ? "border-teal-500 bg-teal-50 ring-2 ring-teal-100" : "border-slate-200 hover:bg-slate-50"}`}>
-                      <div className="flex items-center gap-3"><Stethoscope size={19} className="text-teal-700" /><span className="font-semibold">{text.general}</span></div>
-                      <p className="mt-2 text-xs text-slate-500">{text.generalDescription}</p>
-                    </button>
-                    <button type="button" onClick={() => setMode("AYUSH")} className={`rounded-2xl border p-4 text-left transition ${mode === "AYUSH" ? "border-teal-500 bg-teal-50 ring-2 ring-teal-100" : "border-slate-200 hover:bg-slate-50"}`}>
-                      <div className="flex items-center gap-3"><Sparkles size={19} className="text-teal-700" /><span className="font-semibold">{text.ayush}</span></div>
-                      <p className="mt-2 text-xs text-slate-500">{text.ayushDescription}</p>
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1306,52 +1161,6 @@ export default function ClinicalIntakePage() {
                   <TextArea label={text.smoking} value={history.smoking} onChange={(value) => updateField("smoking", value)} placeholder={text.enterAnswer} />
                   <TextArea label={text.alcohol} value={history.alcohol} onChange={(value) => updateField("alcohol", value)} placeholder={text.enterAnswer} />
                 </div>
-                {ayushMode && (
-                  <div className="mt-7 rounded-3xl border border-teal-100 bg-teal-50/50 p-5">
-                    <div className="mb-4 flex items-center gap-3"><Sparkles size={20} className="text-teal-700" /><div><h3 className="font-semibold">{text.dashavidhaReviewTitle}</h3><p className="text-xs text-slate-500">{text.ayushIntro}</p></div></div>
-
-                    <div className="space-y-4">
-                      <DashavidhaParam title={text.prakritiTitle} description={text.prakritiDescription} value={history.ayush.prakriti} onChange={(value) => updateAyushField("prakriti", value)} options={doshaOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.prakritiNotes} onNotesChange={(value) => updateAyushField("prakritiNotes", value)} />
-                      <DashavidhaParam title={text.vikritiTitle} description={text.vikritiDescription} value={history.ayush.vikriti} onChange={(value) => updateAyushField("vikriti", value)} options={vikritiOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.vikritiNotes} onNotesChange={(value) => updateAyushField("vikritiNotes", value)} />
-                      <DashavidhaParam title={text.saraTitle} description={text.saraDescription} value={history.ayush.sara} onChange={(value) => updateAyushField("sara", value)} options={gradeOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.saraNotes} onNotesChange={(value) => updateAyushField("saraNotes", value)} />
-                      <DashavidhaParam title={text.samhananaTitle} description={text.samhananaDescription} value={history.ayush.samhanana} onChange={(value) => updateAyushField("samhanana", value)} options={gradeOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.samhananaNotes} onNotesChange={(value) => updateAyushField("samhananaNotes", value)} />
-                      <DashavidhaParam title={text.pramanaTitle} description={text.pramanaDescription} value={history.ayush.pramana} onChange={(value) => updateAyushField("pramana", value)} options={gradeOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.pramanaNotes} onNotesChange={(value) => updateAyushField("pramanaNotes", value)} />
-                      <DashavidhaParam title={text.satmyaTitle} description={text.satmyaDescription} value={history.ayush.satmya} onChange={(value) => updateAyushField("satmya", value)} options={satmyaOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.satmyaNotes} onNotesChange={(value) => updateAyushField("satmyaNotes", value)} />
-                      <DashavidhaParam title={text.sattvaTitle} description={text.sattvaDescription} value={history.ayush.sattva} onChange={(value) => updateAyushField("sattva", value)} options={gradeOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.sattvaNotes} onNotesChange={(value) => updateAyushField("sattvaNotes", value)} />
-
-                      <div className="rounded-2xl border border-white bg-white/70 p-4">
-                        <p className="text-sm font-semibold text-slate-800">{text.aharaShaktiTitle}</p>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">{text.aharaShaktiDescription}</p>
-                        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <p className="mb-2 text-xs font-semibold text-slate-600">{text.abhyavaharanaShaktiLabel}</p>
-                            <PillGroup value={history.ayush.abhyavaharanaShakti} onChange={(value) => updateAyushField("abhyavaharanaShakti", value)} options={gradeOptions} />
-                          </div>
-                          <div>
-                            <p className="mb-2 text-xs font-semibold text-slate-600">{text.jaranaShaktiLabel}</p>
-                            <PillGroup value={history.ayush.jaranaShakti} onChange={(value) => updateAyushField("jaranaShakti", value)} options={gradeOptions} />
-                          </div>
-                        </div>
-                        <textarea value={history.ayush.aharaShaktiNotes} onChange={(event) => updateAyushField("aharaShaktiNotes", event.target.value)} placeholder={text.dashavidhaNotesPlaceholder} rows={2} className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
-                      </div>
-
-                      <DashavidhaParam title={text.vyayamaShaktiTitle} description={text.vyayamaShaktiDescription} value={history.ayush.vyayamaShakti} onChange={(value) => updateAyushField("vyayamaShakti", value)} options={gradeOptions} notesLabel={text.dashavidhaNotesPlaceholder} notesValue={history.ayush.vyayamaShaktiNotes} onNotesChange={(value) => updateAyushField("vyayamaShaktiNotes", value)} />
-
-                      <div className="rounded-2xl border border-white bg-white/70 p-4">
-                        <p className="text-sm font-semibold text-slate-800">{text.vayaTitle}</p>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">{text.vayaDescription}</p>
-                        <div className="mt-3"><PillGroup value={history.ayush.vaya} onChange={(value) => updateAyushField("vaya", value)} options={vayaOptions} /></div>
-                        <input type="number" min={0} max={130} value={history.ayush.vayaYears} onChange={(event) => updateAyushField("vayaYears", event.target.value)} placeholder={text.vayaYearsLabel} className="mt-3 w-full max-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <TextArea label={text.aharaVihara} value={history.ayush.aharaVihara} onChange={(value) => updateAyushField("aharaVihara", value)} placeholder={text.aharaViharaPlaceholder} rows={3} />
-                        <TextArea label={text.nidana} value={history.ayush.nidana} onChange={(value) => updateAyushField("nidana", value)} placeholder={text.nidanaPlaceholder} rows={3} />
-                        <TextArea label={text.samprapti} value={history.ayush.samprapti} onChange={(value) => updateAyushField("samprapti", value)} placeholder={text.sampraptiPlaceholder} rows={3} />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1416,7 +1225,6 @@ export default function ClinicalIntakePage() {
                   <SummaryBlock title={text.pastTitle} value={[history.pastMedical, history.pastSurgical, history.medications, history.allergies].filter(Boolean).join(" • ")} emptyLabel={text.notReported} />
                   <SummaryBlock title={`${text.family} / ${text.occupation}`} value={[history.family, history.occupation, history.diet, history.sleep, history.smoking, history.alcohol].filter(Boolean).join(" • ")} emptyLabel={text.notReported} />
                   <SummaryBlock title={text.investigations} value={history.investigations} emptyLabel={text.notReported} />
-                  {ayushMode && <SummaryBlock title={text.dashavidhaReviewTitle} value={formatDashavidhaSummary(history.ayush)} emptyLabel={text.notReported} />}
                 </div>
                 {submitError && <div className="mt-5 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{submitError}</div>}
               </div>
@@ -1576,43 +1384,3 @@ function PillGroup({ value, onChange, options }: { value: string; onChange: (val
   );
 }
 
-// A single Dashavidha Pariksha parameter: classical definition, a
-// closed set of standard categorical choices (never free-typed, so the
-// captured value stays a clean, comparable classical term), and an
-// optional free-text note for clinician-facing nuance.
-function DashavidhaParam({
-  title,
-  description,
-  value,
-  onChange,
-  options,
-  notesLabel,
-  notesValue,
-  onNotesChange,
-}: {
-  title: string;
-  description: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: PillOption[];
-  notesLabel: string;
-  notesValue: string;
-  onNotesChange: (value: string) => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-white bg-white/70 p-4">
-      <p className="text-sm font-semibold text-slate-800">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
-      <div className="mt-3">
-        <PillGroup value={value} onChange={onChange} options={options} />
-      </div>
-      <textarea
-        value={notesValue}
-        onChange={(event) => onNotesChange(event.target.value)}
-        placeholder={notesLabel}
-        rows={2}
-        className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-      />
-    </div>
-  );
-}

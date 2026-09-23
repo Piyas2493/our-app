@@ -36,7 +36,6 @@ import VitalTrendPanel from "@/components/clinician/VitalTrendPanel";
 import ClinicalHistoryPanel from "@/components/clinician/ClinicalHistoryPanel";
 import {
   ClinicalIntakeDraft,
-  AYUSH_FIELD_LABELS,
   INTAKE_LANGUAGE_NAMES,
   HPI_FIELD_LABELS,
   parseClinicalIntake,
@@ -409,8 +408,7 @@ function getLatestVitals(
 /* =========================================================
    CLINICAL INTAKE REVIEW
    Structured, field-by-field editing of a patient-reported
-   clinical intake draft, including the Dashavidha Pariksha
-   (AYUSH) fields when the patient chose AYUSH-mode intake.
+   clinical intake draft.
    ========================================================= */
 
 function IntakeField({
@@ -597,10 +595,6 @@ function ClinicalIntakeReview({
   onChange: (value: ClinicalIntakeDraft) => void;
   disabled: boolean;
 }) {
-  const isAyush =
-    draft.mode === "AYUSH" ||
-    AYUSH_FIELD_LABELS.some(([key]) => (draft.ayush[key] || "").trim());
-
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-4">
@@ -759,38 +753,6 @@ function ClinicalIntakeReview({
                   })
                 }
                 disabled={disabled}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isAyush && (
-        <div className="rounded-2xl border border-teal-100 bg-white p-5">
-          <div className="mb-1 flex items-center gap-2">
-            <Activity size={20} className="text-teal-700" />
-            <h3 className="font-semibold">
-              Dashavidha Pariksha (AYUSH assessment)
-            </h3>
-          </div>
-          <p className="mb-4 text-sm text-slate-500">
-            Patient-reported, in their own words. Verify against clinical
-            judgment — this is not a scored or diagnostic instrument.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            {AYUSH_FIELD_LABELS.map(([key, label]) => (
-              <IntakeField
-                key={key}
-                label={label}
-                value={draft.ayush[key] || ""}
-                onChange={(value) =>
-                  onChange({
-                    ...draft,
-                    ayush: { ...draft.ayush, [key]: value },
-                  })
-                }
-                disabled={disabled}
-                multiline
               />
             ))}
           </div>

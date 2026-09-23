@@ -15,7 +15,6 @@
 
 export type ClinicalIntakeDraft = {
   preferredLanguage?: string;
-  mode?: string;
   consent?: Record<string, boolean>;
   chiefComplaint: string;
   hpi: {
@@ -43,7 +42,6 @@ export type ClinicalIntakeDraft = {
   };
   reviewOfSystems: Record<string, string>;
   priorInvestigations: string[];
-  ayush: Record<string, string>;
   redFlags: string[];
   sourceDocuments?: Array<{ name: string; type: string; url: string }>;
   englishTranslation?: ClinicalIntakeTranslation | null;
@@ -66,33 +64,6 @@ export type ClinicalIntakeTranslation = {
   familyHistory: string[];
   priorInvestigations: string[];
 };
-
-export const AYUSH_FIELD_LABELS: Array<[string, string]> = [
-  ["prakriti", "Prakriti (constitution)"],
-  ["prakritiNotes", "Prakriti — clinician notes"],
-  ["vikriti", "Vikriti (current imbalance)"],
-  ["vikritiNotes", "Vikriti — clinician notes"],
-  ["sara", "Sara (tissue quality)"],
-  ["saraNotes", "Sara — clinician notes"],
-  ["samhanana", "Samhanana (body build)"],
-  ["samhananaNotes", "Samhanana — clinician notes"],
-  ["pramana", "Pramana (body proportion)"],
-  ["pramanaNotes", "Pramana — clinician notes"],
-  ["satmya", "Satmya (suitability)"],
-  ["satmyaNotes", "Satmya — clinician notes"],
-  ["sattva", "Sattva (mental strength)"],
-  ["sattvaNotes", "Sattva — clinician notes"],
-  ["abhyavaharanaShakti", "Ahara Shakti — Abhyavaharana (appetite / intake capacity)"],
-  ["jaranaShakti", "Ahara Shakti — Jarana (digestive / metabolic capacity)"],
-  ["aharaShaktiNotes", "Ahara Shakti — clinician notes"],
-  ["vyayamaShakti", "Vyayama Shakti (exercise capacity)"],
-  ["vyayamaShaktiNotes", "Vyayama Shakti — clinician notes"],
-  ["vaya", "Vaya (age category)"],
-  ["vayaYears", "Vaya — exact age (years)"],
-  ["aharaVihara", "Ahara-Vihara (diet & lifestyle)"],
-  ["nidana", "Nidana (perceived cause/trigger)"],
-  ["samprapti", "Samprapti (disease process)"],
-];
 
 export const INTAKE_LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -139,7 +110,6 @@ export function parseClinicalIntake(
 
     return {
       preferredLanguage: parsed.preferredLanguage,
-      mode: parsed.mode,
       consent: parsed.consent || {},
       chiefComplaint: String(parsed.chiefComplaint || ""),
       hpi: {
@@ -182,8 +152,6 @@ export function parseClinicalIntake(
       priorInvestigations: Array.isArray(parsed.priorInvestigations)
         ? parsed.priorInvestigations.map(String)
         : [],
-      ayush:
-        parsed.ayush && typeof parsed.ayush === "object" ? parsed.ayush : {},
       redFlags: Array.isArray(parsed.redFlags)
         ? parsed.redFlags.map(String)
         : [],

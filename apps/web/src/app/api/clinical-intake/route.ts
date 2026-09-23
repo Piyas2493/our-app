@@ -206,9 +206,6 @@ export async function POST(request: NextRequest) {
     const preferredLanguage =
       cleanString(body.preferredLanguage) || "en";
 
-    const mode =
-      cleanString(body.mode) || "GENERAL";
-
     const chiefComplaint =
       cleanString(body.chiefComplaint);
 
@@ -286,12 +283,6 @@ export async function POST(request: NextRequest) {
 
     const priorInvestigations =
       cleanArray(body.priorInvestigations);
-
-    const ayush =
-      body.ayush &&
-      typeof body.ayush === "object"
-        ? body.ayush
-        : {};
 
     /*
      * Preserve the REAL uploaded document reference.
@@ -415,7 +406,6 @@ export async function POST(request: NextRequest) {
         version: 1,
 
         preferredLanguage,
-        mode,
 
         chiefComplaint,
 
@@ -432,8 +422,6 @@ export async function POST(request: NextRequest) {
         reviewOfSystems,
 
         priorInvestigations,
-
-        ayush,
 
         sourceDocuments,
 
