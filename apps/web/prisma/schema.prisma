@@ -27,6 +27,13 @@ enum ReferralStatus {
   DECLINED
 }
 
+enum AppointmentStatus {
+  REQUESTED
+  QUEUED
+  SEEN
+  CANCELLED
+}
+
 enum ReminderStatus {
   ACTIVE
   DISABLED
@@ -134,6 +141,8 @@ model User {
 
   referrals Referral[] @relation("PatientReferrals")
 
+  appointments Appointment[] @relation("PatientAppointments")
+
   requestedTickets Ticket[]        @relation("TicketRequester")
   assignedTickets  Ticket[]        @relation("TicketAssignee")
   ticketMessages   TicketMessage[] @relation("TicketMessageAuthor")
@@ -190,6 +199,30 @@ model Referral {
 
   @@index([patientId, createdAt])
   @@index([toFacilityId, status])
+}
+
+// A lightweight request-and-status flow for the "appointment and queue
+// management" requirement -- deliberately not a calendar/slot system:
+// a patient requests a visit, a facility marks it queued, then seen.
+model Appointment {
+  id String @id @default(cuid()) @map("_id")
+
+  patientId String
+  patient   User   @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
+
+  facilityId String
+  facility   Hospital @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  reason       String
+  requestedAt  DateTime          @default(now())
+  preferredAt  DateTime?
+  status       AppointmentStatus @default(REQUESTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId, createdAt])
+  @@index([facilityId, status])
 }
 
 model MedicalRecord {
@@ -352,6 +385,8 @@ model Hospital {
 
   referralsFrom Referral[] @relation("ReferralsFrom")
   referralsTo   Referral[] @relation("ReferralsTo")
+
+  appointments Appointment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
