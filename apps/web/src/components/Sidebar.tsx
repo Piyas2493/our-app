@@ -13,6 +13,7 @@ import {
   Mic,
   Pill,
   BrainCircuit,
+  Share2,
   ShieldCheck,
   Workflow,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { key: "nav.medications", icon: Bell, href: "/medications", badge: "medications" as const },
   { key: "nav.personalizedHealth", icon: BrainCircuit, href: "/personalized-health" },
   { key: "nav.hospitalsLabs", icon: Building2, href: "/hospitals-labs" },
+  { key: "nav.referrals", icon: Share2, href: "/referrals" },
   { key: "nav.voiceAssistant", icon: Mic, href: "/voice-assistant" },
   { key: "nav.fhir", icon: Workflow, href: undefined },
   { key: "nav.consent", icon: ShieldCheck, href: "/consent" },

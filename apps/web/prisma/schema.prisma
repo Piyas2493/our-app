@@ -20,6 +20,13 @@ enum RecordStatus {
   REJECTED
 }
 
+enum ReferralStatus {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  DECLINED
+}
+
 enum ReminderStatus {
   ACTIVE
   DISABLED
@@ -125,6 +132,8 @@ model User {
 
   consentEvents ConsentEvent[] @relation("PatientConsentEvents")
 
+  referrals Referral[] @relation("PatientReferrals")
+
   requestedTickets Ticket[]        @relation("TicketRequester")
   assignedTickets  Ticket[]        @relation("TicketAssignee")
   ticketMessages   TicketMessage[] @relation("TicketMessageAuthor")
@@ -152,6 +161,35 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Tracks a patient's referral between facility tiers (sub-centre -> PHC ->
+// rural hospital -> district hospital), the continuity gap the rural
+// care-access problem statement specifically names. fromFacility is
+// optional (a referral can originate outside any facility already in the
+// system, e.g. a first sub-centre visit); toFacility is required.
+model Referral {
+  id String @id @default(cuid()) @map("_id")
+
+  patientId String
+  patient   User   @relation("PatientReferrals", fields: [patientId], references: [id], onDelete: Cascade)
+
+  fromFacilityId String?
+  fromFacility   Hospital? @relation("ReferralsFrom", fields: [fromFacilityId], references: [id], onDelete: SetNull)
+
+  toFacilityId String
+  toFacility   Hospital @relation("ReferralsTo", fields: [toFacilityId], references: [id], onDelete: Cascade)
+
+  reason String
+  status ReferralStatus @default(PENDING)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  acceptedAt  DateTime?
+  completedAt DateTime?
+
+  @@index([patientId, createdAt])
+  @@index([toFacilityId, status])
 }
 
 model MedicalRecord {
@@ -311,6 +349,9 @@ model Hospital {
 
   admissions HospitalAdmission[]
   encounters HospitalEncounter[]
+
+  referralsFrom Referral[] @relation("ReferralsFrom")
+  referralsTo   Referral[] @relation("ReferralsTo")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
