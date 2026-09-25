@@ -32,14 +32,14 @@ const NAV_ITEMS = [
   { key: "nav.vitals", icon: HeartPulse, href: "/vitals" },
   { key: "nav.medications", icon: Bell, href: "/medications", badge: "medications" as const },
   { key: "nav.personalizedHealth", icon: BrainCircuit, href: "/personalized-health" },
-  { key: "nav.hospitalsLabs", icon: Building2, href: "/hospitals-labs" },
+  { key: "nav.hospitalsLabs", icon: Building2, href: "/hospitals-labs", badge: "hospitalsLabs" as const },
   { key: "nav.referrals", icon: Share2, href: "/referrals" },
   { key: "nav.appointments", icon: CalendarClock, href: "/appointments" },
   { key: "nav.medicineAvailability", icon: PillBottle, href: "/medicine-availability" },
   { key: "nav.voiceAssistant", icon: Mic, href: "/voice-assistant" },
   { key: "nav.fhir", icon: Workflow, href: "/fhir-export" },
   { key: "nav.consent", icon: ShieldCheck, href: "/consent" },
-  { key: "nav.support", icon: LifeBuoy, href: "/support" },
+  { key: "nav.support", icon: LifeBuoy, href: "/support", badge: "support" as const },
 ];
 
 /**
@@ -54,9 +54,13 @@ const NAV_ITEMS = [
 export default function Sidebar({
   attentionRecordsCount,
   activeReminderCount,
+  openTicketsCount,
+  pendingLabReportsCount,
 }: {
   attentionRecordsCount?: number;
   activeReminderCount?: number;
+  openTicketsCount?: number;
+  pendingLabReportsCount?: number;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -85,7 +89,11 @@ export default function Sidebar({
               ? attentionRecordsCount
               : item.badge === "medications"
                 ? activeReminderCount
-                : undefined;
+                : item.badge === "support"
+                  ? openTicketsCount
+                  : item.badge === "hospitalsLabs"
+                    ? pendingLabReportsCount
+                    : undefined;
 
           return (
             <button

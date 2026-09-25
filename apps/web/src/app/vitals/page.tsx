@@ -6,24 +6,17 @@ import {
   Bell,
   Bot,
   BrainCircuit,
-  Building2,
   CheckCircle2,
   ChevronDown,
   Clock,
   Droplets,
-  FileText,
   HeartPulse,
-  Link2,
-  Mic,
-  Pill,
   RefreshCw,
-  LifeBuoy,
   ShieldCheck,
   Thermometer,
   Upload,
   User,
   Weight,
-  Workflow,
   AlertCircle,
 } from "lucide-react";
 
@@ -43,6 +36,7 @@ import LogoutButton from "@/components/LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import MobileSidebarToggle from "@/components/MobileSidebarToggle";
+import Sidebar from "@/components/Sidebar";
 
 /* =========================================================
    TYPES
@@ -204,85 +198,6 @@ type Interpretation = {
 };
 
 /* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-const navItems = [
-  {
-    label: "Dashboard",
-    icon: Activity,
-    href: "/dashboard",
-  },
-
-  {
-    label: "Health Records",
-    icon: FileText,
-    href: "/records",
-  },
-
-  {
-    label: "Health Timeline",
-    icon: Clock,
-    href: "/health-timeline",
-  },
-
-  {
-    label: "Prescriptions",
-    icon: Pill,
-    href: "/prescriptions",
-  },
-
-  {
-    label: "Vitals",
-    icon: HeartPulse,
-    href: "/vitals",
-    active: true,
-  },
-
-  {
-    label: "Medication & Reminders",
-    icon: Bell,
-    href: "/medications",
-  },
-
-  {
-    label: "Personalized Health",
-    icon: BrainCircuit,
-    href: "/personalized-health",
-  },
-
-  {
-    label: "Hospitals & Labs",
-    icon: Building2,
-    href: "/hospitals-labs",
-  },
-
-  {
-    label: "Voice Assistant",
-    icon: Mic,
-    href: "/voice-assistant",
-  },
-
-  {
-    label: "FHIR / ABDM",
-    icon: Workflow,
-    href: "/fhir-export",
-  },
-
-  {
-    label: "Consent & Privacy",
-    icon: ShieldCheck,
-    href: "/consent",
-  },
-
-  {
-    label: "Help & Support",
-    icon: LifeBuoy,
-    href: "/support",
-  },
-];
-
-/* =========================================================
    VITAL DEFINITIONS
    ========================================================= */
 
@@ -355,21 +270,6 @@ const vitalLabelKeys: Record<VitalType, string> = {
   BLOOD_GLUCOSE: "vitals.type.bloodGlucose",
   STEPS: "vitals.type.steps",
   SLEEP_DURATION: "vitals.type.sleepDuration",
-};
-
-const navLabelKeys: Record<string, string> = {
-  "Dashboard": "nav.dashboard",
-  "Health Records": "nav.records",
-  "Health Timeline": "nav.timeline",
-  "Prescriptions": "nav.prescriptions",
-  "Vitals": "nav.vitals",
-  "Medication & Reminders": "nav.medications",
-  "Personalized Health": "nav.personalizedHealth",
-  "Hospitals & Labs": "nav.hospitalsLabs",
-  "Voice Assistant": "nav.voiceAssistant",
-  "FHIR / ABDM": "nav.fhir",
-  "Consent & Privacy": "nav.consent",
-  "Help & Support": "nav.support",
 };
 
 function getVitalLabel(type: VitalType, t: (key: string) => string) {
@@ -1252,115 +1152,7 @@ export default function VitalsPage() {
           SIDEBAR
           =================================================== */}
 
-      <aside className="sidebar">
-
-        <div className="brand">
-
-          <div className="brand-icon">
-
-            <Link2
-              size={30}
-            />
-
-          </div>
-
-          <div>
-
-            <h1>
-              JeevanLink
-            </h1>
-
-            <p>
-              {t("app.tagline")}
-            </p>
-
-          </div>
-
-        </div>
-
-        <div className="sidebar-label">
-          {t("app.continuityCentre")}
-        </div>
-
-        <nav className="nav-menu">
-
-          {navItems.map(
-            (item) => {
-              const Icon =
-                item.icon;
-
-              return (
-                <button
-                  key={
-                    item.label
-                  }
-                  type="button"
-                  onClick={() => {
-                    if (
-                      item.href
-                    ) {
-                      router.push(
-                        item.href
-                      );
-                    }
-                  }}
-                  disabled={
-                    !item.href
-                  }
-                  className={`nav-item ${
-                    item.active
-                      ? "active"
-                      : ""
-                  } ${
-                    !item.href
-                      ? "cursor-default opacity-60"
-                      : ""
-                  }`}
-                >
-
-                  <Icon
-                    size={21}
-                    strokeWidth={
-                      1.8
-                    }
-                  />
-
-                  <span>
-                    {t(navLabelKeys[item.label] || item.label)}
-                  </span>
-
-                </button>
-              );
-            }
-          )}
-
-        </nav>
-
-        <div className="sidebar-bottom">
-
-          <div className="workspace-card">
-
-            <ShieldCheck
-              size={28}
-            />
-
-            <div>
-
-              <strong>
-                {t("vitals.patientControlledData")}
-              </strong>
-
-              <p>
-                {t("vitals.patientControlledDescription")}
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </aside>
+      <Sidebar />
 
       {/* ===================================================
           MAIN

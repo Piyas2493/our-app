@@ -6,26 +6,19 @@ import {
   AlertCircle,
   BedDouble,
   Bell,
-  BrainCircuit,
   Building2,
   CheckCircle2,
   ChevronDown,
   CircleDollarSign,
   FileText,
   FlaskConical,
-  HeartPulse,
-  Link2,
   LogOut,
   MapPin,
-  Mic,
-  Pill,
   RefreshCw,
-  LifeBuoy,
   ShieldCheck,
   Stethoscope,
   TestTube2,
   UserCheck,
-  Workflow,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -33,6 +26,7 @@ import { useRouter } from "next/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import MobileSidebarToggle from "@/components/MobileSidebarToggle";
+import Sidebar from "@/components/Sidebar";
 
 type Hospital = {
   id: string;
@@ -281,40 +275,6 @@ function statusClass(value?: string | null) {
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
-
-const navItems = [
-  { label: "Dashboard", icon: Activity, href: "/dashboard" },
-  { label: "Health Records", icon: FileText, href: "/records" },
-  { label: "Health Timeline", icon: Activity, href: "/health-timeline" },
-  { label: "Prescriptions", icon: Pill, href: "/prescriptions" },
-  { label: "Vitals", icon: HeartPulse, href: "/vitals" },
-  { label: "Medication & Reminders", icon: Bell, href: "/medications" },
-  { label: "Personalized Health", icon: BrainCircuit, href: "/personalized-health" },
-  { label: "Hospitals & Labs", icon: Building2, href: "/hospitals-labs" },
-  { label: "Voice Assistant", icon: Mic, href: "/voice-assistant" },
-  { label: "FHIR / ABDM", icon: Workflow, href: "/fhir-export" },
-  { label: "Consent & Privacy", icon: ShieldCheck, href: "/consent" },
-  { label: "Help & Support", icon: LifeBuoy, href: "/support" },
-];
-
-function getNavLabel(label: string, t: (key: string) => string) {
-  const labels: Record<string, string> = {
-    "Dashboard": t("nav.dashboard"),
-    "Health Records": t("nav.records"),
-    "Health Timeline": t("nav.timeline"),
-    "Prescriptions": t("nav.prescriptions"),
-    "Vitals": t("nav.vitals"),
-    "Medication & Reminders": t("nav.medications"),
-    "Personalized Health": t("nav.personalizedHealth"),
-    "Hospitals & Labs": t("nav.hospitalsLabs"),
-    "Voice Assistant": t("nav.voiceAssistant"),
-    "FHIR / ABDM": t("nav.fhir"),
-    "Consent & Privacy": t("nav.consent"),
-    "Help & Support": t("nav.support"),
-  };
-
-  return labels[label] ?? label;
-}
 
 
 function labStageState(
@@ -652,68 +612,7 @@ export default function HospitalsLabsPage() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-icon">
-            <Link2 size={30} />
-          </div>
-          <div>
-            <h1>JeevanLink</h1>
-            <p>{t("app.tagline")}</p>
-          </div>
-        </div>
-
-        <div className="sidebar-label">
-          {t("app.continuityCentre")}
-        </div>
-
-        <nav className="nav-menu">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const linked = Boolean(item.href);
-
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  if (item.href) {
-                    router.push(item.href);
-                  }
-                }}
-                disabled={!linked}
-                className={`nav-item ${
-                  item.label === "Hospitals & Labs" ? "active" : ""
-                } ${
-                  !linked
-                    ? "cursor-default opacity-60"
-                    : ""
-                }`}
-              >
-                <Icon size={21} strokeWidth={1.8} />
-                <span>{getNavLabel(item.label, t)}</span>
-
-                {item.label === "Hospitals & Labs" &&
-                  summary.pendingLabReports > 0 && (
-                    <span className="nav-badge orange">
-                      {summary.pendingLabReports}
-                    </span>
-                  )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="workspace-card">
-            <ShieldCheck size={28} />
-            <div>
-              <strong>{t("app.prototypeWorkspace")}</strong>
-              <p>{t("app.aiDisclaimer")}</p>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <Sidebar pendingLabReportsCount={summary.pendingLabReports} />
 
       <section className="main-content">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-0 overflow-hidden">
