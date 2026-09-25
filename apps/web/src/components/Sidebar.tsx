@@ -37,7 +37,7 @@ const NAV_ITEMS = [
   { key: "nav.appointments", icon: CalendarClock, href: "/appointments" },
   { key: "nav.medicineAvailability", icon: PillBottle, href: "/medicine-availability" },
   { key: "nav.voiceAssistant", icon: Mic, href: "/voice-assistant" },
-  { key: "nav.fhir", icon: Workflow, href: undefined },
+  { key: "nav.fhir", icon: Workflow, href: "/fhir-export" },
   { key: "nav.consent", icon: ShieldCheck, href: "/consent" },
   { key: "nav.support", icon: LifeBuoy, href: "/support" },
 ];

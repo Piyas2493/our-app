@@ -37,7 +37,7 @@ const navItems = [
   { label: "Personalized Health", icon: BrainCircuit, href: "/personalized-health" },
   { label: "Hospitals & Labs", icon: Building2, href: "/hospitals-labs" },
   { label: "Voice Assistant", icon: Mic, href: "/voice-assistant" },
-  { label: "FHIR / ABDM", icon: Workflow },
+  { label: "FHIR / ABDM", icon: Workflow, href: "/fhir-export" },
   { label: "Consent & Privacy", icon: ShieldCheck, href: "/consent" },
   { label: "Help & Support", icon: LifeBuoy, href: "/support" },
 ];

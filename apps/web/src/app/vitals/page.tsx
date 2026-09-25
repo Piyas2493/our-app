@@ -266,6 +266,7 @@ const navItems = [
   {
     label: "FHIR / ABDM",
     icon: Workflow,
+    href: "/fhir-export",
   },
 
   {
