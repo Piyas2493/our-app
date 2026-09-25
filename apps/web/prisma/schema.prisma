@@ -34,6 +34,12 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum MedicineStockStatus {
+  AVAILABLE
+  LOW
+  OUT
+}
+
 enum ReminderStatus {
   ACTIVE
   DISABLED
@@ -225,6 +231,25 @@ model Appointment {
   @@index([facilityId, status])
 }
 
+// Facility-level medicine availability -- admin-editable, read-only for
+// patients. Deliberately a flat name+status list, not an inventory/stock
+// system with quantities or reorder logic (out of scope for the deadline).
+model MedicineStock {
+  id String @id @default(cuid()) @map("_id")
+
+  facilityId String
+  facility   Hospital @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  medicineName String
+  status       MedicineStockStatus @default(AVAILABLE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([facilityId, medicineName])
+  @@index([facilityId])
+}
+
 model MedicalRecord {
   id String @id @default(cuid()) @map("_id")
 
@@ -387,6 +412,8 @@ model Hospital {
   referralsTo   Referral[] @relation("ReferralsTo")
 
   appointments Appointment[]
+
+  medicineStock MedicineStock[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Ban,
   Building2,
@@ -11,6 +12,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   MessageSquareWarning,
+  Pill,
   PhoneCall,
   RefreshCw,
   Share2,
@@ -228,6 +230,14 @@ export default function AdminPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <LanguageSwitcher />
+
+              <Link
+                href="/admin/medicine-stock"
+                className="flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm font-medium hover:bg-slate-50"
+              >
+                <Pill size={17} />
+                Medicine availability
+              </Link>
 
               <button
                 type="button"

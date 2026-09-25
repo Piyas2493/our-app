@@ -51,6 +51,7 @@ const en = {
   "nav.hospitalsLabs": "Hospitals & Labs",
   "nav.referrals": "Referrals",
   "nav.appointments": "Appointments",
+  "nav.medicineAvailability": "Medicine Availability",
   "nav.voiceAssistant": "Voice Assistant",
   "nav.clinician": "Clinician Verification",
   "nav.fhir": "FHIR / ABDM",
