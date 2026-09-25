@@ -8,9 +8,11 @@ is superseded; nothing in it should be treated as current._
 
 ## 1. What the current problem statement asks for
 
-The exact official PS ID/organisation and full source text weren't available when this was
-written — **paste the official text in before relying on this section for anything you'd quote to
-a judge.** As relayed to the build team, the load-bearing asks are:
+**Problem Statement ID: SIH26133** — Government of Maharashtra, "Accessibility and quality of
+public healthcare services, particularly in rural and underserved areas" (Software theme). The
+full official PDF/portal text (Problem Description / Expected Outcome in full) still hasn't been
+pasted in — **do that before relying on this section for anything you'd quote to a judge.** As
+relayed to the build team, the load-bearing asks are:
 
 - **Assisted teleconsultation.** Some form of remote/assisted support for a patient who can't
   easily reach a specialist in person.

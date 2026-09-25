@@ -4,11 +4,11 @@ Everything from the codebase and the new problem statement that a pitch deck nee
 Rewritten 25 Sep 2026 after the pivot off SIH26047 (AYUSH patient case-taking) to a rural/
 underserved public-health care-access problem statement — see the note below and Section 14.
 
-> **Fill in before presenting:** the exact **Problem Statement ID** and **organisation/ministry**
-> for the new problem statement aren't in this file because they weren't available when this was
-> written — paste the official PDF/portal text and this identity block, the "Problem slide"
-> statistics, and the compliance mapping can all be tightened to cite it directly, the same way
-> the original AYUSH version cited BMJ Open 2017 and the PS's own OPD-load figures.
+> **Still worth pasting in before presenting:** the full official problem-statement PDF/portal
+> text (Problem Description / Expected Outcome in full). The identity block below is now
+> confirmed, but the "Problem slide" statistics still cite only the qualitative points relayed to
+> the build team, not official figures — paste the full text in and those can be tightened the
+> same way the original AYUSH version cited BMJ Open 2017 and the PS's own OPD-load figures.
 
 ---
 
@@ -18,9 +18,9 @@ underserved public-health care-access problem statement — see the note below a
 |---|---|
 | Team | **JeevanSync** |
 | Team ID | **SIH43** |
-| Problem Statement ID | **⚠️ fill in** (superseded SIH26047 — that AYUSH slot filled before registration) |
-| Title | Integrated care-access and quality support for rural/underserved communities |
-| Organisation | **⚠️ fill in** |
+| Problem Statement ID | **SIH26133** (supersedes SIH26047 — that AYUSH slot filled before registration) |
+| Title | Accessibility and quality of public healthcare services, particularly in rural and underserved areas |
+| Organisation | **Government of Maharashtra** |
 | Category / Theme | Software / MedTech · HealthTech |
 | Our product name | **JeevanLink** |
 | In-app tagline | *"Your Health. Your Continuity."* |
@@ -320,8 +320,9 @@ calling system was judged out of scope for the timeline. A full offline-first PW
 ## 13. Judge Q&A prep
 
 **"Why did the problem statement change mid-build?"** The original SIH26047 (AYUSH) slot filled
-before registration completed. The team pivoted to this rural care-access problem statement and
-reused the underlying platform — records, verification, multilingual voice, consent — rather than
+before registration completed. The team pivoted to **SIH26133** (Government of Maharashtra —
+accessibility and quality of public healthcare services in rural and underserved areas) and reused
+the underlying platform — records, verification, multilingual voice, consent — rather than
 rebuilding, because most of it transfers directly (see Section 5).
 
 **"Is the AI diagnosing patients?"** No. Every output is a draft in `PENDING` until a clinician
@@ -353,12 +354,14 @@ already built to what ABDM's consent framework and DPDP require, which is the ha
 ## 14. Pivot note
 
 This deck was rewritten after JeevanLink's original SIH26047 (AYUSH patient case-taking)
-submission slot filled before registration completed. The team reused the existing platform under
-a new, rural/underserved care-access problem statement rather than starting over: AYUSH-specific
-intake fields were removed from the app, and five capabilities named by the new problem statement
-— referral tracking, appointment & queue management, medicine availability, a facility dashboard,
-and a FHIR-shaped interoperability export — were added on top of what already existed
-(longitudinal records, multilingual voice, red-flag triage, clinician verification, consent).
+submission slot filled before registration completed. The team pivoted to **SIH26133**
+(Government of Maharashtra — accessibility and quality of public healthcare services,
+particularly in rural and underserved areas) and reused the existing platform rather than starting
+over: AYUSH-specific intake fields were removed from the app, and five capabilities named by the
+new problem statement — referral tracking, appointment & queue management, medicine availability,
+a facility dashboard, and a FHIR-shaped interoperability export — were added on top of what
+already existed (longitudinal records, multilingual voice, red-flag triage, clinician
+verification, consent).
 
 ## Provenance note
 
