@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Ban,
+  Building2,
   Clock3,
   FileText,
   Inbox,
   LayoutDashboard,
   LifeBuoy,
+  MessageSquareWarning,
   PhoneCall,
   RefreshCw,
+  Share2,
   ShieldCheck,
   Stethoscope,
   UserCheck,
@@ -50,6 +53,19 @@ type Overview = {
   };
   consent: {
     totalEvents: number;
+  };
+  facilities: {
+    total: number;
+    activeAdmissions: number;
+    referrals: { PENDING: number; ACCEPTED: number; COMPLETED: number; DECLINED: number };
+    escalations: number;
+    list: Array<{
+      id: string;
+      name: string;
+      city: string | null;
+      admissions: number;
+      incomingReferrals: number;
+    }>;
   };
   recentUsers: Array<{
     id: string;
@@ -291,6 +307,56 @@ export default function AdminPage() {
             value={overview.tickets.pendingCallbacks}
           />
         </section>
+
+        {/* FACILITY DASHBOARD */}
+        <section className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={<Building2 size={21} />}
+            iconClass="bg-teal-50 text-teal-700"
+            label="Facilities"
+            value={overview.facilities.total}
+            sublabel={`${overview.facilities.activeAdmissions} active admissions`}
+          />
+          <StatCard
+            icon={<Share2 size={21} />}
+            iconClass="bg-blue-50 text-blue-700"
+            label="Referrals in progress"
+            value={overview.facilities.referrals.PENDING + overview.facilities.referrals.ACCEPTED}
+            sublabel={`${overview.facilities.referrals.COMPLETED} completed`}
+          />
+          <StatCard
+            icon={<MessageSquareWarning size={21} />}
+            iconClass="bg-rose-50 text-rose-700"
+            label="Open escalations"
+            value={overview.facilities.escalations}
+            sublabel="Red-flagged intake cases awaiting review"
+          />
+        </section>
+
+        {overview.facilities.list.length > 0 && (
+          <div className="mb-7 rounded-3xl border bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="rounded-xl bg-slate-50 p-2 text-slate-600">
+                <Building2 size={18} />
+              </div>
+              <h3 className="text-sm font-semibold text-slate-800">Facilities</h3>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {overview.facilities.list.map((hospital) => (
+                <div key={hospital.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <div>
+                    <p className="font-medium text-slate-800">{hospital.name}</p>
+                    {hospital.city && <p className="text-xs text-slate-400">{hospital.city}</p>}
+                  </div>
+                  <div className="flex shrink-0 gap-4 text-xs text-slate-500">
+                    <span>{hospital.admissions} admissions</span>
+                    <span>{hospital.incomingReferrals} referrals in</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* RECENT ACTIVITY */}
         <div className="grid gap-5 xl:grid-cols-3">

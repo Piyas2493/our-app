@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/app/lib/prisma";
 import { getCurrentUser } from "@/app/lib/auth";
+import { parseClinicalIntake } from "@/app/lib/clinicalIntake";
 
 /* =========================================================
    GET /api/admin/overview
@@ -53,6 +54,11 @@ export async function GET() {
       recentUsers,
       recentRecords,
       recentTickets,
+      totalFacilities,
+      activeAdmissions,
+      referralCounts,
+      pendingIntakeRecords,
+      facilities,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: "PATIENT" } }),
@@ -103,7 +109,37 @@ export async function GET() {
           requester: { select: { name: true, role: true } },
         },
       }),
+      prisma.hospital.count(),
+      prisma.hospitalAdmission.count({ where: { status: "ADMITTED" } }),
+      prisma.referral.groupBy({ by: ["status"], _count: { _all: true } }),
+      // Escalations aren't a stored column -- a red flag is detected at
+      // clinical-intake submission time and lives inside the record's
+      // JSON `interpretation` (see clinician/page.tsx's getCaseRedFlags).
+      // Pending-only keeps this a small, human-reviewable set.
+      prisma.medicalRecord.findMany({
+        where: { status: "PENDING", documentType: "CLINICAL_INTAKE" },
+        select: { interpretation: true },
+      }),
+      prisma.hospital.findMany({
+        select: {
+          id: true,
+          name: true,
+          city: true,
+          _count: { select: { admissions: true, referralsTo: true } },
+        },
+        orderBy: { name: "asc" },
+        take: 10,
+      }),
     ]);
+
+    const escalations = pendingIntakeRecords.filter(
+      (record) => (parseClinicalIntake(record.interpretation || "")?.redFlags.length ?? 0) > 0,
+    ).length;
+
+    const referralsByStatus = { PENDING: 0, ACCEPTED: 0, COMPLETED: 0, DECLINED: 0 };
+    for (const group of referralCounts) {
+      referralsByStatus[group.status as keyof typeof referralsByStatus] = group._count._all;
+    }
 
     return NextResponse.json({
       success: true,
@@ -131,6 +167,19 @@ export async function GET() {
       },
       consent: {
         totalEvents: totalConsentEvents,
+      },
+      facilities: {
+        total: totalFacilities,
+        activeAdmissions,
+        referrals: referralsByStatus,
+        escalations,
+        list: facilities.map((hospital) => ({
+          id: hospital.id,
+          name: hospital.name,
+          city: hospital.city,
+          admissions: hospital._count.admissions,
+          incomingReferrals: hospital._count.referralsTo,
+        })),
       },
       recentUsers,
       recentRecords,
