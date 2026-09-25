@@ -197,7 +197,9 @@ export default function VoiceAssistantPage() {
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
             Ask about your medications, records, vitals or reminders, jump to any
-            part of the app, or log a new vital — all by voice or text.
+            part of the app, or log a new vital — all by voice or text. Assisted,
+            voice-first support in your own language, available before you can
+            reach a clinician in person or by call.
           </p>
 
           <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
