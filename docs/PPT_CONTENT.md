@@ -1,7 +1,14 @@
 # JeevanLink — PPT Source Pack
 
-Everything from the codebase and the problem statement that a pitch deck needs, in one place.
-Compiled 11 Sep 2026 from `D:\JeevanLink_working` + `SIH26047.pdf`.
+Everything from the codebase and the new problem statement that a pitch deck needs, in one place.
+Rewritten 25 Sep 2026 after the pivot off SIH26047 (AYUSH patient case-taking) to a rural/
+underserved public-health care-access problem statement — see the note below and Section 14.
+
+> **Fill in before presenting:** the exact **Problem Statement ID** and **organisation/ministry**
+> for the new problem statement aren't in this file because they weren't available when this was
+> written — paste the official PDF/portal text and this identity block, the "Problem slide"
+> statistics, and the compliance mapping can all be tightened to cite it directly, the same way
+> the original AYUSH version cited BMJ Open 2017 and the PS's own OPD-load figures.
 
 ---
 
@@ -11,51 +18,69 @@ Compiled 11 Sep 2026 from `D:\JeevanLink_working` + `SIH26047.pdf`.
 |---|---|
 | Team | **JeevanSync** |
 | Team ID | **SIH43** |
-| Problem Statement ID | **SIH26047** (Problem Statement 4) |
-| Title | Patient Case-Taking Software |
-| Organisation | **All India Institute of Ayurveda, Ministry of Ayush** |
-| Category / Theme | Software / MedTech · BioTech · HealthTech |
+| Problem Statement ID | **⚠️ fill in** (superseded SIH26047 — that AYUSH slot filled before registration) |
+| Title | Integrated care-access and quality support for rural/underserved communities |
+| Organisation | **⚠️ fill in** |
+| Category / Theme | Software / MedTech · HealthTech |
 | Our product name | **JeevanLink** |
 | In-app tagline | *"Your Health. Your Continuity."* |
 | In-app section label | "Continuity Centre" |
-| PS's own working name for the solution | "MediKiosk" (tentative, per the PS) |
-| Dataset / reference video supplied by PS | None (both marked NA) — nothing to benchmark against, so the design decisions are ours to defend |
 
 ---
 
-## 2. Problem slide — the numbers (all from the PS document, safe to cite)
+## 2. Problem slide — what the new problem statement names
 
-- A well-conducted history alone yields the correct diagnosis in **70–80% of cases**, before any examination or investigation. History-taking is the single most important diagnostic activity in clinical medicine.
-- Tertiary government hospitals and apex institutions register **4,000–10,000 OPD patients per day**.
-- Doctor-to-patient consultation time is routinely **2–5 minutes**.
-- **BMJ Open, 2017**, across 67 countries: India's average primary-care consultation is **just over 2 minutes** — among the shortest globally.
-- In that window the physician must elicit history, examine, review prior records, diagnose, counsel *and* prescribe. Result: systematic under-elicitation of history, missed comorbidities, repeated questioning across visits, diagnostic error.
-- **AYUSH adds a second layer.** Ayurvedic history-taking (Trividha, Ashtavidha, **Dashavidha Pariksha**) requires Prakriti (constitution), Vikriti (current imbalance), Agni (digestive capacity), Koshtha (bowel nature), Ahara-Vihara (diet and lifestyle), Nidana (causative factors) and Samprapti (pathogenesis) — far more extensive than allopathic intake, and effectively impossible inside an OPD slot. Practitioners are forced to abbreviate the very assessment that defines personalised Ayurvedic care.
-- **Records are fragmented.** Patients carry paper prescriptions, lab reports, discharge summaries and imaging films from multiple providers — handwritten, multilingual, chronologically disordered — and the physician burns scarce minutes scanning them manually.
-- **ABDM exists but the first mile doesn't.** ABHA IDs, the Health Information Exchange and FHIR interoperability are all in place nationally; what's missing is a patient-facing platform that captures structured history and digitises documents *into* that ecosystem **before** the clinical encounter begins.
+*(Qualitative points below are from the problem statement as relayed to the build team; the
+official text should be pasted in and cited directly once available — no statistics are invented
+here that weren't actually sourced.)*
 
-### Why existing solutions fall short (PS's own framing — good "competitive landscape" slide)
+- Rural and underserved communities face **long travel distances** to reach a specialist, and
+  **shortages of specialists** once they arrive.
+- Diagnostics are **irregular** — a patient may travel for a test a facility can't currently run,
+  or for medicine a facility doesn't currently stock.
+- Medical records are **fragmented** across the sub-centre → PHC → rural hospital → district
+  hospital chain a rural patient actually moves through, with no shared longitudinal view.
+- **Referrals are delayed** or lost entirely between that chain of facilities — nothing tracks a
+  referral from the moment it's made to the moment the patient is actually seen at the next tier.
+- Patients have **limited awareness of available services** — which facility has capacity, which
+  has the needed specialist, which has the medicine in stock.
 
-| Existing approach | Why it fails |
+### Why generic solutions fall short
+
+| Existing approach | Why it fails a rural patient |
 |---|---|
-| Hospital registration systems | Capture only demographics + appointment (name, age, department, token). No clinical history, no document processing. |
-| Mobile health apps / tele-triage chatbots | Require smartphone literacy, stable connectivity and prior enrolment — excluding the elderly, rural, low-literacy and first-visit patients who are the bulk of government OPD load. |
-| Manual nurse-led triage desks | Human-resource-limited; don't scale to 5,000+ patients/day; reintroduce the same transcription bottleneck. |
-| Generic document scanners | Produce images, not structure. No extraction, no chronology, no link to a history or ABHA record. |
+| Hospital registration systems | Capture demographics + appointment only. No longitudinal history, no cross-facility referral tracking. |
+| Generic telemedicine apps | Assume smartphone literacy, stable connectivity, and a single facility relationship — not a patient moving between tiers. |
+| Paper referral slips | No status tracking; a referral can be made and then simply never followed up on either side. |
+| Facility-by-facility record systems | A patient's history resets at every new facility instead of following them. |
 
 ---
 
-## 3. Solution slide — the five-step journey
+## 3. Solution slide — the care-access journey JeevanLink implements
 
-The PS defines the journey and we implement it end-to-end:
+1. **Identify** — patient registers, selects one of 12 languages, grants granular consent
+   (audio-guided for low-literacy patients).
+2. **Assisted intake & triage** — adaptive voice + touch clinical history interview; red-flag
+   detection on emergency symptoms escalates a case to the top of the clinician queue instead of
+   routine ordering. Jeeva, the always-available voice assistant, gives multilingual support
+   before a patient can reach a clinician in person or by call.
+3. **Digitise & connect records** — prior prescriptions, lab reports and discharge summaries are
+   uploaded, OCR'd, structured, and merged into one chronological Health Timeline instead of
+   resetting at every new facility.
+4. **Coordinate across facilities** — **Referral tracking** follows a patient between facility
+   tiers with a visible status (pending → accepted → completed); **Appointment & queue** gives a
+   simple request → queued → seen flow per facility; **Medicine availability** shows real-time
+   facility-level stock so a patient doesn't travel for a medicine that isn't there.
+5. **Verify & consult** — the clinician reviews the structured summary and any escalation flags,
+   verifies or sends the record back with a correction note, and spends the actual visit on
+   examination and reasoning rather than re-taking history already captured.
+6. **Oversee** — a facility dashboard aggregates admissions, referral volume, and open
+   escalations across facilities for operational visibility, not just per-patient care.
 
-1. **Identify** — patient logs in, selects language, grants consent (audio-guided).
-2. **Converse** — AI conducts an adaptive voice + touch history interview; red flags trigger priority triage.
-3. **Scan** — patient uploads prior prescriptions, labs and discharge summaries; AI digitises, structures and timelines them.
-4. **Summarize & Route** — AI generates the structured history summary and routes it to the clinician queue (and, on the roadmap, to HIS/ABHA via FHIR).
-5. **Consult** — physician reviews a complete structured history in seconds, edits/confirms, and spends the visit on examination, reasoning and counselling.
-
-**One-line pitch:** *JeevanLink does the history-taking the OPD has no time for — in the patient's own language, by voice or touch, before they ever reach the consultation room.*
+**One-line pitch:** *JeevanLink follows a patient's care across visits and facility tiers —
+assisted intake, longitudinal records, referral and appointment tracking, and medicine
+visibility — in the patient's own language, from a first sub-centre visit through to a district
+hospital.*
 
 ---
 
@@ -67,10 +92,11 @@ The PS defines the journey and we implement it end-to-end:
 - `lucide-react` for iconography
 
 **Backend / data**
-- Next.js Route Handlers (`runtime = "nodejs"`, `maxDuration` 60–120s on AI routes)
-- Prisma ORM **6.19.3**, SQLite dev database (`prisma/dev.db`), **4 migrations**
-- Auth: `bcryptjs` password hashing + HTTP-only cookie session (`jeevanlink_session`), server-side `requireRole()` guard on every protected route
-- File storage: `private-uploads/medical/` with UUID filenames, served only through an authenticated route handler — uploads are never public static assets
+- Next.js Route Handlers (`runtime = "nodejs"`, extended `maxDuration` on AI routes)
+- Prisma ORM **6.19.3** against **MongoDB Atlas** (production cluster, not a local dev database)
+- Auth: `bcryptjs` password hashing + HTTP-only cookie session backed by a real `Session` table
+  (a random 32-byte token, never the raw user id), `requireRole()` guard on every protected route
+- File storage: **Vercel Blob**, served only through validated `https://*.public.blob.vercel-storage.com` URLs
 
 **AI layer — Google Gemini via `@google/genai` 2.19**
 | Purpose | Model | Notes |
@@ -79,8 +105,14 @@ The PS defines the journey and we implement it end-to-end:
 | Speech-to-text for intake answers | `gemini-3.6-flash` | audio in, transcript out, language-pinned |
 | Text-to-speech for audio prompts | `gemini-3.1-flash-tts-preview` | "Kore" voice, PCM→WAV assembled server-side |
 | Clinician SOAP scribe | `gemini-3.6-flash` | structures dictated notes |
-| Personalized-health explanation layer | `gemini-3.6-flash` | explains deterministic analytics, never diagnoses |
-| Patient voice assistant | `gemini-3.6-flash` | answer / navigate / action-draft, all server-validated |
+| Personalized-health explanation layer | `gemini-3.5-flash-lite` | explains deterministic analytics, never diagnoses |
+| Patient voice assistant (grounded Q&A/navigate/action-draft) | `gemini-3.6-flash` | answers validated server-side before acting |
+
+**Voice module — Jeeva** (separate FastAPI service, `./jeeva`)
+- Bhashini (MeitY) ASR + TTS across all 12 supported languages, called from a canvas-drawn "orb"
+  mounted globally in the app
+- Deployed to Render; live-verified end-to-end (mic capture → Bhashini transcription → Gemini
+  reasoning grounded in the patient's own records → Bhashini speech reply)
 
 **Quality tooling**
 - **Vitest 3.2.7** + `vite-tsconfig-paths`; `npm test` / `npm run test:watch`
@@ -88,57 +120,82 @@ The PS defines the journey and we implement it end-to-end:
 
 ---
 
-## 5. Feature inventory, mapped to the PS's four modules
+## 5. Feature inventory, mapped to the new problem statement's named capabilities
 
-### Module A — Conversational multimodal history engine ✅ built
-- `src/app/clinical-intake/page.tsx` (**73.8 KB**) — the intake flow itself
-- Dual-mode input: every question answerable by **speaking or tapping**
-- `api/clinical-intake/transcribe` — records an answer, transcribes it in the language it was spoken, explicitly instructed *not* to translate and to return an empty string rather than guess at unclear audio
-- `api/clinical-intake/speak` — reads prompts aloud in the patient's language across 12 Indian speech locales (`hi-IN`, `ta-IN`, `bn-IN`, …)
-- **AYUSH mode** — extended Dashavidha Pariksha interview (Prakriti, Vikriti and the rest) for Ayurvedic OPDs, carried through to the stored record as a dedicated `ayush` block
-- **Red-flag detection** — `src/app/lib/redFlags.ts`, 5 emergency categories, **~200 terms across all 12 languages**:
-  1. Chest pain or chest pressure
-  2. Severe breathing difficulty
-  3. Loss of consciousness / fainting
-  4. Possible acute neurological symptom (facial droop, slurred speech, sudden weakness/numbness, seizure)
-  5. Severe bleeding (including haematemesis, haemoptysis)
+### Assisted teleconsultation & digital triage ✅ built
+- `src/app/clinical-intake/page.tsx` — adaptive voice + touch clinical history interview,
+  every question answerable by speaking or tapping
+- `api/clinical-intake/transcribe` / `speak` — Gemini-backed voice capture and playback across
+  12 Indian speech locales
+- **Red-flag detection** — 5 emergency categories (chest pain, severe breathing difficulty,
+  loss of consciousness, possible stroke signs, severe bleeding) across all 12 languages;
+  a positive flag surfaces as an "Urgent" badge that sorts the case to the top of the clinician's
+  queue — verified live, not just stored on the record
+- **Jeeva** — always-available multilingual voice assistant reframed explicitly as the
+  "assisted" support layer: not a replacement for a real clinician contact, but voice-first help
+  in the patient's own language before one is reached
 
-### Module B — Medical document digitisation ✅ built
-- `api/upload-document` — PDF/JPG/JPEG/PNG/WEBP, 15 MB cap, UUID-named private storage
-- `api/analyze-document` (**23.4 KB**) — Gemini multimodal extraction with an enforced JSON schema returning:
-  - `documentType` (prescription / lab / X-ray / MRI / CT / ultrasound / discharge summary / other)
-  - `patient` (name, age, sex, patient ID), `documentDate`
-  - `medications[]` — name, dosage, frequency, duration, instructions
-  - `labResults[]` — test name, value, unit, **reference range, normal/high/low status**
-  - `radiology` — examination, body region, clinical history, technique, findings[], impression[]
-  - `warnings[]`
-- Handles **printed and handwritten**, multilingual
-- `health-timeline` page (**44 KB**) — chronological view across records
+### Longitudinal patient records & document digitisation ✅ built
+- `api/upload-document` + `api/analyze-document` — Gemini multimodal extraction (medications,
+  lab results with reference ranges, radiology findings) from printed and handwritten documents
+- `health-timeline` page — chronological, cross-record view instead of per-document silos
+- Structured clinical summary stored per intake (chief complaint → HPI → past medical/surgical →
+  medications → allergies → family → personal → review of systems → prior investigations → red
+  flags → safety note), with a best-effort English translation pass for the clinician regardless
+  of the language the patient answered in
 
-### Module C — Structured history summary ✅ built
-- Standard clinical format stored per intake: chief complaint → HPI → past medical → past surgical → medications → allergies → family → personal → review of systems → prior investigations → AYUSH block → red flags → safety note
-- **Bilingual output implemented**: the intake route runs a best-effort English translation pass so the physician console reads English regardless of the language the patient answered in — and is explicitly written to *never block submission* if that pass fails (quota/network), saving the original-language answers regardless
-- Clinician surfaces: `clinician/page.tsx` (**115 KB**), `ClinicalSnapshotPanel`, `ClinicalHistoryPanel`, `VitalTrendPanel`
-- `api/scribe/generate` — dictated clinician notes → structured **SOAP** draft, with "do not invent findings, diagnoses, medications or values" hard-coded into the prompt
+### Referral tracking ✅ built (new this pivot)
+- `Referral` model — patient, optional origin facility, required destination facility, reason,
+  status (pending → accepted → completed, or declined)
+- `/referrals` page + `api/referrals` — create and track a referral between facility tiers,
+  reusing the existing `Hospital` model for facility selection
+- Directly answers the problem statement's "delayed referrals" pain point with a visible status
+  instead of a paper slip that can silently go nowhere
 
-### Module D — Consent, privacy, ABDM ✅ consent built / ⏳ ABDM on roadmap
-- **Append-only `ConsentEvent` log** — a grant or revoke is a *new row*, never an overwrite, so every change stays independently auditable. Current status for a category = most recent event for that (patient, category) pair.
-- 5 consent categories: `CLINICAL_HISTORY`, `DOCUMENT_PROCESSING`, `CLINICIAN_SHARING`, `RESEARCH_DATA_SHARING`, `REMINDERS_NOTIFICATIONS`
-- Intake enforces consent server-side: no clinical-history consent or no clinician-sharing consent ⇒ **400, submission refused**
-- Consent checkboxes collected at intake are mirrored into the same auditable log, so the consent centre reflects real activity
-- ABHA identity + FHIR push to HIS/PHR: **roadmap** (nav entry "FHIR / ABDM" exists; auth is currently email + password)
+### Appointment & queue management ✅ built (lightweight, new this pivot)
+- `Appointment` model + `/appointments` page — a demo-credible request → queued → seen flow per
+  facility; deliberately not a full calendar/slot-optimisation system
 
-### Beyond the PS — the continuity platform we built around it
+### Medicine availability ✅ built (new this pivot)
+- `MedicineStock` model, unique per (facility, medicine) — admin-editable at `/admin/medicine-stock`,
+  read-only for patients at `/medicine-availability`, grouped by facility
+- Answers "limited awareness of available services" directly: a patient can check stock before
+  travelling for a medicine that isn't there
+
+### Facility dashboards ✅ built (new this pivot)
+- Extended the existing admin overview with facility counts, active admissions, referral status
+  breakdown, and open-escalation counts, plus a per-facility admissions/referrals table
+- Reuses data already captured elsewhere in the system rather than a new reporting pipeline
+
+### High-risk patient follow-up ✅ satisfied by existing escalation flow
+- The same red-flag detection above already routes a high-risk case to the top of the clinician's
+  review queue with a distinct "Urgent" badge — no separate follow-up system was needed
+
+### Interoperable records ✅ starting point built, ⏳ certified integration on roadmap
+- `/fhir-export` — a Patient + DocumentReference bundle built from a patient's own records,
+  shaped the way FHIR expects, downloadable as JSON
+- Explicitly labelled on the page itself as a starting point, not a certified ABDM/FHIR
+  integration — that needs sandbox credentials and a conformance review beyond this build
+
+### Multilingual support ✅ built
+- 12 languages, full UI translation (not a token switcher), red-flag detection multilingual too,
+  audio-guided consent, high-contrast/large-text accessibility toggles
+
+### Low-connectivity support ⏳ explicitly deferred
+- A full offline-first architecture for the whole app was out of scope for the timeline; flagged
+  honestly rather than silently dropped. Jeeva's own offline "golden consult" demo mode covers
+  the narrative for the voice piece specifically.
+
+### Beyond the problem statement — the continuity platform underneath it
 | Area | What's there |
 |---|---|
-| Vitals | 8 vital types, 5 sources incl. Google Health Connect / Samsung Health / wearables; `vitalAnalytics.ts` (22 KB) does validation, scoring, trend and health-summary computation; `vitals/ai-report` generates a narrative report |
-| Medications | Medication records, reminder schedules, and taken/skipped/snoozed adherence logs |
-| Prescriptions | Dedicated prescriptions view (48 KB) |
-| Hospitals & Labs | Admissions, encounters, tests, procedures, bills, bill items, insurance claims, lab orders, lab reports (91 KB page + 34 KB API) |
-| Personalized Health | Deterministic analytics first, AI explanation layer second, with explicit data-gap surfacing |
-| Voice assistant | App-wide launcher; three response types — answer, navigate, action-draft (log a vital) |
+| Vitals | 8 vital types, 5 sources incl. wearables; deterministic analytics + AI narrative report |
+| Medications | Records, reminder schedules, taken/skipped/snoozed adherence logs |
+| Prescriptions | Dedicated prescriptions view |
+| Hospitals & Labs | Admissions, encounters, tests, procedures, bills, insurance claims, lab orders/reports |
+| Personalized Health | Deterministic analytics first, AI explanation layer second, explicit data-gap surfacing |
 | Helpdesk | Ticketing with priorities, categories, assignment, threaded messages, callback requests |
-| Admin | Overview of users by role, record status breakdown, ticket pipeline, consent event counts |
+| Admin | Users by role, record status breakdown, ticket pipeline, consent event counts, facility metrics |
 
 ---
 
@@ -147,14 +204,15 @@ The PS defines the journey and we implement it end-to-end:
 Every one of these is real, in-code, and quotable:
 
 - **No AI output is ever final.** Every intake and every extracted document lands as `status: PENDING` and requires an explicit clinician **VERIFY** or **REJECT**. `VerificationAudit` logs every action with actor and note.
-- **Rejection is a closed loop.** A `REJECTED` record *requires* a correction note; the patient sees it, corrects, and resubmits — the record round-trips instead of dying.
+- **Rejection is a closed loop.** A `REJECTED` record *requires* a correction note; the patient sees it, corrects, and resubmits.
 - **Structured-output contracts.** Every Gemini call uses `responseMimeType: application/json` with a typed `responseSchema`; free-form model prose never reaches the database.
-- **Anti-hallucination prompt contracts.** "Do NOT diagnose." "Do NOT invent missing information." "Preserve uncertainty when text is unclear." "If a field is unavailable, return an empty string." "This output is a draft for clinician verification."
+- **Anti-hallucination prompt contracts.** "Do NOT diagnose." "Do NOT invent missing information." "Preserve uncertainty when text is unclear." "If a field is unavailable, return an empty string."
 - **A stored safety note on every record**: *"This is a patient-reported clinical intake draft. It is not a diagnosis or treatment recommendation and requires clinician verification."*
-- **The model can't act on its own.** The voice assistant's navigation targets are validated against a server-side whitelist and action drafts against a fixed vital-type list — the code comments it plainly: *never forward a navigation target or an action draft the model invented.*
-- **Emergency detection deliberately doesn't depend on AI.** Red-flag matching is deterministic keyword matching, so the emergency path can't fail because of an API outage, a quota exhaustion or added latency. (Documented trade-off: it will miss paraphrases; a Gemini second pass is a considered, deferred upgrade.)
-- **Graceful degradation everywhere.** Retry with exponential backoff, and typed error codes — `AI_QUOTA_EXCEEDED`, `AI_SERVICE_UNAVAILABLE`, `EMPTY_AI_RESPONSE`, `INVALID_AI_RESPONSE` — each with a patient-facing fallback ("please type your answer instead").
-- **Role-gated everything.** `requireRole("PATIENT" | "CLINICIAN" | "HELPDESK" | "ADMIN")` on every protected route; uploaded documents are served only through an authenticated handler.
+- **The model can't act on its own.** The voice assistant's navigation targets are validated against a server-side whitelist; action drafts against a fixed vital-type list.
+- **Emergency detection deliberately doesn't depend on AI.** Red-flag matching is deterministic keyword matching, so the emergency path can't fail because of an API outage or quota exhaustion. (Documented trade-off: it will miss paraphrases.)
+- **Graceful degradation everywhere.** Retry with exponential backoff, typed error codes (`AI_QUOTA_EXCEEDED`, `AI_SERVICE_UNAVAILABLE`, `EMPTY_AI_RESPONSE`, `INVALID_AI_RESPONSE`), each with a patient-facing fallback.
+- **Role-gated everything.** `requireRole("PATIENT" | "CLINICIAN" | "HELPDESK" | "ADMIN")` on every protected route; medicine-stock writes further gated to ADMIN only.
+- **A real session model, not a forgeable cookie.** The session cookie holds a random token looked up server-side, not the user's own ID.
 
 ---
 
@@ -164,20 +222,26 @@ Every one of these is real, in-code, and quotable:
 
 English · हिन्दी · বাংলা · தமிழ் · తెలుగు · मराठी · ગુજરાતી · ಕನ್ನಡ · മലയാളം · ਪੰਜਾਬੀ · ଓଡ଼ିଆ · অসমীয়া
 
-- `i18n.ts` is **4,221 lines / 437 KB** — the full UI translated, not a token language switcher
-- **Red flags are multilingual too.** A Hindi or Tamil speaker's emergency report is caught by terms in their own script — the code comment explains why this matters: English-only matching *"would silently miss every non-English emergency report."*
-- **Accessibility toggles** (`AccessibilityProvider`): **high contrast**, **large text**, **audio-guided mode** — persisted per patient in local storage
-- **Audio-guided consent** for low-literacy patients, and every question answerable by voice *or* touch, so zero digital literacy is required
+- `i18n.ts` is **10,380 lines** — the full UI translated, not a token language switcher
+- **Red flags are multilingual too** — a Hindi or Tamil speaker's emergency report is caught by terms in their own script
+- **Accessibility toggles** (`AccessibilityProvider`): high contrast, large text, audio-guided mode, persisted per patient
+- **Audio-guided consent** for low-literacy patients, and every question answerable by voice *or* touch
+- **Newer patient-facing surfaces (Referrals, Appointments, Medicine Availability) currently ship
+  in English only** — the shared `translate()` fallback means every other language still renders
+  correctly, just in English for those specific pages, honestly flagged rather than hidden
 
 ---
 
 ## 8. Data model slide
 
-**21 models, 17 enums.** Headline models:
+**25 models, 20 enums.** Headline models:
 
-`User` (4 roles) · `MedicalRecord` (PENDING/VERIFIED/REJECTED) · `Medication` · `MedicationReminder` · `MedicationLog` · `VerificationAudit` · `VitalMeasurement` · `Hospital` · `HospitalAdmission` · `HospitalEncounter` · `HospitalTest` · `HospitalProcedure` · `HospitalBill` · `HospitalBillItem` · `InsuranceClaim` · `Lab` · `LabOrder` · `LabReport` · **`ConsentEvent`** · `Ticket` · `TicketMessage`
+`User` · `Session` · `MedicalRecord` (PENDING/VERIFIED/REJECTED) · `Medication` · `MedicationReminder` · `MedicationLog` · `VerificationAudit` · `VitalMeasurement` · `Hospital` · `HospitalAdmission` · `HospitalEncounter` · `HospitalTest` · `HospitalProcedure` · `HospitalBill` · `HospitalBillItem` · `InsuranceClaim` · `Lab` · `LabOrder` · `LabReport` · `ConsentEvent` · **`Referral`** · **`Appointment`** · **`MedicineStock`** · `Ticket` · `TicketMessage`
 
-Worth calling out on the slide: the **append-only ConsentEvent** design and the **VerificationAudit** trail — those two are what make the system defensible under DPDP scrutiny.
+Worth calling out: the **append-only `ConsentEvent`** design and the **`VerificationAudit`** trail
+(defensible under DPDP scrutiny), plus the three models added for this pivot — `Referral`,
+`Appointment`, `MedicineStock` — which map directly onto the problem statement's continuity and
+availability asks rather than being generic CRUD.
 
 ---
 
@@ -185,19 +249,16 @@ Worth calling out on the slide: the **append-only ConsentEvent** design and the 
 
 | Metric | Value |
 |---|---|
-| Application pages | **18** |
+| Application pages | **24** |
 | API / route handlers | **30** |
-| React components | **9** shared + page-level |
-| Library modules | **7** |
-| Database models / enums | **21** / **17** |
-| Prisma migrations | **4** |
+| Shared React components | **12** |
+| Library modules | **13** |
+| Database models / enums | **25** / **20** |
 | Languages supported | **12** |
-| Test suites | **3** (Vitest: intake, document analysis, consent) |
-| Total source | **≈1.8 MB across ~72 files** |
-| Largest surfaces | clinician console 115 KB · hospitals & labs 91 KB · vitals 76 KB · clinical intake 74 KB |
-| Build window | active development since **28 Aug 2026** (first migration) — ~2 weeks |
-
-*(Sizes are file bytes, which is exact; line counts quoted anywhere should be treated as approximate except `i18n.ts` = 4,221 lines.)*
+| Test suites | **3** (Vitest, 44 tests: intake, document analysis, consent) |
+| Total source | **≈2.7 MB** |
+| Largest surfaces | clinician console ~106 KB · hospitals & labs ~86 KB · vitals ~72 KB · clinical intake ~59 KB |
+| Build window | **9 Sep – 25 Sep 2026** (~2.5 weeks), including the mid-build pivot off the original problem statement |
 
 ---
 
@@ -209,56 +270,103 @@ Worth calling out on the slide: the **append-only ConsentEvent** design and the 
 | DPDP — auditability | ✅ append-only consent log + verification audit trail |
 | DPDP — purpose limitation | ✅ consent is per-purpose, enforced server-side at submission |
 | Consent explained to low-literacy patients | ✅ audio-guided consent |
+| Interoperable records (FHIR-shaped) | 🟡 partial — Patient + DocumentReference export live, not yet a certified ABDM/FHIR integration |
 | ABDM — ABHA identity | ⏳ roadmap (currently email + password) |
-| ABDM — FHIR push to HIS / PHR | ⏳ roadmap (nav entry present, integration pending) |
-| Secure processing of health data | ✅ role-gated APIs, private authenticated document storage, hashed credentials |
+| Secure processing of health data | ✅ role-gated APIs, private authenticated document storage, hashed credentials, real session tokens |
 
 ---
 
 ## 11. Honest status slide (recommended — judges reward this)
 
-**Demo-ready today:** multilingual voice + touch intake with AYUSH mode · multilingual red-flag triage · document upload → OCR → structured extraction · clinician verification queue with correction loop · consent centre with audit log · patient dashboard, vitals, medications, prescriptions, timeline · AI scribe · voice assistant · helpdesk · admin overview.
+**Demo-ready today:** multilingual voice + touch clinical intake · multilingual red-flag triage
+routing to an urgent clinician queue · document upload → OCR → structured extraction ·
+longitudinal health timeline · referral tracking between facility tiers · lightweight
+appointment/queue flow · facility-level medicine availability · facility dashboard (admissions,
+referrals, escalations) · FHIR-shaped record export · clinician verification queue with
+correction loop · consent centre with audit log · Jeeva voice assistant (deployed, Bhashini +
+Gemini) · patient dashboard, vitals, medications, prescriptions · helpdesk · admin overview.
 
-**Next up:** ABHA-based identification · real FHIR/ABDM push to HIS and Personal Health Record · model-assisted second-pass red-flag detection for paraphrases · Postgres + hosted deployment.
+**Next up:** real ABDM sandbox integration and ABHA-based identity; a genuine offline-first mode
+for low-connectivity facilities; Referrals/Appointments/Medicine Availability copy translated
+into the other 11 languages (currently English-only, honest fallback in place); the
+handwriting-OCR microservice (`ocr-service/`) is built and works locally but hit a memory limit
+on its free-tier hosting and isn't live in the deployed demo.
 
-**Explicitly deferred (and why):** sign-language avatar — the PS itself designates it a stretch goal; Bhashini/AI4Bharat ASR — Gemini's audio understanding covers the same need today, and we'd want real noisy-OPD recordings before committing to a swap.
+**Explicitly deferred (and why):** real video teleconsultation infrastructure — Jeeva's voice
+assistant covers the "assisted" support layer named in the problem statement; building a live
+calling system was judged out of scope for the timeline. A full offline-first PWA for every page
+— too large a change this late; flagged rather than attempted partially.
 
 ---
 
 ## 12. Suggested slide order (13 slides)
 
 1. Title — team, PS ID, product name, tagline
-2. The 2-minute consultation (problem stats)
-3. The AYUSH complication (Dashavidha Pariksha vs. OPD time)
-4. Fragmented records + the ABDM first-mile gap
-5. Why existing solutions fall short (the 4-row table)
-6. Solution overview — the five-step journey **(use the flowchart artifact)**
-7. Module A — conversational multimodal intake (voice/touch, 12 languages, AYUSH mode)
-8. Module B — document digitisation (extraction schema + timeline)
-9. Module C — structured summary + clinician verification loop
-10. Module D — consent, privacy, ABDM roadmap
-11. Architecture & stack
-12. Why it's safe — AI guardrails (the differentiator slide)
-13. Impact, status and roadmap
+2. The care-access gap (problem statement points)
+3. Why generic solutions fall short (the 4-row table)
+4. Solution overview — the six-step journey
+5. Assisted intake & digital triage (voice/touch, red-flag escalation, Jeeva)
+6. Longitudinal records (document digitisation + health timeline)
+7. Referral tracking + appointment & queue management
+8. Medicine availability + facility dashboards
+9. Consent, privacy, and the FHIR-shaped interoperability starting point
+10. Architecture & stack
+11. Why it's safe — AI guardrails (the differentiator slide)
+12. Data model + compliance mapping
+13. Impact, honest status, and roadmap
 
 ---
 
 ## 13. Judge Q&A prep
 
-**"Is the AI diagnosing patients?"** No. Every output is a draft in `PENDING` until a clinician verifies it, every prompt forbids diagnosis, and a safety note is stored on the record itself. The clinician can reject with a correction note, which sends it back to the patient.
+**"Why did the problem statement change mid-build?"** The original SIH26047 (AYUSH) slot filled
+before registration completed. The team pivoted to this rural care-access problem statement and
+reused the underlying platform — records, verification, multilingual voice, consent — rather than
+rebuilding, because most of it transfers directly (see Section 5).
 
-**"What if the AI hallucinates a medication?"** Three defences: a typed response schema so only declared fields come back, prompts that require empty values over guesses, and a clinician verification gate before anything is trusted.
+**"Is the AI diagnosing patients?"** No. Every output is a draft in `PENDING` until a clinician
+verifies it, every prompt forbids diagnosis, and a safety note is stored on the record itself.
 
-**"What happens when the API is down or out of quota?"** Typed error codes and fallbacks — voice fails over to typing, document analysis returns a clear retry message. Critically, **red-flag emergency detection never calls the AI at all**, so triage can't be taken down by an outage.
+**"What if the AI hallucinates a medication?"** A typed response schema so only declared fields
+come back, prompts that require empty values over guesses, and a clinician verification gate
+before anything is trusted.
 
-**"Does this work for a patient who can't read?"** Audio-guided consent and prompts, every question answerable by speaking, high-contrast and large-text modes, and 12 languages in native script.
+**"What happens when the API is down or out of quota?"** Typed error codes and fallbacks —
+voice fails over to typing, document analysis returns a clear retry message. Red-flag emergency
+detection never calls the AI at all, so triage can't be taken down by an outage.
 
-**"How is this different from a chatbot?"** A chatbot needs a smartphone, connectivity and prior enrolment. This is a kiosk-first, zero-training, walk-up flow designed for the first-visit patient — plus it digitises the paper they're carrying, which no chatbot does.
+**"Does this work for a patient who can't read?"** Audio-guided consent and prompts, every
+question answerable by speaking, high-contrast and large-text modes, 12 languages in native
+script.
 
-**"Is ABDM integration real?"** Not yet — that's stated plainly on the roadmap slide. The consent architecture underneath it (granular, revocable, append-only, purpose-scoped) is already built to what ABDM's consent framework and DPDP require, which is the harder half.
+**"How does this actually help someone stuck between a sub-centre and a district hospital?"**
+Referral tracking gives the referral a visible status instead of a paper slip; medicine
+availability tells them before they travel whether the destination facility has what they need;
+the longitudinal record means their history follows them instead of resetting at each facility.
+
+**"Is ABDM integration real?"** Not yet — stated plainly on the roadmap. The FHIR-shaped export
+and the consent architecture underneath it (granular, revocable, append-only, purpose-scoped) are
+already built to what ABDM's consent framework and DPDP require, which is the harder half.
 
 ---
 
+## 14. Pivot note
+
+This deck was rewritten after JeevanLink's original SIH26047 (AYUSH patient case-taking)
+submission slot filled before registration completed. The team reused the existing platform under
+a new, rural/underserved care-access problem statement rather than starting over: AYUSH-specific
+intake fields were removed from the app, and five capabilities named by the new problem statement
+— referral tracking, appointment & queue management, medicine availability, a facility dashboard,
+and a FHIR-shaped interoperability export — were added on top of what already existed
+(longitudinal records, multilingual voice, red-flag triage, clinician verification, consent).
+
 ## Provenance note
 
-API route handlers, `redFlags.ts`, `AccessibilityProvider.tsx`, `schema.prisma`, `auth.ts` and `package.json` were read in full. The largest page components (clinician 115 KB, hospitals-labs 91 KB, vitals 76 KB, clinical-intake 74 KB) were keyword-scanned rather than read end-to-end, so feature descriptions for those surfaces are accurate at the level of what they contain, not exhaustive about every interaction.
+`prisma/schema.prisma`, `package.json`, `Sidebar.tsx`, and the API routes for referrals,
+appointments, medicine-stock, and fhir-export were read in full for this rewrite. Model/enum/page/
+route counts, source size, and the largest-page sizes were measured directly from the repository
+on 25 Sep 2026, not carried over from the pre-pivot version of this document. The AYUSH-era
+problem-statement statistics (70–80% diagnostic yield from history, BMJ Open 2017, OPD load
+figures) have been removed rather than reused, since they were specific to that problem statement
+and do not apply here — the new problem slide intentionally cites only what was actually given
+for the new problem statement, with a placeholder for the official source text.
