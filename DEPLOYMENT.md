@@ -2,9 +2,16 @@
 
 Stack: **Vercel** (Next.js app -- frontend + API routes together, its
 native strength -- plus **Vercel Blob** for medical document storage)
-+ **Render** (jeeva + ocr-service -- persistent Python servers, which
-Vercel's serverless model doesn't support) + **MongoDB Atlas**
-(database).
++ **Render** (jeeva -- a persistent Python server, which Vercel's
+serverless model doesn't support) + **MongoDB Atlas** (database).
+
+`ocr-service` (handwriting OCR) is intentionally not deployed -- see
+the note in `render.yaml`. It's a redundant second-opinion signal on
+top of Gemini's own multimodal OCR (which already handles printed and
+handwritten documents on its own), OOM'd on Render's free tier even
+with the smallest model, and the app degrades cleanly without it
+rather than failing. The code still works locally if that decision
+changes.
 
 No Cloudflare -- it was considered for document storage and as a
 DNS/firewall front, but Vercel Blob solves the storage problem natively
@@ -70,39 +77,40 @@ other reasons). Anything uploaded after the cutover works normally.
 touching any hosting platform -- `npm run dev` from `apps/web`, log in,
 click around. This is much easier to debug here than after deploying.
 
-## 4. Render (jeeva + ocr-service)
+## 4. Render (jeeva)
 
 **[YOU]**
 1. Sign up / log in at [dashboard.render.com](https://dashboard.render.com), connect your GitHub account.
-2. New -> Blueprint -> select this repo. Render reads `render.yaml` at the repo root and creates both services automatically.
-3. For `jeevanlink-jeeva`, fill in the env vars it asks for (marked `sync: false` in the blueprint): `BHASHINI_ULCA_API_KEY` (your real key) and `JEEVA_FRONTEND_ORIGIN` (leave as `http://localhost:3000` for now -- you'll update this in step 6).
-4. For `jeevanlink-ocr-service`, same for `OCR_FRONTEND_ORIGIN`.
-5. Deploy. Once live, note both services' `.onrender.com` URLs.
+2. New -> Blueprint -> select this repo. Render reads `render.yaml` at the repo root and creates the `jeevanlink-jeeva` service automatically.
+3. Fill in the env vars it asks for (marked `sync: false` in the blueprint): `BHASHINI_ULCA_API_KEY` (your real key) and `JEEVA_FRONTEND_ORIGIN` (leave as `http://localhost:3000` for now -- you'll update this in step 6).
+4. Deploy. Once live, note the service's `.onrender.com` URL.
 
-Note: `ocr-service` needs Render's paid **Standard** plan (already set
-in `render.yaml`) -- the free tier's 512MB RAM isn't enough to load the
-TrOCR model. `jeeva` runs fine on the free tier.
+`jeeva` runs fine on Render's free tier. (`ocr-service` is deliberately
+not part of this blueprint -- see the top of this file.) If you
+previously created a `jeevanlink-ocr-service` on Render from an earlier
+deploy attempt, it's safe to delete from your Render dashboard -- it's
+not referenced by anything live and would otherwise sit there
+OOM-crash-looping for no benefit.
 
 ## 5. Vercel (the Next.js app)
 
 **[YOU]**
 1. Sign up / log in at [vercel.com](https://vercel.com), connect GitHub.
-2. New Project -> import this repo -> set the **Root Directory** to `apps/web` (this is a monorepo; jeeva/ocr-service aren't part of this deployment).
-3. Add every env var from `apps/web/.env.example` in Project Settings -> Environment Variables, using your real values -- including `NEXT_PUBLIC_JEEVA_SERVICE_URL` and `HANDWRITING_OCR_URL` set to the real Render URLs from step 4. (`BLOB_READ_WRITE_TOKEN` gets set automatically once you attach Blob storage per step 2 -- no need to add it manually here.)
+2. New Project -> import this repo -> set the **Root Directory** to `apps/web` (this is a monorepo; jeeva isn't part of this deployment).
+3. Add every env var from `apps/web/.env.example` in Project Settings -> Environment Variables, using your real values -- including `NEXT_PUBLIC_JEEVA_SERVICE_URL` set to the real Render URL from step 4. Leave `HANDWRITING_OCR_URL` unset -- `ocr-service` isn't deployed, and the app degrades cleanly without it. (`BLOB_READ_WRITE_TOKEN` gets set automatically once you attach Blob storage per step 2 -- no need to add it manually here.)
 4. Deploy. Note the `.vercel.app` URL it gives you.
 
 ## 6. Close the loop: update CORS with the real Vercel URL
 
-Now that you know the real Vercel URL, go back to Render and update:
-- `jeevanlink-jeeva`'s `JEEVA_FRONTEND_ORIGIN` -> your Vercel URL
-- `jeevanlink-ocr-service`'s `OCR_FRONTEND_ORIGIN` -> same
+Now that you know the real Vercel URL, go back to Render and update
+`jeevanlink-jeeva`'s `JEEVA_FRONTEND_ORIGIN` -> your Vercel URL.
 
-Both services will redeploy automatically when you save an env var change.
+The service will redeploy automatically when you save the env var change.
 
 ## What's already done in the codebase
 
 - Prisma schema migrated from SQLite to MongoDB (`apps/web/prisma/schema.prisma`) -- validated against Prisma's MongoDB rules.
 - Medical document storage moved from local disk to Vercel Blob (`apps/web/src/app/lib/documentStorage.ts`) -- Vercel's filesystem doesn't persist, so this was a hard blocker, not optional polish. Only ever fetches URLs on Vercel Blob's own domain (an SSRF guard, since Blob URLs are external rather than an internal key we fully control).
 - `apps/web/scripts/mongo-migration/` -- the one-time data migration tooling (delete this folder once you've migrated).
-- `render.yaml` at the repo root -- Render Blueprint for jeeva + ocr-service.
+- `render.yaml` at the repo root -- Render Blueprint for jeeva.
 - `apps/web/.env.example` -- every env var the deployed app needs.

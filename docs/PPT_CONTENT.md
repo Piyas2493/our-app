@@ -286,13 +286,15 @@ correction loop · consent centre with audit log · Jeeva voice assistant (deplo
 Gemini) · patient dashboard, vitals, medications, prescriptions · helpdesk · admin overview.
 
 **Next up:** real ABDM sandbox integration and ABHA-based identity; a genuine offline-first mode
-for low-connectivity facilities; the handwriting-OCR microservice (`ocr-service/`) is built and
-works locally but hit a memory limit
-on its free-tier hosting and isn't live in the deployed demo.
+for low-connectivity facilities.
 
 **Explicitly deferred (and why):** real video teleconsultation infrastructure — Jeeva's voice
 assistant covers the "assisted" support layer named in the problem statement; building a live
-calling system was judged out of scope for the timeline. A full offline-first PWA for every page
+calling system was judged out of scope for the timeline. The handwriting-OCR microservice
+(`ocr-service/`) is built and works locally but OOM'd on free-tier hosting; decided against paying
+for a bigger plan since it was only ever a redundant second-opinion signal on top of Gemini's own
+multimodal OCR, which already handles printed and handwritten documents as the primary extraction
+path — not live in the deployed demo, and the app degrades cleanly without it. A full offline-first PWA for every page
 — too large a change this late; flagged rather than attempted partially.
 
 ---

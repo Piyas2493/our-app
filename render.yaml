@@ -1,7 +1,18 @@
-# Render Blueprint -- deploys jeeva and ocr-service as persistent Python
-# web services (unlike Vercel, Render runs long-lived processes, which
-# these actually need: uvicorn stays up between requests rather than
-# cold-starting per invocation).
+# Render Blueprint -- deploys jeeva as a persistent Python web service
+# (unlike Vercel, Render runs long-lived processes, which jeeva actually
+# needs: uvicorn stays up between requests rather than cold-starting per
+# invocation).
+#
+# ocr-service (handwriting OCR) is deliberately NOT deployed here. It's a
+# redundant second-opinion signal on top of Gemini's own multimodal OCR
+# (which already handles printed and handwritten documents as the primary
+# extraction path), from a model explicitly not fine-tuned on real clinical
+# handwriting -- and it OOM'd even on the smallest model at Render's free
+# 512MB limit. Paying for the Standard plan for an unverified accuracy
+# signal wasn't worth it this close to the deadline; the app already
+# degrades cleanly without it (extractHandwritingText() returns null and
+# Gemini's own extraction proceeds unaffected). The code still lives at
+# ocr-service/ and runs fine locally if this decision changes later.
 #
 # The Next.js app itself is NOT here -- it goes to Vercel, which is
 # built for exactly that (unified frontend + API routes, zero config).
@@ -24,14 +35,3 @@ services:
         sync: false # set to the real Vercel deployment URL, e.g. https://jeevanlink.vercel.app
       - key: JEEVANLINK_DEMO
         value: "1"
-
-  - type: web
-    name: jeevanlink-ocr-service
-    runtime: python
-    rootDir: ocr-service
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    plan: standard # torch + transformers need more than the free tier's 512MB RAM to load the TrOCR model
-    envVars:
-      - key: OCR_FRONTEND_ORIGIN
-        sync: false # set to the real Vercel deployment URL, e.g. https://jeevanlink.vercel.app

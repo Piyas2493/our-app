@@ -101,14 +101,20 @@ AI backbone, and a separate FastAPI voice service (`jeeva/`, Bhashini ASR/TTS) d
 1. **Decide on real ABDM/FHIR integration** — needs ABDM sandbox credentials (project owner's own
    action) before any code work is meaningful. The current `/fhir-export` is a defensible starting
    point, not something to keep polishing without real credentials to test against.
-2. **`ocr-service/` (handwriting OCR microservice)** is built and works locally
-   (`microsoft/trocr-small-handwritten`) but OOM'd on Render's free tier even after switching to
-   the smaller model. Options, not yet decided: pay for a Standard Render plan, skip it for the
-   demo (Gemini's own multimodal extraction in `analyze-document/route.ts` already handles most
-   documents without it), or re-architect around ONNX Runtime for a smaller memory footprint.
-3. **Low-connectivity/offline-first mode**, if there's time after the above — full scope was
+2. **Low-connectivity/offline-first mode**, if there's time after the above — full scope was
    judged too large for the deadline; even a partial version (e.g. read-only cached record view)
    would need a deliberate design pass, not a quick patch.
+
+**Resolved: `ocr-service/` (handwriting OCR microservice) will not be deployed.** It's built and
+works locally (`microsoft/trocr-small-handwritten`) but OOM'd on Render's free tier even with the
+smallest model. Decided against paying for Render's Standard plan or re-architecting around ONNX
+Runtime: `analyze-document/route.ts`'s Gemini multimodal extraction already does OCR (printed and
+handwritten) as the primary mechanism, and `ocr-service` was only ever a redundant second-opinion
+signal from a model explicitly not fine-tuned on real clinical handwriting -- not worth recurring
+cost or remaining engineering time for an already-unverified accuracy uplift, four days out from
+the deadline. `handwritingOcr.ts` already degrades to `null` when the service is unreachable, so
+this has zero functional impact; the code stays in the repo and runs fine locally if revisited
+later. `render.yaml` and `DEPLOYMENT.md` were updated to stop deploying it (commit pending).
 
 ## 4. Priority 2 — stretch / explicitly deferred
 
@@ -121,7 +127,6 @@ AI backbone, and a separate FastAPI voice service (`jeeva/`, Bhashini ASR/TTS) d
 
 ## 5. Suggested order of operations
 
-Get a decision from the project owner on ABDM sandbox credentials and the `ocr-service` hosting
-question before spending more engineering time on either — both are blocked on external
-accounts/decisions, not code. Low-connectivity support only after both of those are resolved or
-explicitly deprioritised.
+Get a decision from the project owner on ABDM sandbox credentials before spending more engineering
+time there — it's blocked on an external account, not code. Low-connectivity support only after
+that's resolved or explicitly deprioritised.
