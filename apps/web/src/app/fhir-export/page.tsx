@@ -46,12 +46,12 @@ export default function FhirExportPage() {
         const result = await response.json().catch(() => null);
 
         if (!response.ok) {
-          throw new Error(result?.issue?.[0]?.diagnostics || "Unable to build the FHIR export.");
+          throw new Error(result?.issue?.[0]?.diagnostics || t("fhirExport.errors.load"));
         }
 
         setBundle(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to build the FHIR export.");
+        setError(err instanceof Error ? err.message : t("fhirExport.errors.load"));
       } finally {
         setLoading(false);
       }
@@ -79,7 +79,7 @@ export default function FhirExportPage() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="flex items-center gap-3 text-slate-500">
             <RefreshCw size={20} className="animate-spin" />
-            Building your FHIR export…
+            {t("fhirExport.loading")}
           </div>
         </div>
       </main>
@@ -99,12 +99,9 @@ export default function FhirExportPage() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
                 {t("nav.fhir")}
               </p>
-              <h1 className="mt-2 text-4xl font-semibold tracking-tight">FHIR-shaped export</h1>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight">{t("fhirExport.pageTitle")}</h1>
               <p className="mt-2 max-w-2xl text-slate-500">
-                A Patient + DocumentReference bundle built from your JeevanLink records, shaped
-                the way FHIR expects. It is a starting point for interoperability, not a
-                certified ABDM integration — that needs sandbox credentials and a conformance
-                review beyond this prototype.
+                {t("fhirExport.pageSubtitle")}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -115,8 +112,7 @@ export default function FhirExportPage() {
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" />
             <p>
-              This export is illustrative only. It has not been validated against the ABDM/FHIR
-              conformance profiles required for real-world exchange with another health system.
+              {t("fhirExport.disclaimer")}
             </p>
           </div>
 
@@ -134,9 +130,9 @@ export default function FhirExportPage() {
                     <Workflow size={20} />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-800">FHIR Bundle</p>
+                    <p className="font-semibold text-slate-800">{t("fhirExport.bundleTitle")}</p>
                     <p className="text-xs text-slate-400">
-                      {entryCount} resource{entryCount === 1 ? "" : "s"} (1 Patient +{" "}
+                      {entryCount} {entryCount === 1 ? t("fhirExport.resourceSingular") : t("fhirExport.resourcePlural")} (1 Patient +{" "}
                       {Math.max(entryCount - 1, 0)} DocumentReference)
                     </p>
                   </div>
@@ -147,7 +143,7 @@ export default function FhirExportPage() {
                   className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
                 >
                   <Download size={15} />
-                  Download JSON
+                  {t("fhirExport.downloadButton")}
                 </button>
               </div>
 

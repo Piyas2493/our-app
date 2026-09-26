@@ -35,6 +35,13 @@ const STATUS_STYLE: Record<Referral["status"], string> = {
   DECLINED: "bg-rose-100 text-rose-700",
 };
 
+const STATUS_LABEL_KEY: Record<Referral["status"], "referrals.status.pending" | "referrals.status.accepted" | "referrals.status.completed" | "referrals.status.declined"> = {
+  PENDING: "referrals.status.pending",
+  ACCEPTED: "referrals.status.accepted",
+  COMPLETED: "referrals.status.completed",
+  DECLINED: "referrals.status.declined",
+};
+
 export default function ReferralsPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -80,13 +87,13 @@ export default function ReferralsPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to load referrals.");
+        throw new Error(result?.error || t("referrals.errors.load"));
       }
 
       setReferrals(result.referrals || []);
       setHospitals(result.hospitals || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load referrals.");
+      setError(err instanceof Error ? err.message : t("referrals.errors.load"));
     } finally {
       setLoading(false);
     }
@@ -117,7 +124,7 @@ export default function ReferralsPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to create referral.");
+        throw new Error(result?.error || t("referrals.errors.create"));
       }
 
       setReason("");
@@ -125,7 +132,7 @@ export default function ReferralsPage() {
       setToFacilityId("");
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create referral.");
+      setError(err instanceof Error ? err.message : t("referrals.errors.create"));
     } finally {
       setSubmitting(false);
     }
@@ -145,12 +152,12 @@ export default function ReferralsPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to update referral.");
+        throw new Error(result?.error || t("referrals.errors.update"));
       }
 
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update referral.");
+      setError(err instanceof Error ? err.message : t("referrals.errors.update"));
     } finally {
       setUpdatingId(null);
     }
@@ -174,7 +181,7 @@ export default function ReferralsPage() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="flex items-center gap-3 text-slate-500">
             <RefreshCw size={20} className="animate-spin" />
-            Loading referrals…
+            {t("referrals.loading")}
           </div>
         </div>
       </main>
@@ -194,10 +201,9 @@ export default function ReferralsPage() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
                 {t("nav.referrals")}
               </p>
-              <h1 className="mt-2 text-4xl font-semibold tracking-tight">Referral tracking</h1>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight">{t("referrals.pageTitle")}</h1>
               <p className="mt-2 max-w-2xl text-slate-500">
-                Track a referral between facility tiers — from a sub-centre or PHC up to a
-                rural or district hospital — so nothing falls through the gap between visits.
+                {t("referrals.pageSubtitle")}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -215,19 +221,19 @@ export default function ReferralsPage() {
             onSubmit={createReferral}
             className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
           >
-            <h2 className="text-lg font-semibold text-slate-800">New referral</h2>
+            <h2 className="text-lg font-semibold text-slate-800">{t("referrals.formTitle")}</h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  From facility (optional)
+                  {t("referrals.fromFacilityLabel")}
                 </label>
                 <select
                   value={fromFacilityId}
                   onChange={(event) => setFromFacilityId(event.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 >
-                  <option value="">Not applicable</option>
+                  <option value="">{t("referrals.notApplicable")}</option>
                   {hospitals.map((hospital) => (
                     <option key={hospital.id} value={hospital.id}>
                       {hospital.name}
@@ -239,7 +245,7 @@ export default function ReferralsPage() {
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Referred to *
+                  {t("referrals.toFacilityLabel")}
                 </label>
                 <select
                   value={toFacilityId}
@@ -247,7 +253,7 @@ export default function ReferralsPage() {
                   required
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 >
-                  <option value="">Select a facility</option>
+                  <option value="">{t("referrals.selectFacility")}</option>
                   {hospitals.map((hospital) => (
                     <option key={hospital.id} value={hospital.id}>
                       {hospital.name}
@@ -257,7 +263,7 @@ export default function ReferralsPage() {
                 </select>
                 {hospitals.length === 0 && (
                   <p className="mt-1 text-xs text-slate-400">
-                    No facilities yet — add one from Hospitals &amp; Labs first.
+                    {t("referrals.noFacilitiesHint")}
                   </p>
                 )}
               </div>
@@ -265,7 +271,7 @@ export default function ReferralsPage() {
 
             <div className="mt-4">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Reason for referral *
+                {t("referrals.reasonLabel")}
               </label>
               <textarea
                 value={reason}
@@ -273,7 +279,7 @@ export default function ReferralsPage() {
                 required
                 rows={2}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
-                placeholder="e.g. Suspected fracture, needs X-ray and orthopaedic review"
+                placeholder={t("referrals.reasonPlaceholder")}
               />
             </div>
 
@@ -283,16 +289,16 @@ export default function ReferralsPage() {
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? <RefreshCw size={15} className="animate-spin" /> : <ArrowRight size={15} />}
-              Create referral
+              {t("referrals.createButton")}
             </button>
           </form>
 
           <h2 className="mb-3 text-sm font-bold uppercase tracking-[0.16em] text-slate-500">
-            Your referrals
+            {t("referrals.yourReferrals")}
           </h2>
 
           {referrals.length === 0 ? (
-            <p className="text-sm text-slate-400">No referrals recorded yet.</p>
+            <p className="text-sm text-slate-400">{t("referrals.empty")}</p>
           ) : (
             <div className="space-y-3">
               {referrals.map((referral) => (
@@ -314,7 +320,7 @@ export default function ReferralsPage() {
                           {referral.reason}
                         </p>
                         <p className="mt-2 text-xs text-slate-400">
-                          Created {formatDate(referral.createdAt)}
+                          {t("referrals.createdLabel")} {formatDate(referral.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -327,7 +333,7 @@ export default function ReferralsPage() {
                         {referral.status === "ACCEPTED" && <Check size={13} />}
                         {referral.status === "COMPLETED" && <CheckCheck size={13} />}
                         {referral.status === "DECLINED" && <X size={13} />}
-                        {referral.status.charAt(0) + referral.status.slice(1).toLowerCase()}
+                        {t(STATUS_LABEL_KEY[referral.status])}
                       </span>
 
                       {referral.status === "PENDING" && (
@@ -338,7 +344,7 @@ export default function ReferralsPage() {
                             onClick={() => void updateStatus(referral.id, "ACCEPTED")}
                             className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                           >
-                            Accept
+                            {t("referrals.accept")}
                           </button>
                           <button
                             type="button"
@@ -346,7 +352,7 @@ export default function ReferralsPage() {
                             onClick={() => void updateStatus(referral.id, "DECLINED")}
                             className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                           >
-                            Decline
+                            {t("referrals.decline")}
                           </button>
                         </div>
                       )}
@@ -358,7 +364,7 @@ export default function ReferralsPage() {
                           onClick={() => void updateStatus(referral.id, "COMPLETED")}
                           className="rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
                         >
-                          Mark completed
+                          {t("referrals.markCompleted")}
                         </button>
                       )}
                     </div>

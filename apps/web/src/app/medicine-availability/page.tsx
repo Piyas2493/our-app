@@ -24,6 +24,12 @@ const STATUS_STYLE: Record<StockEntry["status"], string> = {
   OUT: "bg-rose-100 text-rose-700",
 };
 
+const STATUS_LABEL_KEY: Record<StockEntry["status"], "medicineAvailability.status.available" | "medicineAvailability.status.low" | "medicineAvailability.status.out"> = {
+  AVAILABLE: "medicineAvailability.status.available",
+  LOW: "medicineAvailability.status.low",
+  OUT: "medicineAvailability.status.out",
+};
+
 export default function MedicineAvailabilityPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -61,12 +67,12 @@ export default function MedicineAvailabilityPage() {
         const result = await response.json().catch(() => null);
 
         if (!response.ok || !result?.success) {
-          throw new Error(result?.error || "Unable to load medicine availability.");
+          throw new Error(result?.error || t("medicineAvailability.errors.load"));
         }
 
         setStock(result.stock || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load medicine availability.");
+        setError(err instanceof Error ? err.message : t("medicineAvailability.errors.load"));
       } finally {
         setLoading(false);
       }
@@ -88,7 +94,7 @@ export default function MedicineAvailabilityPage() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="flex items-center gap-3 text-slate-500">
             <RefreshCw size={20} className="animate-spin" />
-            Loading medicine availability…
+            {t("medicineAvailability.loading")}
           </div>
         </div>
       </main>
@@ -108,9 +114,9 @@ export default function MedicineAvailabilityPage() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
                 {t("nav.medicineAvailability")}
               </p>
-              <h1 className="mt-2 text-4xl font-semibold tracking-tight">Medicine availability</h1>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight">{t("medicineAvailability.pageTitle")}</h1>
               <p className="mt-2 max-w-2xl text-slate-500">
-                Check what's in stock at nearby facilities before you travel for it.
+                {t("medicineAvailability.pageSubtitle")}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -125,7 +131,7 @@ export default function MedicineAvailabilityPage() {
           )}
 
           {byFacility.size === 0 ? (
-            <p className="text-sm text-slate-400">No medicine availability recorded yet.</p>
+            <p className="text-sm text-slate-400">{t("medicineAvailability.empty")}</p>
           ) : (
             <div className="space-y-5">
               {Array.from(byFacility.values()).map(({ facility, entries }) => (
@@ -149,9 +155,7 @@ export default function MedicineAvailabilityPage() {
                         <span
                           className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[entry.status]}`}
                         >
-                          {entry.status === "OUT"
-                            ? "Out of stock"
-                            : entry.status.charAt(0) + entry.status.slice(1).toLowerCase()}
+                          {t(STATUS_LABEL_KEY[entry.status])}
                         </span>
                       </div>
                     ))}

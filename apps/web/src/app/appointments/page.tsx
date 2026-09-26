@@ -34,6 +34,13 @@ const STATUS_STYLE: Record<Appointment["status"], string> = {
   CANCELLED: "bg-slate-200 text-slate-500",
 };
 
+const STATUS_LABEL_KEY: Record<Appointment["status"], "appointments.status.requested" | "appointments.status.queued" | "appointments.status.seen" | "appointments.status.cancelled"> = {
+  REQUESTED: "appointments.status.requested",
+  QUEUED: "appointments.status.queued",
+  SEEN: "appointments.status.seen",
+  CANCELLED: "appointments.status.cancelled",
+};
+
 export default function AppointmentsPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -77,13 +84,13 @@ export default function AppointmentsPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to load appointments.");
+        throw new Error(result?.error || t("appointments.errors.load"));
       }
 
       setAppointments(result.appointments || []);
       setHospitals(result.hospitals || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load appointments.");
+      setError(err instanceof Error ? err.message : t("appointments.errors.load"));
     } finally {
       setLoading(false);
     }
@@ -114,7 +121,7 @@ export default function AppointmentsPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to create appointment.");
+        throw new Error(result?.error || t("appointments.errors.create"));
       }
 
       setReason("");
@@ -122,7 +129,7 @@ export default function AppointmentsPage() {
       setPreferredAt("");
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create appointment.");
+      setError(err instanceof Error ? err.message : t("appointments.errors.create"));
     } finally {
       setSubmitting(false);
     }
@@ -142,12 +149,12 @@ export default function AppointmentsPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || "Unable to update appointment.");
+        throw new Error(result?.error || t("appointments.errors.update"));
       }
 
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update appointment.");
+      setError(err instanceof Error ? err.message : t("appointments.errors.update"));
     } finally {
       setUpdatingId(null);
     }
@@ -172,7 +179,7 @@ export default function AppointmentsPage() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="flex items-center gap-3 text-slate-500">
             <RefreshCw size={20} className="animate-spin" />
-            Loading appointments…
+            {t("appointments.loading")}
           </div>
         </div>
       </main>
@@ -192,10 +199,9 @@ export default function AppointmentsPage() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">
                 {t("nav.appointments")}
               </p>
-              <h1 className="mt-2 text-4xl font-semibold tracking-tight">Appointments &amp; queue</h1>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight">{t("appointments.pageTitle")}</h1>
               <p className="mt-2 max-w-2xl text-slate-500">
-                Request a visit at a facility and track where it stands — requested, queued, or
-                seen — instead of waiting in the dark.
+                {t("appointments.pageSubtitle")}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -213,12 +219,12 @@ export default function AppointmentsPage() {
             onSubmit={createAppointment}
             className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
           >
-            <h2 className="text-lg font-semibold text-slate-800">Request an appointment</h2>
+            <h2 className="text-lg font-semibold text-slate-800">{t("appointments.formTitle")}</h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Facility *
+                  {t("appointments.facilityLabel")}
                 </label>
                 <select
                   value={facilityId}
@@ -226,7 +232,7 @@ export default function AppointmentsPage() {
                   required
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
                 >
-                  <option value="">Select a facility</option>
+                  <option value="">{t("appointments.selectFacility")}</option>
                   {hospitals.map((hospital) => (
                     <option key={hospital.id} value={hospital.id}>
                       {hospital.name}
@@ -236,14 +242,14 @@ export default function AppointmentsPage() {
                 </select>
                 {hospitals.length === 0 && (
                   <p className="mt-1 text-xs text-slate-400">
-                    No facilities yet — add one from Hospitals &amp; Labs first.
+                    {t("appointments.noFacilitiesHint")}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Preferred date/time (optional)
+                  {t("appointments.preferredLabel")}
                 </label>
                 <input
                   type="datetime-local"
@@ -256,7 +262,7 @@ export default function AppointmentsPage() {
 
             <div className="mt-4">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Reason for visit *
+                {t("appointments.reasonLabel")}
               </label>
               <textarea
                 value={reason}
@@ -264,7 +270,7 @@ export default function AppointmentsPage() {
                 required
                 rows={2}
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
-                placeholder="e.g. Follow-up for blood pressure medication"
+                placeholder={t("appointments.reasonPlaceholder")}
               />
             </div>
 
@@ -274,16 +280,16 @@ export default function AppointmentsPage() {
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? <RefreshCw size={15} className="animate-spin" /> : <ArrowRight size={15} />}
-              Request appointment
+              {t("appointments.requestButton")}
             </button>
           </form>
 
           <h2 className="mb-3 text-sm font-bold uppercase tracking-[0.16em] text-slate-500">
-            Your appointments
+            {t("appointments.yourAppointments")}
           </h2>
 
           {appointments.length === 0 ? (
-            <p className="text-sm text-slate-400">No appointments requested yet.</p>
+            <p className="text-sm text-slate-400">{t("appointments.empty")}</p>
           ) : (
             <div className="space-y-3">
               {appointments.map((appointment) => (
@@ -302,9 +308,9 @@ export default function AppointmentsPage() {
                           {appointment.reason}
                         </p>
                         <p className="mt-2 text-xs text-slate-400">
-                          Requested {formatDate(appointment.createdAt)}
+                          {t("appointments.requestedLabel")} {formatDate(appointment.createdAt)}
                           {appointment.preferredAt
-                            ? ` · Preferred ${formatDate(appointment.preferredAt)}`
+                            ? ` · ${t("appointments.preferredPrefix")} ${formatDate(appointment.preferredAt)}`
                             : ""}
                         </p>
                       </div>
@@ -318,7 +324,7 @@ export default function AppointmentsPage() {
                         {appointment.status === "QUEUED" && <Hourglass size={13} />}
                         {appointment.status === "SEEN" && <CheckCheck size={13} />}
                         {appointment.status === "CANCELLED" && <Ban size={13} />}
-                        {appointment.status.charAt(0) + appointment.status.slice(1).toLowerCase()}
+                        {t(STATUS_LABEL_KEY[appointment.status])}
                       </span>
 
                       {appointment.status === "REQUESTED" && (
@@ -329,7 +335,7 @@ export default function AppointmentsPage() {
                             onClick={() => void updateStatus(appointment.id, "QUEUED")}
                             className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                           >
-                            Mark queued
+                            {t("appointments.markQueued")}
                           </button>
                           <button
                             type="button"
@@ -337,7 +343,7 @@ export default function AppointmentsPage() {
                             onClick={() => void updateStatus(appointment.id, "CANCELLED")}
                             className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                           >
-                            Cancel
+                            {t("appointments.cancel")}
                           </button>
                         </div>
                       )}
@@ -349,7 +355,7 @@ export default function AppointmentsPage() {
                           onClick={() => void updateStatus(appointment.id, "SEEN")}
                           className="rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
                         >
-                          Mark seen
+                          {t("appointments.markSeen")}
                         </button>
                       )}
                     </div>
