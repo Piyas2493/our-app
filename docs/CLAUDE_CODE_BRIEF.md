@@ -77,13 +77,11 @@ AI backbone, and a separate FastAPI voice service (`jeeva/`, Bhashini ASR/TTS) d
   `src/app/fhir-export/page.tsx` previews and downloads it, explicitly labelled a starting point,
   not a certified ABDM/FHIR integration — no ABDM sandbox credentials exist, and none of this has
   been validated against real conformance profiles.
-- **Multilingual support** — pre-existing 12-language `i18n.ts` (10,380 lines), unchanged in
-  scope by the pivot. **New this pivot's own pages (Referrals, Appointments, Medicine
-  Availability, FHIR export) ship English-only content** — only their nav labels were added to
-  every language's dictionary; the page bodies rely on `translate()`'s fallback-to-English chain.
-  This mirrors the pre-existing precedent set by `hospitals-labs/page.tsx`, which also only
-  partially translates its content — not a regression introduced by this pivot, but also not yet
-  fixed for the new pages either.
+- **Multilingual support** — pre-existing 12-language `i18n.ts` (now 11,000+ lines), unchanged in
+  scope by the pivot. Referrals, Appointments, Medicine Availability, and FHIR export (all new
+  this pivot) are now fully translated across all 12 languages, including their nav labels — 67
+  keys added covering page titles/subtitles, form labels, buttons, empty states, per-status
+  labels, and error messages, verified live with the UI switched to Hindi.
 - **Low-connectivity support** — explicitly out of scope for the timeline; not attempted for the
   app as a whole. Jeeva has its own separate offline "golden consult" demo-mode script
   (`apps/web/scripts/generate-jeeva-demo.ts`) that covers the narrative for the voice piece only.
@@ -100,18 +98,15 @@ AI backbone, and a separate FastAPI voice service (`jeeva/`, Bhashini ASR/TTS) d
 
 ## 3. Priority 1 — what's actually left
 
-1. **Translate the 4 new pages** (Referrals, Appointments, Medicine Availability, FHIR export)
-   into the other 11 languages. Currently functional but English-only; low risk, mechanical work,
-   follow the exact key-naming pattern already used for every other page in `i18n.ts`.
-2. **Decide on real ABDM/FHIR integration** — needs ABDM sandbox credentials (project owner's own
+1. **Decide on real ABDM/FHIR integration** — needs ABDM sandbox credentials (project owner's own
    action) before any code work is meaningful. The current `/fhir-export` is a defensible starting
    point, not something to keep polishing without real credentials to test against.
-3. **`ocr-service/` (handwriting OCR microservice)** is built and works locally
+2. **`ocr-service/` (handwriting OCR microservice)** is built and works locally
    (`microsoft/trocr-small-handwritten`) but OOM'd on Render's free tier even after switching to
    the smaller model. Options, not yet decided: pay for a Standard Render plan, skip it for the
    demo (Gemini's own multimodal extraction in `analyze-document/route.ts` already handles most
    documents without it), or re-architect around ONNX Runtime for a smaller memory footprint.
-4. **Low-connectivity/offline-first mode**, if there's time after the above — full scope was
+3. **Low-connectivity/offline-first mode**, if there's time after the above — full scope was
    judged too large for the deadline; even a partial version (e.g. read-only cached record view)
    would need a deliberate design pass, not a quick patch.
 
@@ -126,8 +121,7 @@ AI backbone, and a separate FastAPI voice service (`jeeva/`, Bhashini ASR/TTS) d
 
 ## 5. Suggested order of operations
 
-Do item 1 (translations) first — it's mechanical, low-risk, and closes an honest gap without any
-design decisions. Then get a decision from the project owner on ABDM sandbox credentials and the
-`ocr-service` hosting question before spending more engineering time on either — both are blocked
-on external accounts/decisions, not code. Low-connectivity support only after both of those are
-resolved or explicitly deprioritised.
+Get a decision from the project owner on ABDM sandbox credentials and the `ocr-service` hosting
+question before spending more engineering time on either — both are blocked on external
+accounts/decisions, not code. Low-connectivity support only after both of those are resolved or
+explicitly deprioritised.

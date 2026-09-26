@@ -222,13 +222,12 @@ Every one of these is real, in-code, and quotable:
 
 English · हिन्दी · বাংলা · தமிழ் · తెలుగు · मराठी · ગુજરાતી · ಕನ್ನಡ · മലയാളം · ਪੰਜਾਬੀ · ଓଡ଼ିଆ · অসমীয়া
 
-- `i18n.ts` is **10,380 lines** — the full UI translated, not a token language switcher
+- `i18n.ts` is **11,000+ lines** — the full UI translated, not a token language switcher, including
+  the four newest pages built for this pivot (Referrals, Appointments, Medicine Availability,
+  FHIR export)
 - **Red flags are multilingual too** — a Hindi or Tamil speaker's emergency report is caught by terms in their own script
 - **Accessibility toggles** (`AccessibilityProvider`): high contrast, large text, audio-guided mode, persisted per patient
 - **Audio-guided consent** for low-literacy patients, and every question answerable by voice *or* touch
-- **Newer patient-facing surfaces (Referrals, Appointments, Medicine Availability) currently ship
-  in English only** — the shared `translate()` fallback means every other language still renders
-  correctly, just in English for those specific pages, honestly flagged rather than hidden
 
 ---
 
@@ -287,9 +286,8 @@ correction loop · consent centre with audit log · Jeeva voice assistant (deplo
 Gemini) · patient dashboard, vitals, medications, prescriptions · helpdesk · admin overview.
 
 **Next up:** real ABDM sandbox integration and ABHA-based identity; a genuine offline-first mode
-for low-connectivity facilities; Referrals/Appointments/Medicine Availability copy translated
-into the other 11 languages (currently English-only, honest fallback in place); the
-handwriting-OCR microservice (`ocr-service/`) is built and works locally but hit a memory limit
+for low-connectivity facilities; the handwriting-OCR microservice (`ocr-service/`) is built and
+works locally but hit a memory limit
 on its free-tier hosting and isn't live in the deployed demo.
 
 **Explicitly deferred (and why):** real video teleconsultation infrastructure — Jeeva's voice
